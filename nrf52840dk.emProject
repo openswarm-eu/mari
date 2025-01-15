@@ -70,5 +70,6 @@
   <import file_name="app/app-drv.emProject" />
   <import file_name="app/app-node.emProject" /> -->
   <import file_name="drv/drv.emProject" />
-  <import file_name="app/app.emProject" />
+  <import file_name="app/app-gateway.emProject" />
+  <import file_name="app/app-node.emProject" />
 </solution>
