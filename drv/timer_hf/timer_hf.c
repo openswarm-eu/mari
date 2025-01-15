@@ -101,7 +101,7 @@ static timer_hf_vars_t _timer_hf_vars[TIMER_COUNT] = { 0 };
 
 //=========================== public ===========================================
 
-void db_timer_hf_init(timer_hf_t timer) {
+void dl_timer_hf_init(timer_hf_t timer) {
     // No delay is running after initialization
     _timer_hf_vars[timer].running = false;
 
@@ -121,12 +121,12 @@ void db_timer_hf_init(timer_hf_t timer) {
     _devs[timer].p->TASKS_START = 1;
 }
 
-uint32_t db_timer_hf_now(timer_hf_t timer) {
+uint32_t dl_timer_hf_now(timer_hf_t timer) {
     _devs[timer].p->TASKS_CAPTURE[_devs[timer].cc_num] = 1;
     return _devs[timer].p->CC[_devs[timer].cc_num];
 }
 
-void db_timer_hf_set_periodic_us(timer_hf_t timer, uint8_t channel, uint32_t us, timer_hf_cb_t cb) {
+void dl_timer_hf_set_periodic_us(timer_hf_t timer, uint8_t channel, uint32_t us, timer_hf_cb_t cb) {
     assert(channel >= 0 && channel < _devs[timer].cc_num + 1);  // Make sure the required channel is correct
     assert(cb);                                                 // Make sure the callback function is valid
 
@@ -138,7 +138,7 @@ void db_timer_hf_set_periodic_us(timer_hf_t timer, uint8_t channel, uint32_t us,
     _devs[timer].p->CC[channel] += _timer_hf_vars[timer].timer_callback[channel].period_us;
 }
 
-void db_timer_hf_set_oneshot_us(timer_hf_t timer, uint8_t channel, uint32_t us, timer_hf_cb_t cb) {
+void dl_timer_hf_set_oneshot_us(timer_hf_t timer, uint8_t channel, uint32_t us, timer_hf_cb_t cb) {
     assert(channel >= 0 && channel < _devs[timer].cc_num + 1);  // Make sure the required channel is correct
     assert(cb);                                                 // Make sure the callback function is valid
 
@@ -150,15 +150,15 @@ void db_timer_hf_set_oneshot_us(timer_hf_t timer, uint8_t channel, uint32_t us, 
     _devs[timer].p->CC[channel] += _timer_hf_vars[timer].timer_callback[channel].period_us;
 }
 
-void db_timer_hf_set_oneshot_ms(timer_hf_t timer, uint8_t channel, uint32_t ms, timer_hf_cb_t cb) {
-    db_timer_hf_set_oneshot_us(timer, channel, ms * 1000UL, cb);
+void dl_timer_hf_set_oneshot_ms(timer_hf_t timer, uint8_t channel, uint32_t ms, timer_hf_cb_t cb) {
+    dl_timer_hf_set_oneshot_us(timer, channel, ms * 1000UL, cb);
 }
 
-void db_timer_hf_set_oneshot_s(timer_hf_t timer, uint8_t channel, uint32_t s, timer_hf_cb_t cb) {
-    db_timer_hf_set_oneshot_us(timer, channel, s * 1000UL * 1000UL, cb);
+void dl_timer_hf_set_oneshot_s(timer_hf_t timer, uint8_t channel, uint32_t s, timer_hf_cb_t cb) {
+    dl_timer_hf_set_oneshot_us(timer, channel, s * 1000UL * 1000UL, cb);
 }
 
-void db_timer_hf_delay_us(timer_hf_t timer, uint32_t us) {
+void dl_timer_hf_delay_us(timer_hf_t timer, uint32_t us) {
     _devs[timer].p->TASKS_CAPTURE[_devs[timer].cc_num] = 1;
     _devs[timer].p->CC[_devs[timer].cc_num] += us;
     _timer_hf_vars[timer].running = true;
@@ -169,12 +169,12 @@ void db_timer_hf_delay_us(timer_hf_t timer, uint32_t us) {
     }
 }
 
-void db_timer_hf_delay_ms(timer_hf_t timer, uint32_t ms) {
-    db_timer_hf_delay_us(timer, ms * 1000UL);
+void dl_timer_hf_delay_ms(timer_hf_t timer, uint32_t ms) {
+    dl_timer_hf_delay_us(timer, ms * 1000UL);
 }
 
-void db_timer_hf_delay_s(timer_hf_t timer, uint32_t s) {
-    db_timer_hf_delay_us(timer, s * 1000UL * 1000UL);
+void dl_timer_hf_delay_s(timer_hf_t timer, uint32_t s) {
+    dl_timer_hf_delay_us(timer, s * 1000UL * 1000UL);
 }
 
 //=========================== interrupt ========================================

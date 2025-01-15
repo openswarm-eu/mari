@@ -65,7 +65,7 @@ void _compute_dotbot_action(cell_t cell, dl_radio_event_t *radio_event);
 
 //=========================== public ===========================================
 
-void db_scheduler_init(node_type_t node_type, schedule_t *application_schedule) {
+void dl_scheduler_init(node_type_t node_type, schedule_t *application_schedule) {
     _schedule_vars.node_type = node_type;
 
     if (_schedule_vars.available_schedules_len == DOTLINK_N_SCHEDULES) return; // FIXME: this is just to simplify debugging (allows calling init multiple times)
@@ -82,7 +82,7 @@ void db_scheduler_init(node_type_t node_type, schedule_t *application_schedule) 
     }
 }
 
-bool db_scheduler_set_schedule(uint8_t schedule_id) {
+bool dl_scheduler_set_schedule(uint8_t schedule_id) {
     for (size_t i = 0; i < DOTLINK_N_SCHEDULES; i++) {
         if (_schedule_vars.available_schedules[i].id == schedule_id) {
             _schedule_vars.active_schedule_ptr = &_schedule_vars.available_schedules[i];
@@ -92,7 +92,7 @@ bool db_scheduler_set_schedule(uint8_t schedule_id) {
     return false;
 }
 
-bool db_scheduler_assign_next_available_uplink_cell(uint64_t node_id) {
+bool dl_scheduler_assign_next_available_uplink_cell(uint64_t node_id) {
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
         if (cell->type == SLOT_TYPE_UPLINK && cell->assigned_node_id == NULL) {
@@ -103,7 +103,7 @@ bool db_scheduler_assign_next_available_uplink_cell(uint64_t node_id) {
     return false;
 }
 
-bool db_scheduler_deassign_uplink_cell(uint64_t node_id) {
+bool dl_scheduler_deassign_uplink_cell(uint64_t node_id) {
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
         if (cell->type == SLOT_TYPE_UPLINK && cell->assigned_node_id == node_id) {
@@ -114,14 +114,14 @@ bool db_scheduler_deassign_uplink_cell(uint64_t node_id) {
     return false;
 }
 
-dl_radio_event_t db_scheduler_tick(uint64_t asn) {
+dl_radio_event_t dl_scheduler_tick(uint64_t asn) {
     // get the current cell
     size_t cell_index = asn % (_schedule_vars.active_schedule_ptr)->n_cells;
     cell_t cell = (_schedule_vars.active_schedule_ptr)->cells[cell_index];
 
     dl_radio_event_t radio_event = {
         .radio_action = DOTLINK_RADIO_ACTION_SLEEP,
-        .frequency = db_scheduler_get_frequency(cell.type, asn, cell.channel_offset),
+        .frequency = dl_scheduler_get_frequency(cell.type, asn, cell.channel_offset),
         .slot_type = cell.type, // FIXME: only for debugging, remove before merge
     };
     if (_schedule_vars.node_type == NODE_TYPE_GATEWAY) {
@@ -138,7 +138,7 @@ dl_radio_event_t db_scheduler_tick(uint64_t asn) {
     return radio_event;
 }
 
-uint8_t db_scheduler_get_frequency(slot_type_t slot_type, uint64_t asn, uint8_t channel_offset) {
+uint8_t dl_scheduler_get_frequency(slot_type_t slot_type, uint64_t asn, uint8_t channel_offset) {
     if (slot_type == SLOT_TYPE_BEACON) {
         // special handling in case the cell is a beacon
         size_t beacon_channel = DOTLINK_N_BLE_REGULAR_FREQUENCIES + (asn % DOTLINK_N_BLE_ADVERTISING_FREQUENCIES);

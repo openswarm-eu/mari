@@ -53,7 +53,7 @@ typedef struct {
     radio_pdu_t     pdu;       ///< Variable that stores the radio PDU (protocol data unit) that arrives and the radio packets that are about to be sent.
     radio_cb_t      callback;  ///< Function pointer, stores the callback to use in the RADIO_Irq handler.
     uint8_t         state;     ///< Internal state of the radio
-    db_radio_mode_t mode;      ///< PHY protocol used by the radio (BLE, IEEE 802.15.4)
+    dl_radio_mode_t mode;      ///< PHY protocol used by the radio (BLE, IEEE 802.15.4)
 } radio_vars_t;
 
 //=========================== variables ========================================
@@ -78,7 +78,7 @@ static void _radio_enable(void);
 
 //=========================== public ===========================================
 
-void db_radio_init(radio_cb_t callback, db_radio_mode_t mode) {
+void dl_radio_init(radio_cb_t callback, dl_radio_mode_t mode) {
 
 #if defined(NRF5340_XXAA)
     // On nrf53 configure constant latency mode for better performances
@@ -214,11 +214,11 @@ void db_radio_init(radio_cb_t callback, db_radio_mode_t mode) {
     NVIC_EnableIRQ(RADIO_IRQn);
 }
 
-void db_radio_set_frequency(uint8_t freq) {
+void dl_radio_set_frequency(uint8_t freq) {
     NRF_RADIO->FREQUENCY = freq << RADIO_FREQUENCY_FREQUENCY_Pos;
 }
 
-void db_radio_set_channel(uint8_t channel) {
+void dl_radio_set_channel(uint8_t channel) {
     uint8_t freq;
     if (radio_vars.mode == DB_RADIO_IEEE802154_250Kbit) {
         assert(channel >= 11 && channel <= 26 && "Channel value must be between 11 and 26 for IEEE 802.15.4");
@@ -227,14 +227,14 @@ void db_radio_set_channel(uint8_t channel) {
         freq = _ble_chan_to_freq[channel];
     }
 
-    db_radio_set_frequency(freq);
+    dl_radio_set_frequency(freq);
 }
 
-void db_radio_set_network_address(uint32_t addr) {
+void dl_radio_set_network_address(uint32_t addr) {
     NRF_RADIO->BASE0 = addr;
 }
 
-void db_radio_tx(const uint8_t *tx_buffer, uint8_t length) {
+void dl_radio_tx(const uint8_t *tx_buffer, uint8_t length) {
     radio_vars.pdu.length = length;
     memcpy(radio_vars.pdu.payload, tx_buffer, length);
 
@@ -257,7 +257,7 @@ void db_radio_tx(const uint8_t *tx_buffer, uint8_t length) {
     radio_vars.state = RADIO_STATE_RX;
 }
 
-void db_radio_rx(void) {
+void dl_radio_rx(void) {
     NRF_RADIO->SHORTS   = RADIO_SHORTS_COMMON | (RADIO_SHORTS_DISABLED_RXEN_Enabled << RADIO_SHORTS_DISABLED_RXEN_Pos);
     NRF_RADIO->INTENSET = RADIO_INTERRUPTS;
 
@@ -268,7 +268,7 @@ void db_radio_rx(void) {
     radio_vars.state = RADIO_STATE_RX;
 }
 
-void db_radio_disable(void) {
+void dl_radio_disable(void) {
     NRF_RADIO->INTENCLR        = RADIO_INTERRUPTS;
     NRF_RADIO->SHORTS          = 0;
     NRF_RADIO->EVENTS_DISABLED = 0;
@@ -277,17 +277,17 @@ void db_radio_disable(void) {
     radio_vars.state = RADIO_STATE_IDLE;
 }
 
-int8_t db_radio_rssi(void) {
+int8_t dl_radio_rssi(void) {
     return (uint8_t)NRF_RADIO->RSSISAMPLE * -1;
 }
 
 
-void db_radio_tx_prepare(const uint8_t *tx_buffer, uint8_t length) {
+void dl_radio_tx_prepare(const uint8_t *tx_buffer, uint8_t length) {
     radio_vars.pdu.length = length;
     memcpy(radio_vars.pdu.payload, tx_buffer, length);
 }
 
-void db_radio_tx_dispatch(void) {
+void dl_radio_tx_dispatch(void) {
     NRF_RADIO->SHORTS = RADIO_SHORTS_COMMON | (RADIO_SHORTS_DISABLED_RXEN_Enabled << RADIO_SHORTS_DISABLED_RXEN_Pos);
     if (radio_vars.state == RADIO_STATE_IDLE) {
 

@@ -56,7 +56,7 @@ int main(void) {
     schedule_t schedule = schedule_huge;
     node_type_t node_type = NODE_TYPE_DOTBOT;
 
-    db_scheduler_init(node_type, &schedule);
+    dl_scheduler_init(node_type, &schedule);
     printf("\n==== Device of type %c and id %llx is using schedule %d ====\n\n", node_type, db_device_id(), schedule.id);
 
     // initialize the TSCH driver

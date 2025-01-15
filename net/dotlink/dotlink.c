@@ -142,10 +142,10 @@ void dl_dotlink_init(node_type_t node_type, dl_cb_t application_callback) {
 #endif
 
     // initialize the high frequency clock
-    db_timer_hf_init(DOTLINK_TIMER_DEV);
+    dl_timer_hf_init(DOTLINK_TIMER_DEV);
 
     // initialize the radio
-    db_radio_init(&_dl_callback, DB_RADIO_BLE_2MBit);  // set the radio callback to our dotlink catch function
+    dl_radio_init(&_dl_callback, DB_RADIO_BLE_2MBit);  // set the radio callback to our dotlink catch function
 
     // Save the application callback to use in our interruption
     _dl_vars.application_callback = application_callback;
@@ -172,14 +172,14 @@ void dl_dotlink_init(node_type_t node_type, dl_cb_t application_callback) {
     // initialize and start the state machine
     _set_next_state(DOTLINK_STATE_BEGIN_SLOT);
     uint32_t time_padding = 50; // account for function call and interrupt latency
-    db_timer_hf_set_oneshot_us(DOTLINK_TIMER_DEV, DOTLINK_TIMER_INTER_SLOT_CHANNEL, time_padding, _dl_state_machine_handler); // trigger the state machine
+    dl_timer_hf_set_oneshot_us(DOTLINK_TIMER_DEV, DOTLINK_TIMER_INTER_SLOT_CHANNEL, time_padding, _dl_state_machine_handler); // trigger the state machine
 }
 
 //=========================== private ==========================================
 
 // state machine handler
 void _dl_state_machine_handler(void) {
-    uint32_t start_ts = db_timer_hf_now(DOTLINK_TIMER_DEV);
+    uint32_t start_ts = dl_timer_hf_now(DOTLINK_TIMER_DEV);
     // printf("State: %d\n", _dl_vars.state);
 
     switch (_dl_vars.state) {
@@ -202,7 +202,7 @@ void _dl_state_machine_handler(void) {
             // update state
             _set_next_state(DOTLINK_STATE_IS_RXING);
             // receive packets
-            db_radio_rx(); // remember: this always starts with before the actual transmission begins, i.e, rx_offset < tx_offset always holds
+            dl_radio_rx(); // remember: this always starts with before the actual transmission begins, i.e, rx_offset < tx_offset always holds
             _set_timer_and_compensate(DOTLINK_TIMER_INTRA_SLOT_CHANNEL, dl_default_slot_timing.rx_max, start_ts, &_dl_state_machine_handler);
             break;
         case DOTLINK_STATE_DO_TX:
@@ -221,15 +221,15 @@ void _dl_state_machine_handler(void) {
 
             _set_next_state(DOTLINK_STATE_IS_TXING);
             _set_timer_and_compensate(DOTLINK_TIMER_INTRA_SLOT_CHANNEL, dl_default_slot_timing.tx_max, start_ts, &_dl_state_machine_handler);
-            // db_radio_tx(_dl_vars.packet, _dl_vars.packet_len);
-            db_radio_tx_dispatch();
+            // dl_radio_tx(_dl_vars.packet, _dl_vars.packet_len);
+            dl_radio_tx_dispatch();
             break;
         // in case was receiving or sending, now just finish. timeslot will begin again because of the inter-slot timer
         case DOTLINK_STATE_IS_RXING:
         case DOTLINK_STATE_IS_TXING:
             DEBUG_GPIO_CLEAR(&pin1);
             // just disable the radio and set the next state
-            db_radio_disable();
+            dl_radio_disable();
             _set_next_state(DOTLINK_STATE_BEGIN_SLOT);
             break;
         default:
@@ -238,11 +238,11 @@ void _dl_state_machine_handler(void) {
 }
 
 void _handler_sm_begin_slot(void) {
-    uint32_t start_ts = db_timer_hf_now(DOTLINK_TIMER_DEV);
+    uint32_t start_ts = dl_timer_hf_now(DOTLINK_TIMER_DEV);
 
     uint32_t timer_duration = 0;
 
-    dl_radio_event_t event = db_scheduler_tick(_dl_vars.asn++);
+    dl_radio_event_t event = dl_scheduler_tick(_dl_vars.asn++);
     // printf("  Event %c:   %c, %d    Slot duration: %d\n", event.slot_type, event.radio_action, event.frequency, dl_default_slot_timing.total_duration);
 
     switch (event.radio_action) {
@@ -258,9 +258,9 @@ void _handler_sm_begin_slot(void) {
             }
 
             // configure radio
-            db_radio_disable();
-            db_radio_set_frequency(event.frequency);
-            db_radio_tx_prepare(_dl_vars.packet, _dl_vars.packet_len);
+            dl_radio_disable();
+            dl_radio_set_frequency(event.frequency);
+            dl_radio_tx_prepare(_dl_vars.packet, _dl_vars.packet_len);
 
             // update state
             _dl_vars.event = event;
@@ -276,8 +276,8 @@ void _handler_sm_begin_slot(void) {
             break;
         case DOTLINK_RADIO_ACTION_RX:
             // configure radio
-            db_radio_disable();
-            db_radio_set_frequency(event.frequency);
+            dl_radio_disable();
+            dl_radio_set_frequency(event.frequency);
 
             // update state
             _dl_vars.event = event;
@@ -289,7 +289,7 @@ void _handler_sm_begin_slot(void) {
             break;
         case DOTLINK_RADIO_ACTION_SLEEP:
             // just disable the radio and do nothing, then come back for the next slot
-            db_radio_disable();
+            dl_radio_disable();
             _set_next_state(DOTLINK_STATE_BEGIN_SLOT); // keep the same state
             DEBUG_GPIO_CLEAR(&pin1);
             // timer_duration = dl_default_slot_timing.total_duration;
@@ -306,9 +306,9 @@ static inline void _set_next_state(dl_state_t state) {
 }
 
 static inline void _set_timer_and_compensate(uint8_t channel, uint32_t duration, uint32_t start_ts, timer_hf_cb_t timer_callback) {
-    uint32_t elapsed_ts = db_timer_hf_now(DOTLINK_TIMER_DEV) - start_ts;
+    uint32_t elapsed_ts = dl_timer_hf_now(DOTLINK_TIMER_DEV) - start_ts;
     // printf("Setting timer for duration %d, compensating for elapsed %d gives: %d\n", duration, elapsed_ts, duration - elapsed_ts);
-    db_timer_hf_set_oneshot_us(
+    dl_timer_hf_set_oneshot_us(
         DOTLINK_TIMER_DEV,
         channel,
         duration - elapsed_ts,
@@ -318,7 +318,7 @@ static inline void _set_timer_and_compensate(uint8_t channel, uint32_t duration,
 
 //static inline void _set_timer(uint8_t channel, uint32_t duration, timer_hf_cb_t timer_callback) {
 ////    printf("Setting timer for duration %d\n", duration);
-//   db_timer_hf_set_oneshot_us(
+//   dl_timer_hf_set_oneshot_us(
 //       DOTLINK_TIMER_DEV,
 //       channel,
 //       duration,

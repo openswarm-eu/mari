@@ -58,15 +58,15 @@ typedef struct {
  *
  * @param[in] schedule         Schedule to be used.
  */
-void db_scheduler_init(node_type_t node_type, schedule_t *application_schedule);
+void dl_scheduler_init(node_type_t node_type, schedule_t *application_schedule);
 
 /**
  * @brief Advances the schedule by one cell/slot.
  *
  * @return A configuration for the TSCH radio driver to follow in the next slot.
  */
-// dl_radio_event_t db_scheduler_tick(void);
-dl_radio_event_t db_scheduler_tick(uint64_t asn);
+// dl_radio_event_t dl_scheduler_tick(void);
+dl_radio_event_t dl_scheduler_tick(uint64_t asn);
 
 /**
  * @brief Activates a given schedule.
@@ -77,7 +77,7 @@ dl_radio_event_t db_scheduler_tick(uint64_t asn);
  *
  * @return true if the schedule was successfully set, false otherwise
  */
-bool db_scheduler_set_schedule(uint8_t schedule_id);
+bool dl_scheduler_set_schedule(uint8_t schedule_id);
 
 /**
  * @brief Assigns the next available uplink cell to a given node.
@@ -86,7 +86,7 @@ bool db_scheduler_set_schedule(uint8_t schedule_id);
  *
  * @return true if the uplink cell was successfully assigned, false otherwise (e.g., all uplink cells are already assigned)
  */
-bool db_scheduler_assign_next_available_uplink_cell(uint64_t node_id);
+bool dl_scheduler_assign_next_available_uplink_cell(uint64_t node_id);
 
 /**
  * @brief Deassigns the uplink cell assigned to a given node.
@@ -95,7 +95,7 @@ bool db_scheduler_assign_next_available_uplink_cell(uint64_t node_id);
  *
  * @return true if the uplink cell was successfully deassigned, false otherwise
  */
-bool db_scheduler_deassign_uplink_cell(uint64_t node_id);
+bool dl_scheduler_deassign_uplink_cell(uint64_t node_id);
 
 /**
  * @brief Computes the frequency to be used in a given slot.
@@ -107,6 +107,6 @@ bool db_scheduler_deassign_uplink_cell(uint64_t node_id);
  * @return Frequency to be used in the given slot
  *
  */
-uint8_t db_scheduler_get_frequency(slot_type_t slot_type, uint64_t asn, uint8_t channel_offset);
+uint8_t dl_scheduler_get_frequency(slot_type_t slot_type, uint64_t asn, uint8_t channel_offset);
 
 #endif

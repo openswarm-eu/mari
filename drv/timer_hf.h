@@ -30,14 +30,14 @@ typedef void (*timer_hf_cb_t)(void);  ///< Callback function prototype, it is ca
  *
  * @param[in] timer     timer reference used
  */
-void db_timer_hf_init(timer_hf_t timer);
+void dl_timer_hf_init(timer_hf_t timer);
 
 /**
  * @brief Return the current timer time in microseconds
  *
  * @param[in] timer     timer reference used
  */
-uint32_t db_timer_hf_now(timer_hf_t timer);
+uint32_t dl_timer_hf_now(timer_hf_t timer);
 
 /**
  * @brief Set a callback to be called periodically using the high frequency timer
@@ -47,7 +47,7 @@ uint32_t db_timer_hf_now(timer_hf_t timer);
  * @param[in] us        periodicity in microseconds
  * @param[in] cb        callback function
  */
-void db_timer_hf_set_periodic_us(timer_hf_t timer, uint8_t channel, uint32_t us, timer_hf_cb_t cb);
+void dl_timer_hf_set_periodic_us(timer_hf_t timer, uint8_t channel, uint32_t us, timer_hf_cb_t cb);
 
 /**
  * @brief Set a callback to be called once after an amount of microseconds
@@ -57,7 +57,7 @@ void db_timer_hf_set_periodic_us(timer_hf_t timer, uint8_t channel, uint32_t us,
  * @param[in] us        delay in microseconds
  * @param[in] cb        callback function
  */
-void db_timer_hf_set_oneshot_us(timer_hf_t timer, uint8_t channel, uint32_t us, timer_hf_cb_t cb);
+void dl_timer_hf_set_oneshot_us(timer_hf_t timer, uint8_t channel, uint32_t us, timer_hf_cb_t cb);
 
 /**
  * @brief Set a callback to be called once after an amount of milliseconds
@@ -67,7 +67,7 @@ void db_timer_hf_set_oneshot_us(timer_hf_t timer, uint8_t channel, uint32_t us, 
  * @param[in] ms        delay in milliseconds
  * @param[in] cb        callback function
  */
-void db_timer_hf_set_oneshot_ms(timer_hf_t timer, uint8_t channel, uint32_t ms, timer_hf_cb_t cb);
+void dl_timer_hf_set_oneshot_ms(timer_hf_t timer, uint8_t channel, uint32_t ms, timer_hf_cb_t cb);
 
 /**
  * @brief Set a callback to be called after an amount of seconds
@@ -77,7 +77,7 @@ void db_timer_hf_set_oneshot_ms(timer_hf_t timer, uint8_t channel, uint32_t ms, 
  * @param[in] s         delay in seconds
  * @param[in] cb        callback function
  */
-void db_timer_hf_set_oneshot_s(timer_hf_t timer, uint8_t channel, uint32_t s, timer_hf_cb_t cb);
+void dl_timer_hf_set_oneshot_s(timer_hf_t timer, uint8_t channel, uint32_t s, timer_hf_cb_t cb);
 
 /**
  * @brief Add a delay in us using the high frequency timer
@@ -85,7 +85,7 @@ void db_timer_hf_set_oneshot_s(timer_hf_t timer, uint8_t channel, uint32_t s, ti
  * @param[in] timer     timer reference used
  * @param[in] us        delay in us
  */
-void db_timer_hf_delay_us(timer_hf_t timer, uint32_t us);
+void dl_timer_hf_delay_us(timer_hf_t timer, uint32_t us);
 
 /**
  * @brief Add a delay in milliseconds using the high frequency timer
@@ -93,7 +93,7 @@ void db_timer_hf_delay_us(timer_hf_t timer, uint32_t us);
  * @param[in] timer     timer reference used
  * @param[in] ms        delay in milliseconds
  */
-void db_timer_hf_delay_ms(timer_hf_t timer, uint32_t ms);
+void dl_timer_hf_delay_ms(timer_hf_t timer, uint32_t ms);
 
 /**
  * @brief Add a delay in seconds using the high frequency timer
@@ -101,6 +101,6 @@ void db_timer_hf_delay_ms(timer_hf_t timer, uint32_t ms);
  * @param[in] timer     timer reference used
  * @param[in] s         delay in seconds
  */
-void db_timer_hf_delay_s(timer_hf_t timer, uint32_t s);
+void dl_timer_hf_delay_s(timer_hf_t timer, uint32_t s);
 
 #endif
