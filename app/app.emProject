@@ -1,5 +1,5 @@
 <!DOCTYPE CrossStudio_Project_File>
-<solution Name="app" target="8" version="2">
+<solution Name="03app" target="8" version="2">
   <project Name="03app_gateway">
     <configuration
       Name="Common"
