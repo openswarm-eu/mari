@@ -133,7 +133,7 @@ static inline void _set_timer_and_compensate(uint8_t channel, uint32_t duration,
 
 //=========================== public ===========================================
 
-void db_dl_init(node_type_t node_type, dl_cb_t application_callback) {
+void dl_dotlink_init(node_type_t node_type, dl_cb_t application_callback) {
 #ifdef DEBUG
     db_gpio_init(&pin0, DB_GPIO_OUT);
     db_gpio_init(&pin1, DB_GPIO_OUT);

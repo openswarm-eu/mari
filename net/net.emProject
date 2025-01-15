@@ -17,7 +17,7 @@
   <project Name="01net_dotlink">
     <configuration
       Name="Common"
-      project_dependencies="01net_scheduler(01net);drv_radio(00drv);00drv_timer_hf(00drv);00drv_gpio(00drv)"
+      project_dependencies="01net_scheduler(01net);00drv_radio(00drv);00drv_timer_hf(00drv);00drv_gpio(00drv)"
       project_directory="dotlink"
       project_type="Library" />
     <file file_name="dotlink.c" />

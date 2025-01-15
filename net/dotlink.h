@@ -112,6 +112,6 @@ typedef void (*dl_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer
  * @param[in] callback             pointer to a function that will be called each time a packet is received.
  *
  */
-void db_dl_init(node_type_t node_type, dl_cb_t application_callback);
+void dl_dotlink_init(node_type_t node_type, dl_cb_t application_callback);
 
 #endif
