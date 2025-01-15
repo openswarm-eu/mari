@@ -4,11 +4,10 @@
     Name="Common"
     build_output_directory="Output/$(BuildTarget)/$(Configuration)/Obj"
     build_output_file_name="$(OutDir)/$(ProjectName)-$(BuildTarget)$(LIB)"
-    c_user_include_directories="$(SolutionDir);$(SolutionDir)/../bsp;$(PackagesDir)/nRF/Device/Include;$(PackagesDir)/CMSIS_5/CMSIS/Core/Include" />
+    c_user_include_directories="$(SolutionDir);$(SolutionDir)/../drv;$(PackagesDir)/nRF/Device/Include;$(PackagesDir)/CMSIS_5/CMSIS/Core/Include" />
   <project Name="01net_scheduler">
     <configuration
       Name="Common"
-      project_dependencies=""
       project_directory="scheduler"
       project_type="Library" />
     <file file_name="scheduler.c" />
@@ -18,7 +17,7 @@
   <project Name="01net_tsch">
     <configuration
       Name="Common"
-      project_dependencies="01net_scheduler(net);00drv_radio(drv);00drv_timer_hf(drv);00drv_gpio(drv)"
+      project_dependencies="01net_scheduler(01net);drv_radio(00drv);00drv_timer_hf(00drv);00drv_gpio(00drv)"
       project_directory="tsch"
       project_type="Library" />
     <file file_name="tsch.c" />

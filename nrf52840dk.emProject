@@ -66,9 +66,6 @@
     gcc_debugging_level="Level 2"
     gcc_omit_frame_pointer="Yes"
     gcc_optimization_level="Level 2 balanced" />
-  <!-- <import file_name="drv/drv.emProject" />
-  <import file_name="app/app-drv.emProject" />
-  <import file_name="app/app-node.emProject" /> -->
   <import file_name="drv/drv.emProject" />
   <import file_name="net/net.emProject" />
   <import file_name="app/app-drv-net.emProject" />

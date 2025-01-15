@@ -3,7 +3,7 @@
   <project Name="01net_scheduler">
     <configuration
       Name="Common"
-      project_dependencies="01net_scheduler(net);01net_tsch(net);00drv_timer_hf(drv)"
+      project_dependencies="01net_scheduler(01net);01net_tsch(01net);00drv_timer_hf(00drv)"
       project_directory="01net_scheduler"
       project_type="Executable" />
     <configuration Name="Debug" linker_printf_fp_enabled="Float" />
