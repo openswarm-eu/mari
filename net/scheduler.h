@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <nrf.h>
 
-//#include "radio.h"
+#include "radio.h"
 #include "tsch.h"
 #include "protocol.h"
 #include "gpio.h"

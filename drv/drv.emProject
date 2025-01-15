@@ -1,0 +1,34 @@
+<!DOCTYPE CrossStudio_Project_File>
+<solution Name="00drv" target="8" version="2">
+  <configuration
+    Name="Common"
+    build_output_directory="Output/$(BuildTarget)/$(Configuration)/Obj"
+    build_output_file_name="$(OutDir)/$(ProjectName)-$(BuildTarget)$(LIB)"
+    c_user_include_directories="$(SolutionDir);$(PackagesDir)/nRF/Device/Include;$(PackagesDir)/CMSIS_5/CMSIS/Core/Include" />
+  <project Name="00drv_clock">
+    <configuration
+      Name="Common"
+      project_directory="clock"
+      project_type="Library" />
+    <file file_name="clock.c" />
+    <file file_name="../clock.h" />
+  </project>
+  <project Name="00drv_timer_hf">
+    <configuration
+      Name="Common"
+      project_dependencies="00drv_clock"
+      project_directory="timer_hf"
+      project_type="Library" />
+    <file file_name="timer_hf.c" />
+    <file file_name="../timer_hf.h" />
+  </project>
+  <project Name="00drv_radio">
+    <configuration
+      Name="Common"
+      project_dependencies="00drv_clock"
+      project_directory="radio"
+      project_type="Library" />
+    <file file_name="radio.c" />
+    <file file_name="../radio.h" />
+  </project>
+</solution>
