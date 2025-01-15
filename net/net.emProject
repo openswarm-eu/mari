@@ -1,0 +1,26 @@
+<!DOCTYPE CrossStudio_Project_File>
+<solution Name="01net" target="8" version="2">
+  <configuration
+    Name="Common"
+    build_output_directory="Output/$(BuildTarget)/$(Configuration)/Obj"
+    build_output_file_name="$(OutDir)/$(ProjectName)-$(BuildTarget)$(LIB)"
+    c_user_include_directories="$(SolutionDir);$(SolutionDir)/../drv;$(PackagesDir)/nRF/Device/Include;$(PackagesDir)/CMSIS_5/CMSIS/Core/Include" />
+  <project Name="01net_scheduler">
+    <configuration
+      Name="Common"
+      project_directory="scheduler"
+      project_type="Library" />
+    <file file_name="scheduler.c" />
+    <file file_name="all_schedules.c" />
+    <file file_name="../scheduler.h" />
+  </project>
+  <project Name="01net_dotlink">
+    <configuration
+      Name="Common"
+      project_dependencies="01net_scheduler(01net);00drv_radio(00drv);00drv_timer_hf(00drv);00drv_gpio(00drv)"
+      project_directory="dotlink"
+      project_type="Library" />
+    <file file_name="dotlink.c" />
+    <file file_name="../dotlink.h" />
+  </project>
+</solution>

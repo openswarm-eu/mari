@@ -1,10 +1,9 @@
 <!DOCTYPE CrossStudio_Project_File>
-<solution Name="app" target="8" version="2">
-  <project Name="03app_gateway">
+<solution Name="03app-node" target="8" version="2">
+  <project Name="03app_node">
     <configuration
       Name="Common"
-      project_dependencies=""
-      project_directory="03app_gateway"
+      project_directory="03app_node"
       project_type="Executable" />
     <folder Name="Setup">
       <file file_name="$(ProjectDir)/../../nRF/Setup/$(Target)_flash_placement.xml" />
