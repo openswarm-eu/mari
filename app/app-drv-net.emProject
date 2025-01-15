@@ -1,10 +1,10 @@
 <!DOCTYPE CrossStudio_Project_File>
 <solution Name="03drv-net" target="8" version="2">
-  <project Name="01drv_scheduler">
+  <project Name="01net_scheduler">
     <configuration
       Name="Common"
-      project_dependencies="00net_scheduler(net);00drv_radio(drv));00drv_timer(drv)"
-      project_directory="01drv_scheduler"
+      project_dependencies="01net_scheduler(net);01net_tsch(net);00drv_timer_hf(drv)"
+      project_directory="01net_scheduler"
       project_type="Executable" />
     <configuration Name="Debug" linker_printf_fp_enabled="Float" />
     <folder Name="Setup">
@@ -18,7 +18,7 @@
     </folder>
     <folder Name="Source">
       <configuration Name="Common" filter="c;cpp;cxx;cc;h;s;asm;inc" />
-      <file file_name="01drv_scheduler.c" />
+      <file file_name="main.c" />
     </folder>
     <folder Name="System">
       <file file_name="$(ProjectDir)/../../nRF/System/$(Target)_system_init.c" />

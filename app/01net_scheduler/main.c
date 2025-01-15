@@ -10,13 +10,10 @@
  */
 #include <nrf.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #include "scheduler.h"
 #include "tsch.h"
-#include "radio.h"
 #include "timer_hf.h"
-#include "protocol.h"
 #include "device.h"
 
 #define SLOT_DURATION 1000 * 1000 // 1 s

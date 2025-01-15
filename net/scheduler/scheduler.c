@@ -16,9 +16,6 @@
 
 #include "scheduler.h"
 #include "tsch.h"
-#include "radio.h"
-#include "timer_hf.h"
-#include "protocol.h"
 #include "device.h"
 #if defined(NRF5340_XXAA) && defined(NRF_NETWORK)
 #include "ipc.h"

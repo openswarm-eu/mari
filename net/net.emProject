@@ -8,11 +8,20 @@
   <project Name="01net_scheduler">
     <configuration
       Name="Common"
-      project_dependencies="00drv_radio(drv);00drv_timer_hf(drv)"
+      project_dependencies=""
       project_directory="scheduler"
       project_type="Library" />
     <file file_name="scheduler.c" />
     <file file_name="all_schedules.c" />
     <file file_name="../scheduler.h" />
+  </project>
+  <project Name="01net_tsch">
+    <configuration
+      Name="Common"
+      project_dependencies="01net_scheduler(net);00drv_radio(drv);00drv_timer_hf(drv);00drv_gpio(drv)"
+      project_directory="tsch"
+      project_type="Library" />
+    <file file_name="tsch.c" />
+    <file file_name="../tsch.h" />
   </project>
 </solution>

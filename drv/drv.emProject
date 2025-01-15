@@ -13,6 +13,15 @@
     <file file_name="clock.c" />
     <file file_name="../clock.h" />
   </project>
+  <project Name="00drv_gpio">
+    <configuration
+      Name="Common"
+      project_dependencies=""
+      project_directory="gpio"
+      project_type="Library" />
+    <file file_name="gpio.c" />
+    <file file_name="../gpio.h" />
+  </project>
   <project Name="00drv_timer_hf">
     <configuration
       Name="Common"
