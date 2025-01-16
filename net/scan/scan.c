@@ -26,10 +26,11 @@ scan_vars_t scan_vars = { 0 };
 
 //=========================== public ===========================================
 
-void dl_scan_add(uint64_t gateway_id, uint8_t rssi) {
+void dl_scan_add(uint64_t gateway_id, uint8_t rssi, uint8_t frequency, uint32_t ts) {
     scan_vars.scan_rb.current = (scan_vars.scan_rb.current + 1) % BLINK_MAX_SCAN_LIST_SIZE;
 
     scan_vars.scan_rb.scans[scan_vars.scan_rb.current].gateway_id = gateway_id;
     scan_vars.scan_rb.scans[scan_vars.scan_rb.current].rssi = rssi;
-    scan_vars.scan_rb.scans[scan_vars.scan_rb.current].timestamp = dl_timer_hf_now(DOTLINK_TIMER_DEV);
+    scan_vars.scan_rb.scans[scan_vars.scan_rb.current].frequency = frequency;
+    scan_vars.scan_rb.scans[scan_vars.scan_rb.current].timestamp = ts;
 }

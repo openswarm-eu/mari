@@ -23,12 +23,14 @@
 #include "scheduler.h"
 
 //=========================== defines =========================================
-#define BLINK_MAX_SCAN_LIST_SIZE 3
+#define BLINK_MAX_SCAN_LIST_SIZE (4)
+#define BLINK_SCAN_OLD_US (1000*1000*3) // rssi reading considered old after this amount of microseconds
 
 //=========================== variables =======================================
 typedef struct {
     uint64_t gateway_id;
     uint8_t rssi;
+    uint8_t frequency;
     uint32_t timestamp;
 } dl_scan_t;
 
@@ -40,8 +42,7 @@ typedef struct {
 
 //=========================== prototypes ======================================
 
-void dl_scan_add(uint64_t gateway_id, uint8_t rssi);
-void dl_scan_clear_old(void);
+void dl_scan_add(uint64_t gateway_id, uint8_t rssi, uint8_t frequency, uint32_t ts);
 uint64_t dl_scan_select(void);
 
 #endif // __SCAN_H
