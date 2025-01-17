@@ -28,20 +28,20 @@
 
 //=========================== variables =======================================
 typedef struct {
-    uint64_t gateway_id;
     uint8_t rssi;
-    uint8_t frequency;
     uint32_t timestamp;
-} dl_scan_t;
+} dl_rssi_t;
 
 typedef struct {
-    size_t length;
-    size_t current;
-    dl_scan_t scans[BLINK_MAX_SCAN_LIST_SIZE];
-} dl_scan_rb_t;
+    uint64_t gateway_id;
+    dl_rssi_t rssi[DOTLINK_N_BLE_ADVERTISING_FREQUENCIES]; // channels 37, 38, 39
+} dl_scan_t;
 
 //=========================== prototypes ======================================
 
+/**
+ * Adds a new rssi reading
+ * */
 void dl_scan_add(uint64_t gateway_id, uint8_t rssi, uint8_t frequency, uint32_t ts);
 uint64_t dl_scan_select(void);
 
