@@ -24,11 +24,12 @@
 
 //=========================== defines =========================================
 #define BLINK_MAX_SCAN_LIST_SIZE (10)
-#define BLINK_SCAN_OLD_US (1000*1000*3) // rssi reading considered old after this amount of microseconds
+#define BLINK_SCAN_OLD_US (1000*1000*3) // rssi reading considered old after 3 seconds
+#define BLINK_SCAN_HANDOVER_HYSTERESIS (6) // hysteresis (in dBm) for handover
 
 //=========================== variables =======================================
 typedef struct {
-    uint8_t rssi;
+    int8_t rssi;
     uint32_t timestamp;
 } dl_rssi_t;
 
@@ -42,7 +43,11 @@ typedef struct {
 /**
  * Adds a new rssi reading
  * */
-void dl_scan_add(uint64_t gateway_id, uint8_t rssi, uint8_t frequency, uint32_t ts);
-uint64_t dl_scan_select(void);
+void dl_scan_add(uint64_t gateway_id, int8_t rssi, uint8_t frequency, uint32_t ts);
+
+/**
+ * Selects the gateway with the highest rssi
+ * */
+uint64_t dl_scan_select(uint32_t ts_now);
 
 #endif // __SCAN_H
