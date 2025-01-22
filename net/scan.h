@@ -23,7 +23,7 @@
 #include "scheduler.h"
 
 //=========================== defines =========================================
-#define BLINK_MAX_SCAN_LIST_SIZE (4)
+#define BLINK_MAX_SCAN_LIST_SIZE (10)
 #define BLINK_SCAN_OLD_US (1000*1000*3) // rssi reading considered old after this amount of microseconds
 
 //=========================== variables =======================================

@@ -37,8 +37,8 @@ bool _scan_is_too_old(dl_scan_t scan, uint32_t ts_now);
 void dl_scan_add(uint64_t gateway_id, uint8_t rssi, uint8_t channel, uint32_t ts_now) {
     bool found = false;
     int16_t empty_spot_idx = -1;
-    uint32_t ts_latest_all = 0;
-    uint32_t ts_latest_all_idx = 0;
+    uint32_t ts_oldest_all = ts_now;
+    uint32_t ts_oldest_all_idx = 0;
     for (size_t i = 0; i < BLINK_MAX_SCAN_LIST_SIZE; i++) {
         // if found this gateway_id, update its respective rssi entry and mark as found.
         if (scan_vars.scans[i].gateway_id == gateway_id) {
@@ -59,10 +59,10 @@ void dl_scan_add(uint64_t gateway_id, uint8_t rssi, uint8_t channel, uint32_t ts
             empty_spot_idx = i;
         }
 
-        uint32_t ts_latest_cmp = _get_ts_latest(scan_vars.scans[i]);
-        if (scan_vars.scans[i].gateway_id != 0 && ts_latest_cmp > ts_latest_all) {
-            ts_latest_all = ts_latest_cmp;
-            ts_latest_all_idx = i;
+        uint32_t ts_cmp = _get_ts_latest(scan_vars.scans[i]);
+        if (scan_vars.scans[i].gateway_id != 0 && ts_cmp < ts_oldest_all) {
+            ts_oldest_all = ts_cmp;
+            ts_oldest_all_idx = i;
         }
     }
     // if found a matching gateway_id, nothing else to do
@@ -75,9 +75,9 @@ void dl_scan_add(uint64_t gateway_id, uint8_t rssi, uint8_t channel, uint32_t ts
     } else {
         // last case: didn't match the gateeway_id, and didn't find an empty slot,
         // so overwrite on top of the oldest reading
-        memset(&scan_vars.scans[ts_latest_all_idx], 0, sizeof(dl_scan_t));
-        scan_vars.scans[ts_latest_all_idx].gateway_id = gateway_id;
-        _save_rssi(ts_latest_all_idx, rssi, channel, ts_now);
+        memset(&scan_vars.scans[ts_oldest_all_idx], 0, sizeof(dl_scan_t));
+        scan_vars.scans[ts_oldest_all_idx].gateway_id = gateway_id;
+        _save_rssi(ts_oldest_all_idx, rssi, channel, ts_now);
     }
 }
 
