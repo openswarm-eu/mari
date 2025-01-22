@@ -32,8 +32,15 @@ bool _scan_is_too_old(dl_scan_t scan, uint32_t ts_now);
 
 //=========================== public ===========================================
 
-// this function is a bit more complicated than it needed to be, but by
-// inserting the rssi reading in a smart way, later it beacomes very easy and efficient to compute the average rssi
+// This function is a bit more complicated than it needed to be, but by inserting the rssi reading
+// in a smart way, later it beacomes very easy and efficient to compute the average rssi.
+// It does a few things:
+// 1. If the gateway_id is already in the scan list, update the rssi reading.
+// 2. Check for old rssi readings and remove them
+//   - meaning that the loop always goes through the whole list, but it's small, so it's fine.
+//   - and also, in most cases it will have to cycle through the whole list anyway, to find old readings to replace.
+// 3. Look for empty spots, in case the gateway_id is not yet in the list.
+// 4. Save the oldest reading, to be overwritten, in case there are no empty spots.
 void dl_scan_add(uint64_t gateway_id, int8_t rssi, uint8_t channel, uint32_t ts_now) {
     bool found = false;
     int16_t empty_spot_idx = -1;
@@ -65,24 +72,29 @@ void dl_scan_add(uint64_t gateway_id, int8_t rssi, uint8_t channel, uint32_t ts_
             ts_oldest_all_idx = i;
         }
     }
-    // if found a matching gateway_id, nothing else to do
-    if (found) return;
-
-    // either save onto empty spot or overwrite the latest one
-    if (empty_spot_idx >= 0) { // there is an empty spot
-        scan_vars.scans[empty_spot_idx].gateway_id = gateway_id;
-        _save_rssi(empty_spot_idx, rssi, channel, ts_now);
+    if (found) {
+        // if found a matching gateway_id, nothing else to do
+        return;
     } else {
-        // last case: didn't match the gateeway_id, and didn't find an empty slot,
-        // so overwrite on top of the oldest reading
-        memset(&scan_vars.scans[ts_oldest_all_idx], 0, sizeof(dl_scan_t));
-        scan_vars.scans[ts_oldest_all_idx].gateway_id = gateway_id;
-        _save_rssi(ts_oldest_all_idx, rssi, channel, ts_now);
+        // if not, find an optimal spot for saving this new rssi reading
+        //   either save it onto an empty spot, or override the oldest one
+        if (empty_spot_idx >= 0) { // there is an empty spot
+            scan_vars.scans[empty_spot_idx].gateway_id = gateway_id;
+            _save_rssi(empty_spot_idx, rssi, channel, ts_now);
+        } else {
+            // last case: didn't match the gateeway_id, and didn't find an empty slot,
+            // so overwrite the oldest reading
+            memset(&scan_vars.scans[ts_oldest_all_idx], 0, sizeof(dl_scan_t));
+            scan_vars.scans[ts_oldest_all_idx].gateway_id = gateway_id;
+            _save_rssi(ts_oldest_all_idx, rssi, channel, ts_now);
+        }
     }
 }
 
+// Compute the average rssi for each gateway, and return the highest one.
+// The documentation says that remaining capacity should also be taken into account,
+// but we will simply not add a gateway to the scan list if its capacity if full.
 uint64_t dl_scan_select(uint32_t ts_now) {
-    // compute the average rssi for each gateway, and save the highest one
     uint64_t best_gateway_id = 0;
     int8_t best_gateway_rssi = INT8_MIN;
     for (size_t i = 0; i < BLINK_MAX_SCAN_LIST_SIZE; i++) {
@@ -116,8 +128,8 @@ uint64_t dl_scan_select(uint32_t ts_now) {
 
 //=========================== private ==========================================
 
-void _save_rssi(size_t idx, int8_t rssi, uint8_t channel, uint32_t ts_now) {
-    size_t channel_idx = (channel % DOTLINK_N_BLE_REGULAR_FREQUENCIES) - 1;
+inline void _save_rssi(size_t idx, int8_t rssi, uint8_t channel, uint32_t ts_now) {
+    size_t channel_idx = channel % DOTLINK_N_BLE_REGULAR_FREQUENCIES;
     scan_vars.scans[idx].rssi[channel_idx].rssi = rssi;
     scan_vars.scans[idx].rssi[channel_idx].timestamp = ts_now;
 }

@@ -42,11 +42,20 @@ typedef struct {
 
 /**
  * Adds a new rssi reading
+ *
+ * @param gateway_id the gateway id
+ * @param rssi the rssi reading in dBm
+ * @param channel the advertising channel (37, 38, or 39 for BLE)
+ * @param ts the timestamp of the rssi reading
  * */
-void dl_scan_add(uint64_t gateway_id, int8_t rssi, uint8_t frequency, uint32_t ts);
+void dl_scan_add(uint64_t gateway_id, int8_t rssi, uint8_t channel, uint32_t ts);
 
 /**
  * Selects the gateway with the highest rssi
+ *
+ * @param ts_now current timestamp
+ *
+ * @return the gateway_id with the highest rssi. If no gateway is found, returns 0.
  * */
 uint64_t dl_scan_select(uint32_t ts_now);
 
