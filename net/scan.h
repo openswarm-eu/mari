@@ -1,17 +1,6 @@
 #ifndef __SCAN_H
 #define __SCAN_H
 
-/**
- * @file
- * @ingroup     net_scan
- *
- * @brief       Scan list implementation
- *
- * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
- *
- * @copyright Inria, 2024
- */
-
 #include <nrf.h>
 #include <stdint.h>
 #include <stdio.h>

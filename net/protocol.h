@@ -1,18 +1,6 @@
 #ifndef __PROTOCOL_H
 #define __PROTOCOL_H
 
-/**
- * @defgroup    net_protocol      Protocol
- * @ingroup     net
- * @brief       Protocol definitions
- *
- * @{
- * @file
- * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
- * @copyright Inria, 2024-now
- * @}
- */
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <nrf.h>

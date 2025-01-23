@@ -1,13 +1,3 @@
-/**
- * @file
- * @ingroup     net_lists
- *
- * @brief       Example on how to use lists modules
- *
- * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
- *
- * @copyright Inria, 2024
- */
 #include <nrf.h>
 #include <stdio.h>
 
