@@ -8,11 +8,11 @@
 //=========================== variables ========================================
 
 typedef enum {
-    DOTLINK_PACKET_TYPE_BEACON = 1,
-    DOTLINK_PACKET_TYPE_JOIN_REQUEST = 2,
-    DOTLINK_PACKET_TYPE_JOIN_RESPONSE = 3,
-    DOTLINK_PACKET_TYPE_INFRASTRUCTURE_DATA = 8,
-    DOTLINK_PACKET_TYPE_EXPERIMENT_DATA = 9,
+    BLINK_PACKET_TYPE_BEACON = 1,
+    BLINK_PACKET_TYPE_JOIN_REQUEST = 2,
+    BLINK_PACKET_TYPE_JOIN_RESPONSE = 3,
+    BLINK_PACKET_TYPE_INFRASTRUCTURE_DATA = 8,
+    BLINK_PACKET_TYPE_EXPERIMENT_DATA = 9,
 } dl_packet_type_t;
 
 // general packet header

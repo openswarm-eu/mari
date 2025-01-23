@@ -2,7 +2,7 @@
 #define __SCHEDULER_H
 
 /**
- * @defgroup    net_dotlink      SCHEDULER radio driver
+ * @defgroup    net_blink      SCHEDULER radio driver
  * @ingroup     drv
  * @brief       Driver for the TSCH scheduler
  *
@@ -18,19 +18,19 @@
 #include <stdbool.h>
 #include <nrf.h>
 
-#include "dotlink.h"
+#include "blink.h"
 
 //=========================== defines ==========================================
 
-#define DOTLINK_BACKOFF_N_MIN 5
-#define DOTLINK_BACKOFF_N_MAX 9
+#define BLINK_BACKOFF_N_MIN 5
+#define BLINK_BACKOFF_N_MAX 9
 
-#define DOTLINK_N_BLE_REGULAR_FREQUENCIES 37
-#define DOTLINK_N_BLE_ADVERTISING_FREQUENCIES 3
+#define BLINK_N_BLE_REGULAR_FREQUENCIES 37
+#define BLINK_N_BLE_ADVERTISING_FREQUENCIES 3
 
-#define DOTLINK_N_CELLS_MAX 137
+#define BLINK_N_CELLS_MAX 137
 
-#define DOTLINK_LISTEN_DURING_UNSCHEDULED_UPLINK 1
+#define BLINK_LISTEN_DURING_UNSCHEDULED_UPLINK 1
 
 //=========================== variables ========================================
 
@@ -46,7 +46,7 @@ typedef struct {
     uint8_t backoff_n_min; // minimum exponent for the backoff algorithm
     uint8_t backoff_n_max; // maximum exponent for the backoff algorithm
     size_t n_cells; // number of cells in this schedule
-    cell_t cells[DOTLINK_N_CELLS_MAX]; // cells in this schedule. NOTE(FIXME?): the first 3 cells must be beacons
+    cell_t cells[BLINK_N_CELLS_MAX]; // cells in this schedule. NOTE(FIXME?): the first 3 cells must be beacons
 } schedule_t;
 
 //=========================== prototypes ==========================================

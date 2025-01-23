@@ -1,5 +1,5 @@
 <!DOCTYPE CrossStudio_Project_File>
-<solution Name="botlink-nrf52840dk" target="8" version="2">
+<solution Name="blink-nrf52840dk" target="8" version="2">
   <configuration
     CMSIS_CORE="Yes"
     LIBRARY_IO_TYPE="RTT"

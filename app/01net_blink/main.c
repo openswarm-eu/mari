@@ -1,8 +1,8 @@
 /**
  * @file
- * @ingroup     net_dotlink
+ * @ingroup     net_blink
  *
- * @brief       Example on how to use the DotLink driver
+ * @brief       Example on how to use the Blink driver
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "dotlink.h"
+#include "blink.h"
 #include "scheduler.h"
 #include "device.h"
 
@@ -61,7 +61,7 @@ int main(void) {
 
     // initialize the TSCH driver
     //dl_default_slot_timing.end_guard = 1000 * 1000; // add an extra second of delay.
-    dl_dotlink_init(node_type, radio_callback);
+    dl_blink_init(node_type, radio_callback);
     printf("Slot total duration: %d us\n", dl_default_slot_timing.total_duration);
 
     while (1) {

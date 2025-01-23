@@ -1,6 +1,6 @@
 /**
  * @file
- * @ingroup     net_dotlink
+ * @ingroup     net_blink
  *
  * @brief       Driver for Time-Slotted Channel Hopping (TSCH)
  *
@@ -15,7 +15,7 @@
 #include <stdbool.h>
 
 #include "scheduler.h"
-#include "dotlink.h"
+#include "blink.h"
 #include "device.h"
 #if defined(NRF5340_XXAA) && defined(NRF_NETWORK)
 #include "ipc.h"
@@ -49,7 +49,7 @@ typedef struct {
     uint32_t slotframe_counter; // used to cycle beacon frequencies through slotframes (when listening for beacons at uplink slots)
 
     // static data
-    schedule_t available_schedules[DOTLINK_N_SCHEDULES];
+    schedule_t available_schedules[BLINK_N_SCHEDULES];
     size_t available_schedules_len;
 } schedule_vars_t;
 
@@ -68,7 +68,7 @@ void _compute_dotbot_action(cell_t cell, dl_radio_event_t *radio_event);
 void dl_scheduler_init(node_type_t node_type, schedule_t *application_schedule) {
     _schedule_vars.node_type = node_type;
 
-    if (_schedule_vars.available_schedules_len == DOTLINK_N_SCHEDULES) return; // FIXME: this is just to simplify debugging (allows calling init multiple times)
+    if (_schedule_vars.available_schedules_len == BLINK_N_SCHEDULES) return; // FIXME: this is just to simplify debugging (allows calling init multiple times)
 
     _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_only_beacons;
     _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_only_beacons_optimized_scan;
@@ -83,7 +83,7 @@ void dl_scheduler_init(node_type_t node_type, schedule_t *application_schedule) 
 }
 
 bool dl_scheduler_set_schedule(uint8_t schedule_id) {
-    for (size_t i = 0; i < DOTLINK_N_SCHEDULES; i++) {
+    for (size_t i = 0; i < BLINK_N_SCHEDULES; i++) {
         if (_schedule_vars.available_schedules[i].id == schedule_id) {
             _schedule_vars.active_schedule_ptr = &_schedule_vars.available_schedules[i];
             return true;
@@ -120,7 +120,7 @@ dl_radio_event_t dl_scheduler_tick(uint64_t asn) {
     cell_t cell = (_schedule_vars.active_schedule_ptr)->cells[cell_index];
 
     dl_radio_event_t radio_event = {
-        .radio_action = DOTLINK_RADIO_ACTION_SLEEP,
+        .radio_action = BLINK_RADIO_ACTION_SLEEP,
         .frequency = dl_scheduler_get_frequency(cell.type, asn, cell.channel_offset),
         .slot_type = cell.type, // FIXME: only for debugging, remove before merge
     };
@@ -141,13 +141,13 @@ dl_radio_event_t dl_scheduler_tick(uint64_t asn) {
 uint8_t dl_scheduler_get_frequency(slot_type_t slot_type, uint64_t asn, uint8_t channel_offset) {
     if (slot_type == SLOT_TYPE_BEACON) {
         // special handling in case the cell is a beacon
-        size_t beacon_channel = DOTLINK_N_BLE_REGULAR_FREQUENCIES + (asn % DOTLINK_N_BLE_ADVERTISING_FREQUENCIES);
+        size_t beacon_channel = BLINK_N_BLE_REGULAR_FREQUENCIES + (asn % BLINK_N_BLE_ADVERTISING_FREQUENCIES);
         uint8_t freq = _ble_chan_to_freq[beacon_channel];
         return freq;
     } else {
         // As per RFC 7554:
         //   frequency = F {(ASN + channelOffset) mod nFreq}
-        size_t freq_index = (asn + channel_offset) % DOTLINK_N_BLE_REGULAR_FREQUENCIES;
+        size_t freq_index = (asn + channel_offset) % BLINK_N_BLE_REGULAR_FREQUENCIES;
         return _ble_chan_to_freq[freq_index];
     }
 }
@@ -158,11 +158,11 @@ void _compute_gateway_action(cell_t cell, dl_radio_event_t *radio_event) {
     switch (cell.type) {
         case SLOT_TYPE_BEACON:
         case SLOT_TYPE_DOWNLINK:
-            radio_event->radio_action = DOTLINK_RADIO_ACTION_TX;
+            radio_event->radio_action = BLINK_RADIO_ACTION_TX;
             break;
         case SLOT_TYPE_SHARED_UPLINK:
         case SLOT_TYPE_UPLINK:
-            radio_event->radio_action = DOTLINK_RADIO_ACTION_RX;
+            radio_event->radio_action = BLINK_RADIO_ACTION_RX;
             break;
     }
 }
@@ -171,21 +171,21 @@ void _compute_dotbot_action(cell_t cell, dl_radio_event_t *radio_event) {
     switch (cell.type) {
         case SLOT_TYPE_BEACON:
         case SLOT_TYPE_DOWNLINK:
-            radio_event->radio_action = DOTLINK_RADIO_ACTION_RX;
+            radio_event->radio_action = BLINK_RADIO_ACTION_RX;
             break;
         case SLOT_TYPE_SHARED_UPLINK:
             // TODO: implement backoff algorithm
-            radio_event->radio_action = DOTLINK_RADIO_ACTION_TX;
+            radio_event->radio_action = BLINK_RADIO_ACTION_TX;
             break;
         case SLOT_TYPE_UPLINK:
             if (cell.assigned_node_id == db_device_id()) {
-                radio_event->radio_action = DOTLINK_RADIO_ACTION_TX;
+                radio_event->radio_action = BLINK_RADIO_ACTION_TX;
             } else {
-#ifdef DOTLINK_LISTEN_DURING_UNSCHEDULED_UPLINK
+#ifdef BLINK_LISTEN_DURING_UNSCHEDULED_UPLINK
                 // OPTIMIZATION: listen for beacons during unassigned uplink slot
                 // listen to the same beacon frequency for a whole slotframe
-                radio_event->radio_action = DOTLINK_RADIO_ACTION_RX;
-                size_t beacon_channel = DOTLINK_N_BLE_REGULAR_FREQUENCIES + (_schedule_vars.slotframe_counter % DOTLINK_N_BLE_ADVERTISING_FREQUENCIES);
+                radio_event->radio_action = BLINK_RADIO_ACTION_RX;
+                size_t beacon_channel = BLINK_N_BLE_REGULAR_FREQUENCIES + (_schedule_vars.slotframe_counter % BLINK_N_BLE_ADVERTISING_FREQUENCIES);
                 radio_event->frequency = _ble_chan_to_freq[beacon_channel];
 #endif
             }
