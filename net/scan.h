@@ -22,17 +22,17 @@
 typedef struct {
     int8_t    rssi;
     uint32_t  timestamp;
-} dl_rssi_t;
+} bl_rssi_t;
 
 typedef struct {
     uint64_t   gateway_id;
-    dl_rssi_t  rssi[DOTLINK_N_BLE_ADVERTISING_FREQUENCIES]; // channels 37, 38, 39
-} dl_scan_t;
+    bl_rssi_t  rssi[DOTLINK_N_BLE_ADVERTISING_FREQUENCIES]; // channels 37, 38, 39
+} bl_scan_t;
 
 //=========================== prototypes ======================================
 
-void dl_scan_add(uint64_t gateway_id, int8_t rssi, uint8_t channel, uint32_t ts);
+void bl_scan_add(uint64_t gateway_id, int8_t rssi, uint8_t channel, uint32_t ts);
 
-uint64_t dl_scan_select(uint32_t ts_now);
+uint64_t bl_scan_select(uint32_t ts_now);
 
 #endif // __SCAN_H

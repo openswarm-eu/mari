@@ -22,13 +22,13 @@
     <file file_name="all_schedules.c" />
     <file file_name="../scheduler.h" />
   </project>
-  <project Name="01net_dotlink">
+  <project Name="01net_blink">
     <configuration
       Name="Common"
       project_dependencies="01net_scheduler(01net);00drv_radio(00drv);00drv_timer_hf(00drv);00drv_gpio(00drv)"
-      project_directory="dotlink"
+      project_directory="blink"
       project_type="Library" />
-    <file file_name="dotlink.c" />
-    <file file_name="../dotlink.h" />
+    <file file_name="blink.c" />
+    <file file_name="../blink.h" />
   </project>
 </solution>

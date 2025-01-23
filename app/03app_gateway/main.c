@@ -2,7 +2,7 @@
  * @file
  * @ingroup     app
  *
- * @brief       BotLink Gateway application example
+ * @brief       Blink Gateway application example
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
@@ -13,7 +13,7 @@
 
 int main(void)
 {
-    printf("Hello BotLink Gateway\n");
+    printf("Hello Blink Gateway\n");
 
     while (1) {
         __WFE();

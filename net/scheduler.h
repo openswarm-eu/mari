@@ -2,7 +2,7 @@
 #define __SCHEDULER_H
 
 /**
- * @defgroup    net_dotlink      SCHEDULER radio driver
+ * @defgroup    net_blink      SCHEDULER radio driver
  * @ingroup     drv
  * @brief       Driver for the TSCH scheduler
  *
@@ -18,19 +18,19 @@
 #include <stdbool.h>
 #include <nrf.h>
 
-#include "dotlink.h"
+#include "blink.h"
 
 //=========================== defines ==========================================
 
-#define DOTLINK_BACKOFF_N_MIN 5
-#define DOTLINK_BACKOFF_N_MAX 9
+#define BLINK_BACKOFF_N_MIN 5
+#define BLINK_BACKOFF_N_MAX 9
 
-#define DOTLINK_N_BLE_REGULAR_FREQUENCIES 37
-#define DOTLINK_N_BLE_ADVERTISING_FREQUENCIES 3
+#define BLINK_N_BLE_REGULAR_FREQUENCIES 37
+#define BLINK_N_BLE_ADVERTISING_FREQUENCIES 3
 
-#define DOTLINK_N_CELLS_MAX 137
+#define BLINK_N_CELLS_MAX 137
 
-#define DOTLINK_LISTEN_DURING_UNSCHEDULED_UPLINK 1
+#define BLINK_LISTEN_DURING_UNSCHEDULED_UPLINK 1
 
 //=========================== variables ========================================
 
@@ -46,7 +46,7 @@ typedef struct {
     uint8_t backoff_n_min; // minimum exponent for the backoff algorithm
     uint8_t backoff_n_max; // maximum exponent for the backoff algorithm
     size_t n_cells; // number of cells in this schedule
-    cell_t cells[DOTLINK_N_CELLS_MAX]; // cells in this schedule. NOTE(FIXME?): the first 3 cells must be beacons
+    cell_t cells[BLINK_N_CELLS_MAX]; // cells in this schedule. NOTE(FIXME?): the first 3 cells must be beacons
 } schedule_t;
 
 //=========================== prototypes ==========================================
@@ -58,15 +58,15 @@ typedef struct {
  *
  * @param[in] schedule         Schedule to be used.
  */
-void dl_scheduler_init(node_type_t node_type, schedule_t *application_schedule);
+void bl_scheduler_init(node_type_t node_type, schedule_t *application_schedule);
 
 /**
  * @brief Advances the schedule by one cell/slot.
  *
  * @return A configuration for the TSCH radio driver to follow in the next slot.
  */
-// dl_radio_event_t dl_scheduler_tick(void);
-dl_radio_event_t dl_scheduler_tick(uint64_t asn);
+// bl_radio_event_t bl_scheduler_tick(void);
+bl_radio_event_t bl_scheduler_tick(uint64_t asn);
 
 /**
  * @brief Activates a given schedule.
@@ -77,7 +77,7 @@ dl_radio_event_t dl_scheduler_tick(uint64_t asn);
  *
  * @return true if the schedule was successfully set, false otherwise
  */
-bool dl_scheduler_set_schedule(uint8_t schedule_id);
+bool bl_scheduler_set_schedule(uint8_t schedule_id);
 
 /**
  * @brief Assigns the next available uplink cell to a given node.
@@ -86,7 +86,7 @@ bool dl_scheduler_set_schedule(uint8_t schedule_id);
  *
  * @return true if the uplink cell was successfully assigned, false otherwise (e.g., all uplink cells are already assigned)
  */
-bool dl_scheduler_assign_next_available_uplink_cell(uint64_t node_id);
+bool bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id);
 
 /**
  * @brief Deassigns the uplink cell assigned to a given node.
@@ -95,7 +95,7 @@ bool dl_scheduler_assign_next_available_uplink_cell(uint64_t node_id);
  *
  * @return true if the uplink cell was successfully deassigned, false otherwise
  */
-bool dl_scheduler_deassign_uplink_cell(uint64_t node_id);
+bool bl_scheduler_deassign_uplink_cell(uint64_t node_id);
 
 /**
  * @brief Computes the frequency to be used in a given slot.
@@ -107,6 +107,6 @@ bool dl_scheduler_deassign_uplink_cell(uint64_t node_id);
  * @return Frequency to be used in the given slot
  *
  */
-uint8_t dl_scheduler_get_frequency(slot_type_t slot_type, uint64_t asn, uint8_t channel_offset);
+uint8_t bl_scheduler_get_frequency(slot_type_t slot_type, uint64_t asn, uint8_t channel_offset);
 
 #endif

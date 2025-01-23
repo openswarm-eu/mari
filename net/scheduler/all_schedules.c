@@ -1,6 +1,6 @@
 /**
  * @file
- * @ingroup     net_dotlink
+ * @ingroup     net_blink
  *
  * @brief       Driver for Time-Slotted Channel Hopping (TSCH)
  *
@@ -10,7 +10,7 @@
  */
 #include "scheduler.h"
 
-#define DOTLINK_N_SCHEDULES 1 + 7 // account for the schedule that can be passed by the application during initialization
+#define BLINK_N_SCHEDULES 1 + 7 // account for the schedule that can be passed by the application during initialization
 
 /* Schedule only for beacons. Used when scanning the network. */
 schedule_t schedule_only_beacons = {
@@ -26,7 +26,7 @@ schedule_t schedule_only_beacons = {
     }
 };
 
-/* Schedule only for beacons, used for network scanning, specifically when the DOTLINK_LISTEN_DURING_UNSCHEDULED_UPLINK optimization is enabled. */
+/* Schedule only for beacons, used for network scanning, specifically when the BLINK_LISTEN_DURING_UNSCHEDULED_UPLINK optimization is enabled. */
 schedule_t schedule_only_beacons_optimized_scan = {
     .id = 0xBF,
     .max_nodes = 0,

@@ -1,4 +1,5 @@
-# BotLink
+# blink 😉⚡️
 
-TSCH-based link layer for nRF chips, enabling the OpenSwarm 1k DotBots Testbed.
+Scalable low-power local connectivity supporting mobility, enabling the OpenSwarm 1k DotBots Testbed.
 
+Designed to work with chips nRF52840 and nRF5340.

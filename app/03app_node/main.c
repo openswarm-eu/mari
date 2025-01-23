@@ -2,7 +2,7 @@
  * @file
  * @ingroup     app
  *
- * @brief       BotLink Node application example
+ * @brief       Blink Node application example
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
@@ -13,7 +13,7 @@
 
 int main(void)
 {
-    printf("Hello BotLink Node\n");
+    printf("Hello Blink Node\n");
 
     while (1) {
         __WFE();

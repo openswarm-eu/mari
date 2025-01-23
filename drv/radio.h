@@ -38,7 +38,7 @@ typedef enum {
     DB_RADIO_BLE_LR125Kbit,
     DB_RADIO_BLE_LR500Kbit,
     DB_RADIO_IEEE802154_250Kbit
-} dl_radio_mode_t;
+} bl_radio_mode_t;
 
 typedef void (*radio_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer to the callback function called on packet receive
 
@@ -48,13 +48,13 @@ typedef void (*radio_cb_t)(uint8_t *packet, uint8_t length);  ///< Function poin
  * @brief Initializes the RADIO peripheral
  *
  * After this function you must explicitly set the frequency of the radio
- * with the dl_radio_set_frequency function.
+ * with the bl_radio_set_frequency function.
  *
  * @param[in] callback pointer to a function that will be called each time a packet is received.
  * @param[in] mode     Mode used by the radio BLE (1MBit, 2MBit, LR125KBit, LR500Kbit) or IEEE 802.15.4 (250Kbit)
  *
  */
-void dl_radio_init(radio_cb_t callback, dl_radio_mode_t mode);
+void bl_radio_init(radio_cb_t callback, bl_radio_mode_t mode);
 
 /**
  * @brief Set the tx-rx frequency of the radio, by the following formula
@@ -63,7 +63,7 @@ void dl_radio_init(radio_cb_t callback, dl_radio_mode_t mode);
  *
  * @param[in] freq Frequency of the radio [0, 100]
  */
-void dl_radio_set_frequency(uint8_t freq);
+void bl_radio_set_frequency(uint8_t freq);
 
 /**
  * @brief Set the physical channel used of the radio
@@ -76,52 +76,52 @@ void dl_radio_set_frequency(uint8_t freq);
  *
  * @param[in] channel   Channel used by the radio
  */
-void dl_radio_set_channel(uint8_t channel);
+void bl_radio_set_channel(uint8_t channel);
 
 /**
  * @brief Set the network address used to send/receive radio packets
  *
  * @param[in] addr Network address
  */
-void dl_radio_set_network_address(uint32_t addr);
+void bl_radio_set_network_address(uint32_t addr);
 
 /**
  * @brief Sends a single packet through the Radio
  *
  * NOTE: Must configure the radio and the frequency before calling this function.
- * (with the functions dl_radio_init dl_radio_set_frequency).
+ * (with the functions bl_radio_init bl_radio_set_frequency).
  *
  * NOTE: The radio must not be receiving packets when calling this function.
- * (first call dl_radio_disable if needed)
+ * (first call bl_radio_disable if needed)
  *
  * @param[in] packet pointer to the array of data to send over the radio (max size = 32)
  * @param[in] length Number of bytes to send (max size = 32)
  *
  */
-void dl_radio_tx(const uint8_t *packet, uint8_t length);
+void bl_radio_tx(const uint8_t *packet, uint8_t length);
 
 /**
  * @brief Starts Receiving packets through the Radio
  *
  * NOTE: Must configure the radio and the frequency before calling this function.
- * (with the functions dl_radio_init dl_radio_set_frequency).
+ * (with the functions bl_radio_init bl_radio_set_frequency).
  *
  */
-void dl_radio_rx(void);
+void bl_radio_rx(void);
 
 /**
  * @brief Reads the RSSI of a received packet
  *
  * Should be called after a packet is received, e.g. in the radio callback
  */
-int8_t dl_radio_rssi(void);
+int8_t bl_radio_rssi(void);
 
 /**
  * @brief Disables the radio, no packet can be received and energy consumption is minimal
  */
-void dl_radio_disable(void);
+void bl_radio_disable(void);
 
-void dl_radio_tx_prepare(const uint8_t *tx_buffer, uint8_t length);
-void dl_radio_tx_dispatch(void);
+void bl_radio_tx_prepare(const uint8_t *tx_buffer, uint8_t length);
+void bl_radio_tx_dispatch(void);
 
 #endif

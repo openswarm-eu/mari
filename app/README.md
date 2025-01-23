@@ -1,1 +1,1 @@
-# BotLink Scheduler
+# Blink Scheduler

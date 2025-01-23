@@ -10,7 +10,7 @@
 //=========================== variables =======================================
 
 typedef struct {
-    dl_scan_t scans[BLINK_MAX_SCAN_LIST_SIZE];
+    bl_scan_t scans[BLINK_MAX_SCAN_LIST_SIZE];
 } scan_vars_t;
 
 scan_vars_t scan_vars = { 0 };
@@ -18,8 +18,8 @@ scan_vars_t scan_vars = { 0 };
 //=========================== prototypes ======================================
 
 void _save_rssi(size_t idx, int8_t rssi, uint8_t channel, uint32_t ts_now);
-uint32_t _get_ts_latest(dl_scan_t scan);
-bool _scan_is_too_old(dl_scan_t scan, uint32_t ts_now);
+uint32_t _get_ts_latest(bl_scan_t scan);
+bool _scan_is_too_old(bl_scan_t scan, uint32_t ts_now);
 
 //=========================== public ===========================================
 
@@ -32,7 +32,7 @@ bool _scan_is_too_old(dl_scan_t scan, uint32_t ts_now);
 //   - and also, in most cases it will have to cycle through the whole list anyway, to find old readings to replace.
 // 3. Look for empty spots, in case the gateway_id is not yet in the list.
 // 4. Save the oldest reading, to be overwritten, in case there are no empty spots.
-void dl_scan_add(uint64_t gateway_id, int8_t rssi, uint8_t channel, uint32_t ts_now) {
+void bl_scan_add(uint64_t gateway_id, int8_t rssi, uint8_t channel, uint32_t ts_now) {
     bool found = false;
     int16_t empty_spot_idx = -1;
     uint32_t ts_oldest_all = ts_now;
@@ -48,7 +48,7 @@ void dl_scan_add(uint64_t gateway_id, int8_t rssi, uint8_t channel, uint32_t ts_
         // if newest rssi entry is too old, remove it (just set gateway_id = 0)
         if (_scan_is_too_old(scan_vars.scans[i], ts_now)) {
             // scan_vars.scans[i].gateway_id = 0;
-            memset(&scan_vars.scans[i], 0, sizeof(dl_scan_t));
+            memset(&scan_vars.scans[i], 0, sizeof(bl_scan_t));
         }
 
         // try and save the first empty spot we see
@@ -75,7 +75,7 @@ void dl_scan_add(uint64_t gateway_id, int8_t rssi, uint8_t channel, uint32_t ts_
         } else {
             // last case: didn't match the gateeway_id, and didn't find an empty slot,
             // so overwrite the oldest reading
-            memset(&scan_vars.scans[ts_oldest_all_idx], 0, sizeof(dl_scan_t));
+            memset(&scan_vars.scans[ts_oldest_all_idx], 0, sizeof(bl_scan_t));
             scan_vars.scans[ts_oldest_all_idx].gateway_id = gateway_id;
             _save_rssi(ts_oldest_all_idx, rssi, channel, ts_now);
         }
@@ -85,7 +85,7 @@ void dl_scan_add(uint64_t gateway_id, int8_t rssi, uint8_t channel, uint32_t ts_
 // Compute the average rssi for each gateway, and return the highest one.
 // The documentation says that remaining capacity should also be taken into account,
 // but we will simply not add a gateway to the scan list if its capacity if full.
-uint64_t dl_scan_select(uint32_t ts_now) {
+uint64_t bl_scan_select(uint32_t ts_now) {
     uint64_t best_gateway_id = 0;
     int8_t best_gateway_rssi = INT8_MIN;
     for (size_t i = 0; i < BLINK_MAX_SCAN_LIST_SIZE; i++) {
@@ -95,7 +95,7 @@ uint64_t dl_scan_select(uint32_t ts_now) {
         // compute average rssi, only including the rssi readings that are not too old
         int8_t avg_rssi = 0;
         int8_t n_rssi = 0;
-        for (size_t j = 0; j < DOTLINK_N_BLE_ADVERTISING_FREQUENCIES; j++) {
+        for (size_t j = 0; j < BLINK_N_BLE_ADVERTISING_FREQUENCIES; j++) {
             if (scan_vars.scans[i].rssi[j].timestamp == 0) { // no rssi reading here
                 continue;
             }
@@ -120,19 +120,19 @@ uint64_t dl_scan_select(uint32_t ts_now) {
 //=========================== private ==========================================
 
 inline void _save_rssi(size_t idx, int8_t rssi, uint8_t channel, uint32_t ts_now) {
-    size_t channel_idx = channel % DOTLINK_N_BLE_REGULAR_FREQUENCIES;
+    size_t channel_idx = channel % BLINK_N_BLE_REGULAR_FREQUENCIES;
     scan_vars.scans[idx].rssi[channel_idx].rssi = rssi;
     scan_vars.scans[idx].rssi[channel_idx].timestamp = ts_now;
 }
 
-inline bool _scan_is_too_old(dl_scan_t scan, uint32_t ts_now) {
+inline bool _scan_is_too_old(bl_scan_t scan, uint32_t ts_now) {
     uint32_t ts_latest = _get_ts_latest(scan);
     return (ts_now - ts_latest) > BLINK_SCAN_OLD_US;
 }
 
-inline uint32_t _get_ts_latest(dl_scan_t scan) {
+inline uint32_t _get_ts_latest(bl_scan_t scan) {
     uint32_t latest = 0;
-    for (size_t i = 0; i < DOTLINK_N_BLE_ADVERTISING_FREQUENCIES; i++) {
+    for (size_t i = 0; i < BLINK_N_BLE_ADVERTISING_FREQUENCIES; i++) {
         if (scan.rssi[i].timestamp > latest) {
             latest = scan.rssi[i].timestamp;
         }
