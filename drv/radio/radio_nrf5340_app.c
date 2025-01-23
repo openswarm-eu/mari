@@ -29,7 +29,7 @@ extern volatile __attribute__((section(".shared_data"))) ipc_shared_data_t ipc_s
 
 //=========================== public ===========================================
 
-void dl_radio_init(radio_cb_t callback, dl_radio_mode_t mode) {
+void bl_radio_init(radio_cb_t callback, bl_radio_mode_t mode) {
     db_hfclk_init();
 
     // APPMUTEX (address at 0x41030000 => periph ID is 48)
@@ -57,37 +57,37 @@ void dl_radio_init(radio_cb_t callback, dl_radio_mode_t mode) {
     db_ipc_network_call(DB_IPC_RADIO_INIT_REQ);
 }
 
-void dl_radio_set_frequency(uint8_t freq) {
+void bl_radio_set_frequency(uint8_t freq) {
     ipc_shared_data.radio.frequency = freq;
     db_ipc_network_call(DB_IPC_RADIO_FREQ_REQ);
 }
 
-void dl_radio_set_channel(uint8_t channel) {
+void bl_radio_set_channel(uint8_t channel) {
     ipc_shared_data.radio.channel = channel;
     db_ipc_network_call(DB_IPC_RADIO_CHAN_REQ);
 }
 
-void dl_radio_set_network_address(uint32_t addr) {
+void bl_radio_set_network_address(uint32_t addr) {
     ipc_shared_data.radio.addr = addr;
     db_ipc_network_call(DB_IPC_RADIO_ADDR_REQ);
 }
 
-void dl_radio_tx(const uint8_t *tx_buffer, uint8_t length) {
+void bl_radio_tx(const uint8_t *tx_buffer, uint8_t length) {
     ipc_shared_data.radio.tx_pdu.length = length;
     memcpy((void *)ipc_shared_data.radio.tx_pdu.buffer, tx_buffer, length);
     db_ipc_network_call(DB_IPC_RADIO_TX_REQ);
 }
 
-void dl_radio_rx(void) {
+void bl_radio_rx(void) {
     db_ipc_network_call(DB_IPC_RADIO_RX_REQ);
 }
 
-int8_t dl_radio_rssi(void) {
+int8_t bl_radio_rssi(void) {
     db_ipc_network_call(DB_IPC_RADIO_RSSI_REQ);
     return ipc_shared_data.radio.rssi;
 }
 
-void dl_radio_disable(void) {
+void bl_radio_disable(void) {
     db_ipc_network_call(DB_IPC_RADIO_DIS_REQ);
 }
 

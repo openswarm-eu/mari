@@ -52,7 +52,7 @@ gpio_t pin3 = { .port = 1, .pin = 5 };
 
 //=========================== variables ========================================
 
-dl_slot_timing_t dl_default_slot_timing = {
+bl_slot_timing_t bl_default_slot_timing = {
     .rx_offset = 40 + 200, // Radio ramp-up time (40 us), + some margin for any processing needed
     .rx_max = _BLINK_START_GUARD_TIME + _BLINK_PACKET_TOA_WITH_PADDING, // Guard time + Enough time to receive the maximum payload.
     .tx_offset = 40 + 200 + _BLINK_START_GUARD_TIME, // Same as rx_offset, plus the guard time.
@@ -78,7 +78,7 @@ typedef enum {
     BLINK_STATE_DO_TX = 21,
     BLINK_STATE_IS_TXING = 22,
 
-} dl_state_t; // TODO: actually use this state in the handlers below
+} bl_state_t; // TODO: actually use this state in the handlers below
 
 typedef struct {
     node_type_t node_type; // whether the node is a gateway or a dotbot
@@ -86,8 +86,8 @@ typedef struct {
 
     uint64_t asn; ///< Absolute slot number
 
-    dl_state_t state; ///< State of the TSCH state machine
-    dl_radio_event_t event; ///< Current event to process
+    bl_state_t state; ///< State of the TSCH state machine
+    bl_radio_event_t event; ///< Current event to process
 
     uint8_t packet[DB_BLE_PAYLOAD_MAX_LENGTH]; ///< Buffer to store the packet to transmit
     size_t packet_len; ///< Length of the packet to transmit
@@ -96,36 +96,36 @@ typedef struct {
     uint8_t beacons_sent_this_slot; ///< Tracker to allow sending several beacons in the same slot
     uint8_t tx_time_one_beacon; ///< Tracker to allow sending several beacons in the same slot
 
-    dl_cb_t application_callback; ///< Function pointer, stores the application callback
-} dl_vars_t;
+    bl_cb_t application_callback; ///< Function pointer, stores the application callback
+} bl_vars_t;
 
-static dl_vars_t _dl_vars = { 0 };
+static bl_vars_t _bl_vars = { 0 };
 
 uint8_t default_packet[] = {
     0x08, // size of the packet
     0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
 };
 
-dl_beacon_packet_header_t beacon = { 0 };
+bl_beacon_packet_header_t beacon = { 0 };
 
 //========================== prototypes ========================================
 
 //-------------------------- state machine handlers ----------------------------
 
-static void _dl_state_machine_handler(void);
+static void _bl_state_machine_handler(void);
 static void _handler_sm_begin_slot(void);
 
 /*
 * @brief Set TSCH state machine state, to be used after the timer expires.
 */
-static inline void _set_next_state(dl_state_t state);
+static inline void _set_next_state(bl_state_t state);
 
 // ------------------------- other functions ------------------------------------
 
 /*
 * @brief Callback function passed to the radio driver.
 */
-static void _dl_callback(uint8_t *packet, uint8_t length);
+static void _bl_callback(uint8_t *packet, uint8_t length);
 
 static inline void _set_timer_and_compensate(uint8_t channel, uint32_t duration, uint32_t start_ts, timer_hf_cb_t cb);
 // static inline void _set_timer(uint8_t channel, uint32_t duration, timer_hf_cb_t timer_callback);
@@ -133,7 +133,7 @@ static inline void _set_timer_and_compensate(uint8_t channel, uint32_t duration,
 
 //=========================== public ===========================================
 
-void dl_blink_init(node_type_t node_type, dl_cb_t application_callback) {
+void bl_init(node_type_t node_type, bl_cb_t application_callback) {
 #ifdef DEBUG
     db_gpio_init(&pin0, DB_GPIO_OUT);
     db_gpio_init(&pin1, DB_GPIO_OUT);
@@ -142,56 +142,56 @@ void dl_blink_init(node_type_t node_type, dl_cb_t application_callback) {
 #endif
 
     // initialize the high frequency clock
-    dl_timer_hf_init(BLINK_TIMER_DEV);
+    bl_timer_hf_init(BLINK_TIMER_DEV);
 
     // initialize the radio
-    dl_radio_init(&_dl_callback, DB_RADIO_BLE_2MBit);  // set the radio callback to our blink catch function
+    bl_radio_init(&_bl_callback, DB_RADIO_BLE_2MBit);  // set the radio callback to our blink catch function
 
     // Save the application callback to use in our interruption
-    _dl_vars.application_callback = application_callback;
+    _bl_vars.application_callback = application_callback;
 
     // set node information
-    _dl_vars.node_type = node_type;
-    _dl_vars.device_id = db_device_id();
+    _bl_vars.node_type = node_type;
+    _bl_vars.device_id = db_device_id();
 
-    _dl_vars.asn = 0;
+    _bl_vars.asn = 0;
 
     // beacon configurations
     beacon.version = 1;
     beacon.type = BLINK_PACKET_TYPE_BEACON;
     beacon.src = db_device_id();
-    _dl_vars.max_beacons_per_slot = 1;//dl_default_slot_timing.tx_max / ((sizeof(beacon) * BLE_2M_US_PER_BYTE) + 180); // 180 us margin
-    _dl_vars.beacons_sent_this_slot = 0;
-    // _dl_vars.tx_time_one_beacon = (sizeof(beacon) * BLE_2M_US_PER_BYTE) + 100; // 100 us margin
+    _bl_vars.max_beacons_per_slot = 1;//bl_default_slot_timing.tx_max / ((sizeof(beacon) * BLE_2M_US_PER_BYTE) + 180); // 180 us margin
+    _bl_vars.beacons_sent_this_slot = 0;
+    // _bl_vars.tx_time_one_beacon = (sizeof(beacon) * BLE_2M_US_PER_BYTE) + 100; // 100 us margin
 
     // NOTE: assume the scheduler has already been initialized by the application
 
     // set slot total duration
-    dl_default_slot_timing.total_duration = dl_default_slot_timing.rx_offset + dl_default_slot_timing.rx_max + dl_default_slot_timing.end_guard;
+    bl_default_slot_timing.total_duration = bl_default_slot_timing.rx_offset + bl_default_slot_timing.rx_max + bl_default_slot_timing.end_guard;
 
     // initialize and start the state machine
     _set_next_state(BLINK_STATE_BEGIN_SLOT);
     uint32_t time_padding = 50; // account for function call and interrupt latency
-    dl_timer_hf_set_oneshot_us(BLINK_TIMER_DEV, BLINK_TIMER_INTER_SLOT_CHANNEL, time_padding, _dl_state_machine_handler); // trigger the state machine
+    bl_timer_hf_set_oneshot_us(BLINK_TIMER_DEV, BLINK_TIMER_INTER_SLOT_CHANNEL, time_padding, _bl_state_machine_handler); // trigger the state machine
 }
 
 //=========================== private ==========================================
 
 // state machine handler
-void _dl_state_machine_handler(void) {
-    uint32_t start_ts = dl_timer_hf_now(BLINK_TIMER_DEV);
-    // printf("State: %d\n", _dl_vars.state);
+void _bl_state_machine_handler(void) {
+    uint32_t start_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
+    // printf("State: %d\n", _bl_vars.state);
 
-    switch (_dl_vars.state) {
+    switch (_bl_vars.state) {
         case BLINK_STATE_BEGIN_SLOT:
             DEBUG_GPIO_CLEAR(&pin0); DEBUG_GPIO_SET(&pin0); // slot-wide debug pin
             DEBUG_GPIO_SET(&pin1); // intra-slot debug pin
             // set the timer for the next slot TOTAL DURATION
-            // _set_timer(BLINK_TIMER_INTER_SLOT_CHANNEL, dl_default_slot_timing.total_duration, &_dl_state_machine_handler);
-            _set_timer_and_compensate(BLINK_TIMER_INTER_SLOT_CHANNEL, dl_default_slot_timing.total_duration, start_ts, &_dl_state_machine_handler);
+            // _set_timer(BLINK_TIMER_INTER_SLOT_CHANNEL, bl_default_slot_timing.total_duration, &_bl_state_machine_handler);
+            _set_timer_and_compensate(BLINK_TIMER_INTER_SLOT_CHANNEL, bl_default_slot_timing.total_duration, start_ts, &_bl_state_machine_handler);
 
             // common logic, which doesn't depend on schedule
-            _dl_vars.beacons_sent_this_slot = 0;
+            _bl_vars.beacons_sent_this_slot = 0;
 
             // logic of beginning the slot
             _handler_sm_begin_slot();
@@ -202,34 +202,34 @@ void _dl_state_machine_handler(void) {
             // update state
             _set_next_state(BLINK_STATE_IS_RXING);
             // receive packets
-            dl_radio_rx(); // remember: this always starts with before the actual transmission begins, i.e, rx_offset < tx_offset always holds
-            _set_timer_and_compensate(BLINK_TIMER_INTRA_SLOT_CHANNEL, dl_default_slot_timing.rx_max, start_ts, &_dl_state_machine_handler);
+            bl_radio_rx(); // remember: this always starts with before the actual transmission begins, i.e, rx_offset < tx_offset always holds
+            _set_timer_and_compensate(BLINK_TIMER_INTRA_SLOT_CHANNEL, bl_default_slot_timing.rx_max, start_ts, &_bl_state_machine_handler);
             break;
         case BLINK_STATE_DO_TX:
             DEBUG_GPIO_CLEAR(&pin1);
             DEBUG_GPIO_SET(&pin1);
             // send the packet
-            // printf("Sending packet of length %d\n", _dl_vars.packet_len);
-            // for (uint8_t i = 0; i < _dl_vars.packet_len; i++) {
-            //     printf("%02x ", _dl_vars.packet[i]);
+            // printf("Sending packet of length %d\n", _bl_vars.packet_len);
+            // for (uint8_t i = 0; i < _bl_vars.packet_len; i++) {
+            //     printf("%02x ", _bl_vars.packet[i]);
             // }
             // puts("");
 
-            if (_dl_vars.node_type == NODE_TYPE_GATEWAY && _dl_vars.event.slot_type == SLOT_TYPE_BEACON) {
+            if (_bl_vars.node_type == NODE_TYPE_GATEWAY && _bl_vars.event.slot_type == SLOT_TYPE_BEACON) {
                 DEBUG_GPIO_SET(&pin2); DEBUG_GPIO_CLEAR(&pin2); // Gateway sending beacon NOW
             }
 
             _set_next_state(BLINK_STATE_IS_TXING);
-            _set_timer_and_compensate(BLINK_TIMER_INTRA_SLOT_CHANNEL, dl_default_slot_timing.tx_max, start_ts, &_dl_state_machine_handler);
-            // dl_radio_tx(_dl_vars.packet, _dl_vars.packet_len);
-            dl_radio_tx_dispatch();
+            _set_timer_and_compensate(BLINK_TIMER_INTRA_SLOT_CHANNEL, bl_default_slot_timing.tx_max, start_ts, &_bl_state_machine_handler);
+            // bl_radio_tx(_bl_vars.packet, _bl_vars.packet_len);
+            bl_radio_tx_dispatch();
             break;
         // in case was receiving or sending, now just finish. timeslot will begin again because of the inter-slot timer
         case BLINK_STATE_IS_RXING:
         case BLINK_STATE_IS_TXING:
             DEBUG_GPIO_CLEAR(&pin1);
             // just disable the radio and set the next state
-            dl_radio_disable();
+            bl_radio_disable();
             _set_next_state(BLINK_STATE_BEGIN_SLOT);
             break;
         default:
@@ -238,77 +238,77 @@ void _dl_state_machine_handler(void) {
 }
 
 void _handler_sm_begin_slot(void) {
-    uint32_t start_ts = dl_timer_hf_now(BLINK_TIMER_DEV);
+    uint32_t start_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
 
     uint32_t timer_duration = 0;
 
-    dl_radio_event_t event = dl_scheduler_tick(_dl_vars.asn++);
-    // printf("  Event %c:   %c, %d    Slot duration: %d\n", event.slot_type, event.radio_action, event.frequency, dl_default_slot_timing.total_duration);
+    bl_radio_event_t event = bl_scheduler_tick(_bl_vars.asn++);
+    // printf("  Event %c:   %c, %d    Slot duration: %d\n", event.slot_type, event.radio_action, event.frequency, bl_default_slot_timing.total_duration);
 
     switch (event.radio_action) {
         case BLINK_RADIO_ACTION_TX:
             // set the packet that will be transmitted
-            if (_dl_vars.node_type == NODE_TYPE_GATEWAY && event.slot_type == SLOT_TYPE_BEACON) {
-                _dl_vars.packet_len = sizeof(beacon);
-                memcpy(_dl_vars.packet, &beacon, _dl_vars.packet_len);
+            if (_bl_vars.node_type == NODE_TYPE_GATEWAY && event.slot_type == SLOT_TYPE_BEACON) {
+                _bl_vars.packet_len = sizeof(beacon);
+                memcpy(_bl_vars.packet, &beacon, _bl_vars.packet_len);
             } else {
                 // TODO: get from a queue or something
-                _dl_vars.packet_len = sizeof(default_packet);
-                memcpy(_dl_vars.packet, default_packet, _dl_vars.packet_len);
+                _bl_vars.packet_len = sizeof(default_packet);
+                memcpy(_bl_vars.packet, default_packet, _bl_vars.packet_len);
             }
 
             // configure radio
-            dl_radio_disable();
-            dl_radio_set_frequency(event.frequency);
-            dl_radio_tx_prepare(_dl_vars.packet, _dl_vars.packet_len);
+            bl_radio_disable();
+            bl_radio_set_frequency(event.frequency);
+            bl_radio_tx_prepare(_bl_vars.packet, _bl_vars.packet_len);
 
             // update state
-            _dl_vars.event = event;
+            _bl_vars.event = event;
             _set_next_state(BLINK_STATE_DO_TX);
 
-            // get the packet to tx and save in _dl_vars
-            // TODO: how to get a packet? decide based on _dl_vars.node_type and event.slot_type
+            // get the packet to tx and save in _bl_vars
+            // TODO: how to get a packet? decide based on _bl_vars.node_type and event.slot_type
             //       could the event come with a packet? sometimes maybe? or would it be confusing?
 
             // set timer duration to resume again after tx_offset
-            timer_duration = dl_default_slot_timing.tx_offset;
-            _set_timer_and_compensate(BLINK_TIMER_INTRA_SLOT_CHANNEL, timer_duration, start_ts, &_dl_state_machine_handler);
+            timer_duration = bl_default_slot_timing.tx_offset;
+            _set_timer_and_compensate(BLINK_TIMER_INTRA_SLOT_CHANNEL, timer_duration, start_ts, &_bl_state_machine_handler);
             break;
         case BLINK_RADIO_ACTION_RX:
             // configure radio
-            dl_radio_disable();
-            dl_radio_set_frequency(event.frequency);
+            bl_radio_disable();
+            bl_radio_set_frequency(event.frequency);
 
             // update state
-            _dl_vars.event = event;
+            _bl_vars.event = event;
             _set_next_state(BLINK_STATE_DO_RX);
 
             // set timer duration to resume again after rx_offset
-            timer_duration = dl_default_slot_timing.rx_offset;
-            _set_timer_and_compensate(BLINK_TIMER_INTRA_SLOT_CHANNEL, timer_duration, start_ts, &_dl_state_machine_handler);
+            timer_duration = bl_default_slot_timing.rx_offset;
+            _set_timer_and_compensate(BLINK_TIMER_INTRA_SLOT_CHANNEL, timer_duration, start_ts, &_bl_state_machine_handler);
             break;
         case BLINK_RADIO_ACTION_SLEEP:
             // just disable the radio and do nothing, then come back for the next slot
-            dl_radio_disable();
+            bl_radio_disable();
             _set_next_state(BLINK_STATE_BEGIN_SLOT); // keep the same state
             DEBUG_GPIO_CLEAR(&pin1);
-            // timer_duration = dl_default_slot_timing.total_duration;
+            // timer_duration = bl_default_slot_timing.total_duration;
             break;
     }
 
-    // _set_timer_and_compensate(BLINK_TIMER_INTRA_SLOT_CHANNEL, timer_duration, start_ts, &_dl_state_machine_handler);
+    // _set_timer_and_compensate(BLINK_TIMER_INTRA_SLOT_CHANNEL, timer_duration, start_ts, &_bl_state_machine_handler);
 }
 
 // --------------------- timers ---------------------
 
-static inline void _set_next_state(dl_state_t state) {
-    _dl_vars.state = state;
+static inline void _set_next_state(bl_state_t state) {
+    _bl_vars.state = state;
 }
 
 static inline void _set_timer_and_compensate(uint8_t channel, uint32_t duration, uint32_t start_ts, timer_hf_cb_t timer_callback) {
-    uint32_t elapsed_ts = dl_timer_hf_now(BLINK_TIMER_DEV) - start_ts;
+    uint32_t elapsed_ts = bl_timer_hf_now(BLINK_TIMER_DEV) - start_ts;
     // printf("Setting timer for duration %d, compensating for elapsed %d gives: %d\n", duration, elapsed_ts, duration - elapsed_ts);
-    dl_timer_hf_set_oneshot_us(
+    bl_timer_hf_set_oneshot_us(
         BLINK_TIMER_DEV,
         channel,
         duration - elapsed_ts,
@@ -318,7 +318,7 @@ static inline void _set_timer_and_compensate(uint8_t channel, uint32_t duration,
 
 //static inline void _set_timer(uint8_t channel, uint32_t duration, timer_hf_cb_t timer_callback) {
 ////    printf("Setting timer for duration %d\n", duration);
-//   dl_timer_hf_set_oneshot_us(
+//   bl_timer_hf_set_oneshot_us(
 //       BLINK_TIMER_DEV,
 //       channel,
 //       duration,
@@ -328,7 +328,7 @@ static inline void _set_timer_and_compensate(uint8_t channel, uint32_t duration,
 
 // --------------------- others ---------------------
 
-static void _dl_callback(uint8_t *packet, uint8_t length) {
+static void _bl_callback(uint8_t *packet, uint8_t length) {
     // printf("TSCH: Received packet of length %d\n", length);
 
     // Check if the packet is big enough to have a header
@@ -338,11 +338,11 @@ static void _dl_callback(uint8_t *packet, uint8_t length) {
     }
 
     // Check if it is a beacon
-    if (packet[1] == BLINK_PACKET_TYPE_BEACON && _dl_vars.node_type == NODE_TYPE_DOTBOT) {
-        // _dl_handle_beacon(packet, length);
+    if (packet[1] == BLINK_PACKET_TYPE_BEACON && _bl_vars.node_type == NODE_TYPE_DOTBOT) {
+        // _bl_handle_beacon(packet, length);
         DEBUG_GPIO_SET(&pin2); // DotBot received a beacon
         DEBUG_GPIO_CLEAR(&pin2);
-    } else if (_dl_vars.application_callback) {
-        _dl_vars.application_callback(packet, length);
+    } else if (_bl_vars.application_callback) {
+        _bl_vars.application_callback(packet, length);
     }
 }

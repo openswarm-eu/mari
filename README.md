@@ -1,4 +1,4 @@
-# Blink
+# blink 😉⚡️
 
 Scalable low-power local connectivity supporting mobility, enabling the OpenSwarm 1k DotBots Testbed.
 

@@ -56,13 +56,13 @@ int main(void) {
     schedule_t schedule = schedule_huge;
     node_type_t node_type = NODE_TYPE_DOTBOT;
 
-    dl_scheduler_init(node_type, &schedule);
+    bl_scheduler_init(node_type, &schedule);
     printf("\n==== Device of type %c and id %llx is using schedule %d ====\n\n", node_type, db_device_id(), schedule.id);
 
     // initialize the TSCH driver
-    //dl_default_slot_timing.end_guard = 1000 * 1000; // add an extra second of delay.
-    dl_blink_init(node_type, radio_callback);
-    printf("Slot total duration: %d us\n", dl_default_slot_timing.total_duration);
+    //bl_default_slot_timing.end_guard = 1000 * 1000; // add an extra second of delay.
+    bl_init(node_type, radio_callback);
+    printf("Slot total duration: %d us\n", bl_default_slot_timing.total_duration);
 
     while (1) {
         __WFE();

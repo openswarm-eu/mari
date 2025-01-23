@@ -48,7 +48,7 @@ typedef enum {
     BLINK_RADIO_ACTION_SLEEP = 'S',
     BLINK_RADIO_ACTION_RX = 'R',
     BLINK_RADIO_ACTION_TX = 'T',
-} dl_radio_action_t;
+} bl_radio_action_t;
 
 typedef enum {
     SLOT_TYPE_BEACON = 'B',
@@ -65,17 +65,17 @@ typedef struct {
     uint32_t tx_max; ///< Maximum time the transmitter can be active. Has to be smaller than rx_max.
     uint32_t end_guard; ///< Time to wait after the end of the slot, so that the radio can fully turn off. Can be overriden with a large value to facilitate debugging.
     uint32_t total_duration; ///< Total duration of the slot
-} dl_slot_timing_t;
+} bl_slot_timing_t;
 
-extern dl_slot_timing_t dl_default_slot_timing;
+extern bl_slot_timing_t bl_default_slot_timing;
 
 typedef struct {
-    dl_radio_action_t radio_action;
+    bl_radio_action_t radio_action;
     uint8_t frequency;
     slot_type_t slot_type;
-} dl_radio_event_t;
+} bl_radio_event_t;
 
-typedef void (*dl_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer to the callback function called on packet receive
+typedef void (*bl_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer to the callback function called on packet receive
 
 //=========================== prototypes ==========================================
 
@@ -85,6 +85,6 @@ typedef void (*dl_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer
  * @param[in] callback             pointer to a function that will be called each time a packet is received.
  *
  */
-void dl_blink_init(node_type_t node_type, dl_cb_t application_callback);
+void bl_init(node_type_t node_type, bl_cb_t application_callback);
 
 #endif
