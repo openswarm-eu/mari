@@ -16,31 +16,21 @@ typedef enum {
 } dl_packet_type_t;
 
 // general packet header
-typedef struct {
-    uint8_t version;
-    dl_packet_type_t type;
-    uint64_t dst;
-    uint64_t src;
+typedef struct __attribute__((packed)) {
+    uint8_t           version;
+    dl_packet_type_t  type;
+    uint64_t          dst;
+    uint64_t          src;
 } dl_packet_header_t;
 
 // beacon packet
-typedef struct {
-    uint8_t version;
-    dl_packet_type_t type;
-    uint64_t asn;
-    uint64_t src;
-    uint8_t remaining_capacity;
-    uint8_t active_schedule_id;
+typedef struct __attribute__((packed)) {
+    uint8_t           version;
+    dl_packet_type_t  type;
+    uint64_t          asn;
+    uint64_t          src;
+    uint8_t           remaining_capacity;
+    uint8_t           active_schedule_id;
 } dl_beacon_packet_header_t;
-
-typedef struct {
-    uint32_t start_ts;
-    uint32_t end_ts;
-    uint32_t frequency;
-    union {
-        dl_packet_header_t header;
-        dl_beacon_packet_header_t header_beacon;
-    };
-} dl_annotated_header_t;
 
 #endif

@@ -20,13 +20,13 @@
 //=========================== variables =======================================
 
 typedef struct {
-    int8_t rssi;
-    uint32_t timestamp;
+    int8_t    rssi;
+    uint32_t  timestamp;
 } dl_rssi_t;
 
 typedef struct {
-    uint64_t gateway_id;
-    dl_rssi_t rssi[DOTLINK_N_BLE_ADVERTISING_FREQUENCIES]; // channels 37, 38, 39
+    uint64_t   gateway_id;
+    dl_rssi_t  rssi[DOTLINK_N_BLE_ADVERTISING_FREQUENCIES]; // channels 37, 38, 39
 } dl_scan_t;
 
 //=========================== prototypes ======================================
