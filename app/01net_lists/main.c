@@ -4,13 +4,20 @@
 #include "scan.h"
 
 //=========================== prototypes ======================================
+
 void test_scan(void);
 
-int main(void) {
+//============================ main ============================================
 
+int main(void) {
     test_scan();
 
-    while (1) {
+    // main loop
+    while(1) {
+        // make sure the event register is cleared
+        __SEV();
+        __WFE();
+        // wait for events, effectively entering System ON sleep mode
         __WFE();
     }
 }

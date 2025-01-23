@@ -8,6 +8,7 @@
 #include "timer_hf.h"
 
 //=========================== variables =======================================
+
 typedef struct {
     dl_scan_t scans[BLINK_MAX_SCAN_LIST_SIZE];
 } scan_vars_t;
