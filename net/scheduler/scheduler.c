@@ -1,8 +1,8 @@
 /**
  * @file
- * @ingroup     net_blink
+ * @ingroup     net_scheduler
  *
- * @brief       Driver for Time-Slotted Channel Hopping (TSCH)
+ * @brief       The blink scheduler
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
@@ -15,7 +15,7 @@
 #include <stdbool.h>
 
 #include "scheduler.h"
-#include "blink.h"
+#include "maclow.h"
 #include "device.h"
 #if defined(NRF5340_XXAA) && defined(NRF_NETWORK)
 #include "ipc.h"

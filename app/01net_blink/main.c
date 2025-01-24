@@ -1,8 +1,8 @@
 /**
  * @file
- * @ingroup     net_blink
+ * @ingroup     net_maclow
  *
- * @brief       Example on how to use the Blink driver
+ * @brief       Example on how to use the maclow driver
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "blink.h"
+#include "maclow.h"
 #include "scheduler.h"
 #include "device.h"
 

@@ -1,8 +1,8 @@
 /**
  * @file
- * @ingroup     net_blink
+ * @ingroup     net_maclow
  *
- * @brief       Driver for Time-Slotted Channel Hopping (TSCH)
+ * @brief       Lower MAC driver for Time-Slotted Channel Hopping (TSCH)
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
@@ -14,7 +14,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "blink.h"
+#include "maclow.h"
 #include "scheduler.h"
 #include "radio.h"
 #include "timer_hf.h"

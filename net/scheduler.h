@@ -2,7 +2,7 @@
 #define __SCHEDULER_H
 
 /**
- * @defgroup    net_blink      SCHEDULER radio driver
+ * @defgroup    net_scheduler      SCHEDULER radio driver
  * @ingroup     drv
  * @brief       Driver for the TSCH scheduler
  *
@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <nrf.h>
 
-#include "blink.h"
+#include "maclow.h"
 
 //=========================== defines ==========================================
 
