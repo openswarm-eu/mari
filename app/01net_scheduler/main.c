@@ -28,7 +28,7 @@ int main(void) {
 
     // initialize schedule
     schedule_t schedule = schedule_only_beacons_optimized_scan;
-    node_type_t node_type = NODE_TYPE_DOTBOT;
+    bl_node_type_t node_type = NODE_TYPE_NODE;
     bl_scheduler_init(node_type, &schedule);
 
     printf("Device of type %c and id %llx is using schedule %d\n\n", node_type, db_device_id(), schedule.id);

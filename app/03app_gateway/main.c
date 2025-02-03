@@ -11,9 +11,13 @@
 #include <nrf.h>
 #include <stdio.h>
 
+#include "blink.h"
+
 int main(void)
 {
     printf("Hello Blink Gateway\n");
+
+    bl_init(NODE_TYPE_GATEWAY, NULL, NULL);
 
     while (1) {
         __WFE();

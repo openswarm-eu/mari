@@ -58,7 +58,7 @@ typedef struct {
  *
  * @param[in] schedule         Schedule to be used.
  */
-void bl_scheduler_init(node_type_t node_type, schedule_t *application_schedule);
+void bl_scheduler_init(bl_node_type_t node_type, schedule_t *application_schedule);
 
 /**
  * @brief Advances the schedule by one cell/slot.

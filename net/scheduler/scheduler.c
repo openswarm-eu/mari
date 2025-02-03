@@ -41,7 +41,7 @@ static const uint8_t _ble_chan_to_freq[40] = {
 };
 
 typedef struct {
-    node_type_t node_type; // whether the node is a gateway or a dotbot
+    bl_node_type_t node_type; // whether the node is a gateway or a dotbot
 
     // counters and indexes
     uint64_t asn; // absolute slot number
@@ -65,7 +65,7 @@ void _compute_dotbot_action(cell_t cell, bl_radio_event_t *radio_event);
 
 //=========================== public ===========================================
 
-void bl_scheduler_init(node_type_t node_type, schedule_t *application_schedule) {
+void bl_scheduler_init(bl_node_type_t node_type, schedule_t *application_schedule) {
     _schedule_vars.node_type = node_type;
 
     if (_schedule_vars.available_schedules_len == BLINK_N_SCHEDULES) return; // FIXME: this is just to simplify debugging (allows calling init multiple times)

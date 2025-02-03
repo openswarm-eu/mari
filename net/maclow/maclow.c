@@ -14,11 +14,12 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "blink.h"
 #include "maclow.h"
 #include "scheduler.h"
 #include "radio.h"
 #include "timer_hf.h"
-//#include "protocol.h"
+#include "protocol.h"
 #include "device.h"
 #if defined(NRF5340_XXAA) && defined(NRF_NETWORK)
 #include "ipc.h"
@@ -81,7 +82,7 @@ typedef enum {
 } bl_state_t; // TODO: actually use this state in the handlers below
 
 typedef struct {
-    node_type_t node_type; // whether the node is a gateway or a dotbot
+    bl_node_type_t node_type; // whether the node is a gateway or a dotbot
     uint64_t device_id; ///< Device ID
 
     uint64_t asn; ///< Absolute slot number
@@ -96,7 +97,7 @@ typedef struct {
     uint8_t beacons_sent_this_slot; ///< Tracker to allow sending several beacons in the same slot
     uint8_t tx_time_one_beacon; ///< Tracker to allow sending several beacons in the same slot
 
-    bl_cb_t application_callback; ///< Function pointer, stores the application callback
+    bl_rx_cb_t application_callback; ///< Function pointer, stores the application callback
 } bl_vars_t;
 
 static bl_vars_t _bl_vars = { 0 };
@@ -133,7 +134,7 @@ static inline void _set_timer_and_compensate(uint8_t channel, uint32_t duration,
 
 //=========================== public ===========================================
 
-void bl_init(node_type_t node_type, bl_cb_t application_callback) {
+void bl_maclow_init(bl_node_type_t node_type, bl_rx_cb_t application_callback) {
 #ifdef DEBUG
     db_gpio_init(&pin0, DB_GPIO_OUT);
     db_gpio_init(&pin1, DB_GPIO_OUT);
@@ -338,7 +339,7 @@ static void _bl_callback(uint8_t *packet, uint8_t length) {
     }
 
     // Check if it is a beacon
-    if (packet[1] == BLINK_PACKET_TYPE_BEACON && _bl_vars.node_type == NODE_TYPE_DOTBOT) {
+    if (packet[1] == BLINK_PACKET_TYPE_BEACON && _bl_vars.node_type == NODE_TYPE_NODE) {
         // _bl_handle_beacon(packet, length);
         DEBUG_GPIO_SET(&pin2); // DotBot received a beacon
         DEBUG_GPIO_CLEAR(&pin2);

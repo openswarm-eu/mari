@@ -31,4 +31,13 @@
     <file file_name="maclow.c" />
     <file file_name="../maclow.h" />
   </project>
+  <project Name="01net_blink">
+    <configuration
+      Name="Common"
+      project_dependencies="01net_scheduler(01net);01net_maclow(01net);01net_scan(01net);00drv_radio(00drv);00drv_timer_hf(00drv);00drv_gpio(00drv)"
+      project_directory="blink"
+      project_type="Library" />
+    <file file_name="blink.c" />
+    <file file_name="../blink.h" />
+  </project>
 </solution>

@@ -17,8 +17,7 @@
 #include <stdlib.h>
 #include <nrf.h>
 
-#include "radio.h"
-#include "protocol.h"
+#include "blink.h"
 
 //=========================== defines ==========================================
 
@@ -38,11 +37,6 @@
 #define _BLINK_PACKET_TOA_WITH_PADDING (_BLINK_PACKET_TOA + (BLE_2M_US_PER_BYTE * 32)) // Add some padding just in case.
 
 //=========================== variables ========================================
-
-typedef enum {
-    NODE_TYPE_GATEWAY = 'G',
-    NODE_TYPE_DOTBOT = 'D',
-} node_type_t;
 
 typedef enum {
     BLINK_RADIO_ACTION_SLEEP = 'S',
@@ -75,8 +69,6 @@ typedef struct {
     slot_type_t slot_type;
 } bl_radio_event_t;
 
-typedef void (*bl_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer to the callback function called on packet receive
-
 //=========================== prototypes ==========================================
 
 /**
@@ -85,6 +77,6 @@ typedef void (*bl_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer
  * @param[in] callback             pointer to a function that will be called each time a packet is received.
  *
  */
-void bl_init(node_type_t node_type, bl_cb_t application_callback);
+void bl_maclow_init(bl_node_type_t node_type, bl_rx_cb_t rx_app_callback);
 
 #endif // __MACLOW_H
