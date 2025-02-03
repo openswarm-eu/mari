@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 #include "scheduler.h"
-#include "blink.h"
+#include "maclow.h"
 #include "timer_hf.h"
 #include "device.h"
 

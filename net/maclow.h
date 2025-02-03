@@ -1,8 +1,8 @@
-#ifndef __BLINK_H
-#define __BLINK_H
+#ifndef __MACLOW_H
+#define __MACLOW_H
 
 /**
- * @defgroup    net_blink      TSCH radio driver
+ * @defgroup    net_maclow      MAC-low radio driver
  * @ingroup     drv
  * @brief       Driver for Time-Slotted Channel Hopping (TSCH)
  *
@@ -87,4 +87,4 @@ typedef void (*bl_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer
  */
 void bl_init(node_type_t node_type, bl_cb_t application_callback);
 
-#endif
+#endif // __MACLOW_H

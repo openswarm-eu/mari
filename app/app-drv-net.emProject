@@ -3,7 +3,7 @@
   <project Name="01net_lists">
     <configuration
       Name="Common"
-      project_dependencies="01net_scan(01net);01net_blink(01net);00drv_timer_hf(00drv)"
+      project_dependencies="01net_scan(01net);01net_maclow(01net);00drv_timer_hf(00drv)"
       project_directory="01net_lists"
       project_type="Executable" />
     <configuration Name="Debug" linker_printf_fp_enabled="Float" />
@@ -28,7 +28,7 @@
   <project Name="01net_scheduler">
     <configuration
       Name="Common"
-      project_dependencies="01net_scheduler(01net);01net_blink(01net);00drv_timer_hf(00drv)"
+      project_dependencies="01net_scheduler(01net);01net_maclow(01net);00drv_timer_hf(00drv)"
       project_directory="01net_scheduler"
       project_type="Executable" />
     <configuration Name="Debug" linker_printf_fp_enabled="Float" />
@@ -50,11 +50,11 @@
       <file file_name="$(ProjectDir)/../../nRF/System/cpu.c" />
     </folder>
   </project>
-  <project Name="01net_blink">
+  <project Name="01net_maclow">
     <configuration
       Name="Common"
-      project_dependencies="01net_blink(01net);01net_scheduler(01net);01net_blink(01net);00drv_timer_hf(00drv)"
-      project_directory="01net_blink"
+      project_dependencies="01net_maclow(01net);01net_scheduler(01net);01net_maclow(01net);00drv_timer_hf(00drv)"
+      project_directory="01net_maclow"
       project_type="Executable" />
     <configuration Name="Debug" linker_printf_fp_enabled="Float" />
     <folder Name="Setup">

@@ -1,8 +1,8 @@
 /**
  * @file
- * @ingroup     net_blink
+ * @ingroup     net_maclow
  *
- * @brief       Driver for Time-Slotted Channel Hopping (TSCH)
+ * @brief       Fixed schedules
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
