@@ -5,14 +5,18 @@
 #include <stdlib.h>
 #include <nrf.h>
 
+//=========================== defines ==========================================
+
+#define BLINK_PROTOCOL_VERSION 1
+#define BLINK_PACKET_MAX_SIZE 255
+
 //=========================== variables ========================================
 
 typedef enum {
-    BLINK_PACKET_TYPE_BEACON = 1,
-    BLINK_PACKET_TYPE_JOIN_REQUEST = 2,
-    BLINK_PACKET_TYPE_JOIN_RESPONSE = 3,
-    BLINK_PACKET_TYPE_INFRASTRUCTURE_DATA = 8,
-    BLINK_PACKET_TYPE_EXPERIMENT_DATA = 9,
+    BLINK_PACKET_BEACON = 1,
+    BLINK_PACKET_JOIN_REQUEST = 2,
+    BLINK_PACKET_JOIN_RESPONSE = 3,
+    BLINK_PACKET_DATA = 5,
 } bl_packet_type_t;
 
 // general packet header
@@ -32,5 +36,9 @@ typedef struct __attribute__((packed)) {
     uint8_t           remaining_capacity;
     uint8_t           active_schedule_id;
 } bl_beacon_packet_header_t;
+
+//=========================== prototypes =======================================
+
+size_t bl_build_packet(uint8_t *buffer, uint64_t dst, uint8_t *data, size_t data_len);
 
 #endif

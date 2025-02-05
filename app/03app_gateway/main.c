@@ -13,7 +13,12 @@
 
 #include "blink.h"
 #include "maclow.h"
+#include "protocol.h"
 #include "timer_hf.h"
+
+//=========================== defines ==========================================
+
+#define DATA_LEN 4
 
 //=========================== callbacks ========================================
 
@@ -28,7 +33,9 @@ static void rx_cb(uint8_t *packet, uint8_t length)
 
 //=========================== variables ========================================
 
-uint8_t packet[4] = { 0xFF, 0xFE, 0xFD, 0xFC };
+uint8_t packet[BLINK_PACKET_MAX_SIZE] = { 0 };
+uint8_t data[DATA_LEN] = { 0xFF, 0xFE, 0xFD, 0xFC };
+uint64_t dst = 0x1;
 
 //=========================== main =============================================
 
@@ -42,7 +49,11 @@ int main(void)
     size_t i = 0;
     while (1) {
         printf("Sending packet %d\n", i++);
-        bl_tx(packet, 4);
+
+        // prepare and send packet (TODO: internally should enqueue it instead)
+        size_t packet_len = bl_build_packet(packet, dst, data, DATA_LEN);
+        bl_tx(packet, packet_len);
+
         bl_timer_hf_delay_ms(BLINK_TIMER_DEV, 1000);
     }
 

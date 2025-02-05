@@ -159,7 +159,7 @@ void bl_maclow_init(bl_node_type_t node_type, bl_rx_cb_t application_callback) {
 
     // beacon configurations
     beacon.version = 1;
-    beacon.type = BLINK_PACKET_TYPE_BEACON;
+    beacon.type = BLINK_PACKET_BEACON;
     beacon.src = db_device_id();
     _bl_vars.max_beacons_per_slot = 1;//bl_default_slot_timing.tx_max / ((sizeof(beacon) * BLE_2M_US_PER_BYTE) + 180); // 180 us margin
     _bl_vars.beacons_sent_this_slot = 0;
@@ -339,7 +339,7 @@ static void _bl_callback(uint8_t *packet, uint8_t length) {
     }
 
     // Check if it is a beacon
-    if (packet[1] == BLINK_PACKET_TYPE_BEACON && _bl_vars.node_type == NODE_TYPE_NODE) {
+    if (packet[1] == BLINK_PACKET_BEACON && _bl_vars.node_type == NODE_TYPE_NODE) {
         // _bl_handle_beacon(packet, length);
         DEBUG_GPIO_SET(&pin2); // DotBot received a beacon
         DEBUG_GPIO_CLEAR(&pin2);

@@ -31,3 +31,9 @@ void bl_tx(uint8_t *packet, uint8_t length) {
     bl_radio_disable();
     bl_radio_tx(packet, length); // TODO: use a packet queue
 }
+
+// TODO: implement
+void bl_get_joined_nodes(uint64_t *nodes, uint8_t *num_nodes) {
+    (void)nodes;
+    (void)num_nodes;
+}
