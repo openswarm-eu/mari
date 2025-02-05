@@ -5,6 +5,14 @@
     build_output_directory="Output/$(BuildTarget)/$(Configuration)/Obj"
     build_output_file_name="$(OutDir)/$(ProjectName)-$(BuildTarget)$(LIB)"
     c_user_include_directories="$(SolutionDir);$(SolutionDir)/../drv;$(PackagesDir)/nRF/Device/Include;$(PackagesDir)/CMSIS_5/CMSIS/Core/Include" />
+  <project Name="01net_protocol">
+    <configuration
+      Name="Common"
+      project_directory="protocol"
+      project_type="Library" />
+    <file file_name="protocol.c" />
+    <file file_name="../protocol.h" />
+  </project>
   <project Name="01net_scan">
     <configuration
       Name="Common"
@@ -30,5 +38,14 @@
       project_type="Library" />
     <file file_name="maclow.c" />
     <file file_name="../maclow.h" />
+  </project>
+  <project Name="01net_blink">
+    <configuration
+      Name="Common"
+      project_dependencies="01net_scheduler(01net);01net_maclow(01net);01net_scan(01net);00drv_radio(00drv);00drv_timer_hf(00drv);00drv_gpio(00drv)"
+      project_directory="blink"
+      project_type="Library" />
+    <file file_name="blink.c" />
+    <file file_name="../blink.h" />
   </project>
 </solution>

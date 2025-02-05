@@ -52,16 +52,16 @@ int main(void) {
     // initialize schedule
 
     //schedule_t schedule = schedule_only_beacons;
-    //node_type_t node_type = NODE_TYPE_GATEWAY;
+    //bl_node_type_t node_type = NODE_TYPE_GATEWAY;
     schedule_t schedule = schedule_huge;
-    node_type_t node_type = NODE_TYPE_DOTBOT;
+    bl_node_type_t node_type = NODE_TYPE_NODE;
 
     bl_scheduler_init(node_type, &schedule);
     printf("\n==== Device of type %c and id %llx is using schedule %d ====\n\n", node_type, db_device_id(), schedule.id);
 
     // initialize the TSCH driver
     //bl_default_slot_timing.end_guard = 1000 * 1000; // add an extra second of delay.
-    bl_init(node_type, radio_callback);
+    bl_maclow_init(node_type, radio_callback);
     printf("Slot total duration: %d us\n", bl_default_slot_timing.total_duration);
 
     while (1) {
