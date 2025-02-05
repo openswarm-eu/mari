@@ -10,8 +10,10 @@
 //=========================== variables ========================================
 
 typedef enum {
-    CONNECTED,
-    DISCONNECTED,
+    BLINK_CONNECTED,
+    BLINK_DISCONNECTED,
+    BLINK_NODE_JOINED,
+    BLINK_NODE_LEFT,
 } bl_event_t;
 
 typedef enum {
@@ -20,11 +22,11 @@ typedef enum {
 } bl_node_type_t;
 
 typedef void (*bl_rx_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer to the callback function called on packet receive
-typedef void (*bl_events_cb_t)(bl_event_t event);             ///< Function pointer to the callback function called for network events
+typedef void (*bl_event_cb_t)(bl_event_t event);             ///< Function pointer to the callback function called for network events
 
 //=========================== prototypes ==========================================
 
-void bl_init(bl_node_type_t node_type, bl_rx_cb_t rx_app_callback, bl_events_cb_t events_callback);
+void bl_init(bl_node_type_t node_type, bl_rx_cb_t rx_app_callback, bl_event_cb_t events_callback);
 
 void bl_tx(uint8_t *packet, uint8_t length);
 

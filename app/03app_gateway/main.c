@@ -20,9 +20,22 @@
 
 #define DATA_LEN 4
 
+typedef struct {
+    uint8_t connected_nodes;
+} gateway_vars_t;
+
+//=========================== variables ========================================
+
+gateway_vars_t gateway_vars = { 0 };
+
+uint8_t packet[BLINK_PACKET_MAX_SIZE] = { 0 };
+uint8_t data[DATA_LEN] = { 0xFF, 0xFE, 0xFD, 0xFC };
+uint64_t dst = 0x1;
+
 //=========================== callbacks ========================================
 
-static void rx_cb(uint8_t *packet, uint8_t length)
+// NOTE: to test this callback right now, manually set is_connected to true in blink.c
+void rx_cb(uint8_t *packet, uint8_t length)
 {
     printf("Gateway application received packet of length %d: ", length);
     for (int i = 0; i < length; i++) {
@@ -31,11 +44,21 @@ static void rx_cb(uint8_t *packet, uint8_t length)
     printf("\n");
 }
 
-//=========================== variables ========================================
-
-uint8_t packet[BLINK_PACKET_MAX_SIZE] = { 0 };
-uint8_t data[DATA_LEN] = { 0xFF, 0xFE, 0xFD, 0xFC };
-uint64_t dst = 0x1;
+void event_cb(bl_event_t event)
+{
+    switch (event) {
+    case BLINK_NODE_JOINED:
+        gateway_vars.connected_nodes++;
+        break;
+    case BLINK_NODE_LEFT:
+        if (gateway_vars.connected_nodes > 0) {
+            gateway_vars.connected_nodes--;
+        }
+        break;
+    default:
+        break;
+    }
+}
 
 //=========================== main =============================================
 
@@ -44,14 +67,18 @@ int main(void)
     printf("Hello Blink Gateway\n");
     bl_timer_hf_init(BLINK_TIMER_DEV);
 
-    bl_init(NODE_TYPE_GATEWAY, &rx_cb, NULL);
+    bl_init(NODE_TYPE_GATEWAY, &rx_cb, &event_cb);
 
     size_t i = 0;
+    size_t packet_len = 0;
     while (1) {
-        printf("Sending packet %d\n", i++);
-
-        // prepare and send packet (TODO: internally should enqueue it instead)
-        size_t packet_len = bl_build_packet(packet, dst, data, DATA_LEN);
+        if (i++ % 10 == 0) {
+            printf("Sending JOIN_RESPONSE packet\n");
+            packet_len = bl_build_packet_join_response(packet, dst);
+        } else {
+            printf("Sending DATA packet %d\n", i);
+            packet_len = bl_build_packet_data(packet, dst, data, DATA_LEN);
+        }
         bl_tx(packet, packet_len);
 
         bl_timer_hf_delay_ms(BLINK_TIMER_DEV, 1000);

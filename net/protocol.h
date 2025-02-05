@@ -39,6 +39,7 @@ typedef struct __attribute__((packed)) {
 
 //=========================== prototypes =======================================
 
-size_t bl_build_packet(uint8_t *buffer, uint64_t dst, uint8_t *data, size_t data_len);
+size_t bl_build_packet_data(uint8_t *buffer, uint64_t dst, uint8_t *data, size_t data_len);
+size_t bl_build_packet_join_response(uint8_t *buffer, uint64_t dst);
 
 #endif

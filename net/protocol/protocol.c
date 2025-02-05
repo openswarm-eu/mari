@@ -18,10 +18,14 @@ static size_t _set_header(uint8_t *buffer, uint64_t dst, bl_packet_type_t packet
 
 //=========================== public ===========================================
 
-size_t bl_build_packet(uint8_t *buffer, uint64_t dst, uint8_t *data, size_t data_len) {
+size_t bl_build_packet_data(uint8_t *buffer, uint64_t dst, uint8_t *data, size_t data_len) {
     size_t header_len = _set_header(buffer, dst, BLINK_PACKET_DATA);
     memcpy(buffer + header_len, data, data_len);
     return header_len + data_len;
+}
+
+size_t bl_build_packet_join_response(uint8_t *buffer, uint64_t dst) {
+    return _set_header(buffer, dst, BLINK_PACKET_JOIN_RESPONSE);
 }
 
 //=========================== private ==========================================
