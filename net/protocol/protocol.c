@@ -24,6 +24,10 @@ size_t bl_build_packet_data(uint8_t *buffer, uint64_t dst, uint8_t *data, size_t
     return header_len + data_len;
 }
 
+size_t bl_build_packet_join_request(uint8_t *buffer, uint64_t dst) {
+    return _set_header(buffer, dst, BLINK_PACKET_JOIN_REQUEST);
+}
+
 size_t bl_build_packet_join_response(uint8_t *buffer, uint64_t dst) {
     return _set_header(buffer, dst, BLINK_PACKET_JOIN_RESPONSE);
 }

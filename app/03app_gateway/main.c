@@ -49,6 +49,10 @@ void event_cb(bl_event_t event)
     switch (event) {
     case BLINK_NODE_JOINED:
         gateway_vars.connected_nodes++;
+        uint64_t joined_nodes[BLINK_MAX_NODES] = { 0 };
+        uint8_t joined_nodes_len = 0;
+        bl_get_joined_nodes(joined_nodes, &joined_nodes_len);
+        // TODO: send to Edge Gateway via UART
         break;
     case BLINK_NODE_LEFT:
         if (gateway_vars.connected_nodes > 0) {
@@ -73,6 +77,7 @@ int main(void)
     size_t packet_len = 0;
     while (1) {
         if (i++ % 10 == 0) {
+            // for now, the join is very artificial, just to test the callbacks
             printf("Sending JOIN_RESPONSE packet\n");
             packet_len = bl_build_packet_join_response(packet, dst);
         } else {
@@ -82,11 +87,5 @@ int main(void)
         bl_tx(packet, packet_len);
 
         bl_timer_hf_delay_ms(BLINK_TIMER_DEV, 1000);
-    }
-
-    while (1) {
-        __SEV();
-        __WFE();
-        __WFE();
     }
 }

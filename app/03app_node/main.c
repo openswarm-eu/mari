@@ -13,6 +13,7 @@
 #include <stdbool.h>
 
 #include "blink.h"
+#include "protocol.h"
 
 //=========================== defines ==========================================
 
@@ -23,6 +24,9 @@ typedef struct {
 //=========================== variables ========================================
 
 node_vars_t node_vars = { 0 };
+
+uint8_t packet[BLINK_PACKET_MAX_SIZE] = { 0 };
+uint64_t dst = 0xb67d4fc5f7679e6b; // hardcoded gateway
 
 //=========================== callbacks ========================================
 
@@ -58,11 +62,19 @@ int main(void)
 
     bl_init(NODE_TYPE_NODE, &rx_cb, &event_cb);
 
+    size_t i = 0;
     while (1) {
         __SEV();
         __WFE();
         __WFE();
 
         printf("Node is %s\n", node_vars.is_connected ? "connected" : "disconnected");
+
+        if (i++ % 10 == 0) {
+            // for now, the join is very artificial, just to test the callbacks
+            printf("Sending JOIN_REQUEST packet\n");
+            size_t packet_len = bl_build_packet_join_request(packet, dst);
+            bl_tx(packet, packet_len);
+        }
     }
 }

@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "protocol.h"
 #include "maclow.h"
@@ -13,7 +14,14 @@
 
 typedef struct {
     bl_node_type_t node_type;
+
+    // node data
     bool is_connected;
+
+    // gateway data
+    uint64_t joined_nodes[BLINK_MAX_NODES];
+    uint8_t joined_nodes_len;
+
     bl_rx_cb_t app_rx_callback;
     bl_event_cb_t app_event_callback;
 } blink_vars_t;
@@ -48,10 +56,9 @@ void bl_tx(uint8_t *packet, uint8_t length) {
     bl_radio_tx(packet, length); // TODO: use a packet queue
 }
 
-// TODO: implement
 void bl_get_joined_nodes(uint64_t *nodes, uint8_t *num_nodes) {
-    (void)nodes;
-    (void)num_nodes;
+    *num_nodes = _blink_vars.joined_nodes_len;
+    memcpy(nodes, _blink_vars.joined_nodes, _blink_vars.joined_nodes_len * sizeof(uint64_t));
 }
 
 //=========================== callbacks ===========================================
@@ -68,6 +75,15 @@ static void _bl_callback(uint8_t *packet, uint8_t length) {
     bl_packet_header_t *header = (bl_packet_header_t *)packet;
 
     switch (header->type) {
+        case BLINK_PACKET_JOIN_REQUEST: // NOTE: handle this in the maclow instead?
+            if (_blink_vars.node_type == NODE_TYPE_GATEWAY && _blink_vars.joined_nodes_len < BLINK_MAX_NODES) {
+                // TODO:
+                // - check if node can join
+                // - send/enqueue join response
+                _blink_vars.joined_nodes[_blink_vars.joined_nodes_len++] = header->src;
+                _blink_vars.app_event_callback(BLINK_NODE_JOINED);
+            }
+            break;
         case BLINK_PACKET_JOIN_RESPONSE: // NOTE: handle this in the maclow instead?
             if (_blink_vars.node_type == NODE_TYPE_NODE) {
                 _blink_vars.is_connected = true;
