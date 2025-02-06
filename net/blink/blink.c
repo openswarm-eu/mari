@@ -11,19 +11,31 @@
 //=========================== defines ==========================================
 
 #define BLINK_DEFAULT_FREQUENCY (8)
+#define BLINK_PACKET_QUEUE_SIZE (8) // must be a power of 2
 
 typedef struct {
-    bl_node_type_t node_type;
+    uint8_t length;
+    uint8_t buffer[BLINK_PACKET_MAX_SIZE];
+} blink_packet_t;
+
+typedef struct {
+    uint8_t         current;                            ///< Current position in the queue
+    uint8_t         last;                               ///< Position of the last item added in the queue
+    blink_packet_t  packets[BLINK_PACKET_QUEUE_SIZE];
+} blink_packet_queue_t;
+
+typedef struct {
+    bl_node_type_t          node_type;
+    blink_packet_queue_t    packet_queue;
+    bl_rx_cb_t              app_rx_callback;
+    bl_event_cb_t           app_event_callback;
 
     // node data
-    bool is_connected;
+    bool                    is_connected;
 
     // gateway data
-    uint64_t joined_nodes[BLINK_MAX_NODES];
-    uint8_t joined_nodes_len;
-
-    bl_rx_cb_t app_rx_callback;
-    bl_event_cb_t app_event_callback;
+    uint64_t                joined_nodes[BLINK_MAX_NODES];
+    uint8_t                 joined_nodes_len;
 } blink_vars_t;
 
 //=========================== variables ========================================
@@ -52,6 +64,10 @@ void bl_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback, bl_event_cb_t eve
 }
 
 void bl_tx(uint8_t *packet, uint8_t length) {
+    // enqueue for transmission
+    bl_queue_add(packet, length);
+
+    // TMP: send immediately, for now just ignoring the queue
     bl_radio_disable();
     bl_radio_tx(packet, length); // TODO: use a packet queue
 }
@@ -59,6 +75,39 @@ void bl_tx(uint8_t *packet, uint8_t length) {
 void bl_get_joined_nodes(uint64_t *nodes, uint8_t *num_nodes) {
     *num_nodes = _blink_vars.joined_nodes_len;
     memcpy(nodes, _blink_vars.joined_nodes, _blink_vars.joined_nodes_len * sizeof(uint64_t));
+}
+
+//--------------------------- packet queue -------------------------------------
+
+void bl_queue_add(uint8_t *packet, uint8_t length) {
+    // enqueue for transmission
+    memcpy(_blink_vars.packet_queue.packets[_blink_vars.packet_queue.last].buffer, packet, length);
+    _blink_vars.packet_queue.packets[_blink_vars.packet_queue.last].length = length;
+    // increment the `last` index
+    _blink_vars.packet_queue.last = (_blink_vars.packet_queue.last + 1) % BLINK_PACKET_QUEUE_SIZE;
+}
+
+bool bl_queue_peek(uint8_t *packet, uint8_t *length) {
+    if (_blink_vars.packet_queue.current == _blink_vars.packet_queue.last) {
+        return false;
+    }
+
+    memcpy(packet, _blink_vars.packet_queue.packets[_blink_vars.packet_queue.current].buffer, _blink_vars.packet_queue.packets[_blink_vars.packet_queue.current].length);
+    *length = _blink_vars.packet_queue.packets[_blink_vars.packet_queue.current].length;
+
+    // do not increment the `current` index here, as this is just a peek
+
+    return true;
+}
+
+bool bl_queue_pop(void) {
+    if (_blink_vars.packet_queue.current == _blink_vars.packet_queue.last) {
+        return false;
+    } else {
+        // increment the `current` index
+        _blink_vars.packet_queue.current = (_blink_vars.packet_queue.current + 1) % BLINK_PACKET_QUEUE_SIZE;
+        return true;
+    }
 }
 
 //=========================== callbacks ===========================================
