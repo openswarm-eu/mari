@@ -2,6 +2,7 @@
 #define __BLINK_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 //=========================== defines ==========================================
 
@@ -29,6 +30,10 @@ typedef void (*bl_event_cb_t)(bl_event_t event);             ///< Function point
 void bl_init(bl_node_type_t node_type, bl_rx_cb_t rx_app_callback, bl_event_cb_t events_callback);
 
 void bl_tx(uint8_t *packet, uint8_t length);
+
+void bl_queue_add(uint8_t *packet, uint8_t length);
+bool bl_queue_peek(uint8_t *packet, uint8_t *length);
+bool bl_queue_pop(void);
 
 void bl_get_joined_nodes(uint64_t *nodes, uint8_t *num_nodes);
 
