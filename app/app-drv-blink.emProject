@@ -1,9 +1,9 @@
 <!DOCTYPE CrossStudio_Project_File>
-<solution Name="03drv-net" target="8" version="2">
+<solution Name="03drv-blink" target="8" version="2">
   <project Name="01net_lists">
     <configuration
       Name="Common"
-      project_dependencies="01net_scan(01net);01net_maclow(01net);00drv_timer_hf(00drv)"
+      project_dependencies="01net_all(01blink);00drv_timer_hf(00drv)"
       project_directory="01net_lists"
       project_type="Executable" />
     <configuration Name="Debug" linker_printf_fp_enabled="Float" />
@@ -28,7 +28,7 @@
   <project Name="01net_scheduler">
     <configuration
       Name="Common"
-      project_dependencies="01net_scheduler(01net);01net_maclow(01net);00drv_timer_hf(00drv)"
+      project_dependencies="01net_all(01blink);00drv_timer_hf(00drv)"
       project_directory="01net_scheduler"
       project_type="Executable" />
     <configuration Name="Debug" linker_printf_fp_enabled="Float" />
@@ -53,7 +53,7 @@
   <project Name="01net_maclow">
     <configuration
       Name="Common"
-      project_dependencies="01net_maclow(01net);01net_scheduler(01net);00drv_timer_hf(00drv)"
+      project_dependencies="01net_all(01blink);00drv_timer_hf(00drv)"
       project_directory="01net_maclow"
       project_type="Executable" />
     <configuration Name="Debug" linker_printf_fp_enabled="Float" />
