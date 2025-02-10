@@ -6,6 +6,7 @@
 
 #include "protocol.h"
 #include "maclow.h"
+#include "scheduler.h"
 #include "radio.h"
 
 //=========================== defines ==========================================
@@ -53,13 +54,14 @@ void bl_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback, bl_event_cb_t eve
     _blink_vars.app_rx_callback = rx_callback;
     _blink_vars.app_event_callback = event_callback;
 
+    bl_scheduler_init(node_type, NULL);
+
+    // TODO: bl_maclow_init(node_type, rx_callback);
+
+    // TMP: using the radio directly
     bl_radio_init(&_bl_callback, DB_RADIO_BLE_2MBit);
     bl_radio_set_channel(BLINK_FIXED_CHANNEL); // temporary value
     bl_radio_rx();
-
-    // TODO:
-    // - init maclow, e.g., bl_maclow_init(node_type, rx_callback);
-    // - init scheduler, e.g., bl_scheduler_init(node_type, &schedule_test);
 }
 
 void bl_tx(uint8_t *packet, uint8_t length) {
