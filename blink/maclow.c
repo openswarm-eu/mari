@@ -244,7 +244,7 @@ void _handler_sm_begin_slot(void) {
     uint32_t timer_duration = 0;
 
     bl_radio_event_t event = bl_scheduler_tick(_bl_vars.asn++);
-    // printf("  Event %c:   %c, %d    Slot duration: %d\n", event.slot_type, event.radio_action, event.frequency, bl_default_slot_timing.total_duration);
+    // printf("  Event %c:   %c, %d    Slot duration: %d\n", event.slot_type, event.radio_action, event.channel, bl_default_slot_timing.total_duration);
 
     switch (event.radio_action) {
         case BLINK_RADIO_ACTION_TX:
@@ -260,7 +260,7 @@ void _handler_sm_begin_slot(void) {
 
             // configure radio
             bl_radio_disable();
-            bl_radio_set_frequency(event.frequency);
+            bl_radio_set_channel(event.channel);
             bl_radio_tx_prepare(_bl_vars.packet, _bl_vars.packet_len);
 
             // update state
@@ -278,7 +278,7 @@ void _handler_sm_begin_slot(void) {
         case BLINK_RADIO_ACTION_RX:
             // configure radio
             bl_radio_disable();
-            bl_radio_set_frequency(event.frequency);
+            bl_radio_set_channel(event.channel);
 
             // update state
             _bl_vars.event = event;

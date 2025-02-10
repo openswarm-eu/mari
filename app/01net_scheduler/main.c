@@ -42,7 +42,7 @@ int main(void) {
             uint32_t start_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
             bl_radio_event_t event = bl_scheduler_tick(asn++);
             printf("Scheduler tick took %d us\n", bl_timer_hf_now(BLINK_TIMER_DEV) - start_ts);
-            printf(">> Event %c:   %c, %d\n", event.slot_type, event.radio_action, event.frequency);
+            printf(">> Event %c:   %c, %d\n", event.slot_type, event.radio_action, event.channel);
 
             // sleep for the duration of the slot
             bl_timer_hf_delay_us(BLINK_TIMER_DEV, SLOT_DURATION);

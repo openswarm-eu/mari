@@ -47,7 +47,7 @@ schedule_t schedule_minuscule = {
     .backoff_n_max = 9,
     .n_cells = 11,
     .cells = {
-        // Begin with beacon cells. They use their own channel offsets and frequencies.
+        // Begin with beacon cells. They use their own channels and channel offsets.
         {'B', 0, NULL},
         {'B', 1, NULL},
         {'B', 2, NULL},

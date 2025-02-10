@@ -10,7 +10,6 @@
 
 //=========================== defines ==========================================
 
-#define BLINK_DEFAULT_FREQUENCY (8)
 #define BLINK_PACKET_QUEUE_SIZE (8) // must be a power of 2
 
 typedef struct {
@@ -55,7 +54,7 @@ void bl_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback, bl_event_cb_t eve
     _blink_vars.app_event_callback = event_callback;
 
     bl_radio_init(&_bl_callback, DB_RADIO_BLE_2MBit);
-    bl_radio_set_frequency(BLINK_DEFAULT_FREQUENCY); // temporary value
+    bl_radio_set_channel(BLINK_FIXED_CHANNEL); // temporary value
     bl_radio_rx();
 
     // TODO:

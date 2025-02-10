@@ -65,7 +65,7 @@ extern bl_slot_timing_t bl_default_slot_timing;
 
 typedef struct {
     bl_radio_action_t radio_action;
-    uint8_t frequency;
+    uint8_t channel;
     slot_type_t slot_type;
 } bl_radio_event_t;
 

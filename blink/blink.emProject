@@ -13,17 +13,21 @@
       project_type="Library" />
     <configuration
       Name="Debug"
-      c_preprocessor_definitions="BLINK_FIXED_FREQUENCY=2" />
-    <file file_name="all_schedules.c" />
-    <file file_name="blink.c" />
-    <file file_name="blink.h" />
-    <file file_name="maclow.c" />
-    <file file_name="maclow.h" />
+      c_preprocessor_definitions="BLINK_FIXED_CHANNEL=0" />
     <file file_name="protocol.c" />
     <file file_name="protocol.h" />
+
     <file file_name="scan.c" />
     <file file_name="scan.h" />
+
     <file file_name="scheduler.c" />
+    <file file_name="all_schedules.c" />
     <file file_name="scheduler.h" />
+
+    <file file_name="maclow.c" />
+    <file file_name="maclow.h" />
+
+    <file file_name="blink.c" />
+    <file file_name="blink.h" />
   </project>
 </solution>

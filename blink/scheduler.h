@@ -25,11 +25,11 @@
 #define BLINK_BACKOFF_N_MIN 5
 #define BLINK_BACKOFF_N_MAX 9
 
-#define BLINK_N_BLE_REGULAR_FREQUENCIES 37
-#define BLINK_N_BLE_ADVERTISING_FREQUENCIES 3
+#define BLINK_N_BLE_REGULAR_CHANNELS 37
+#define BLINK_N_BLE_ADVERTISING_CHANNELS 3
 
-#ifndef BLINK_FIXED_FREQUENCY
-#define BLINK_FIXED_FREQUENCY 0 // to hardcode the frequency, use a valid value other than 0
+#ifndef BLINK_FIXED_CHANNEL
+#define BLINK_FIXED_CHANNEL 0 // to hardcode the channel, use a valid value other than 0
 #endif
 
 #define BLINK_N_CELLS_MAX 137
@@ -102,15 +102,15 @@ bool bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id);
 bool bl_scheduler_deassign_uplink_cell(uint64_t node_id);
 
 /**
- * @brief Computes the frequency to be used in a given slot.
+ * @brief Computes the channel to be used in a given slot.
  *
  * @param[in] slot_type         Type of slot
  * @param[in] asn               Absolute Slot Number
  * @param[in] channel_offset    Channel offset
  *
- * @return Frequency to be used in the given slot
+ * @return Channel to be used in the given slot
  *
  */
-uint8_t bl_scheduler_get_frequency(slot_type_t slot_type, uint64_t asn, uint8_t channel_offset);
+uint8_t bl_scheduler_get_channel(slot_type_t slot_type, uint64_t asn, uint8_t channel_offset);
 
 #endif

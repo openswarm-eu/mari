@@ -58,7 +58,6 @@
       project_type="Executable" />
     <configuration
       Name="Debug"
-      c_preprocessor_definitions=""
       linker_printf_fp_enabled="Float" />
     <folder Name="Setup">
       <file file_name="$(ProjectDir)/../../nRF/Setup/$(Target)_flash_placement.xml" />
