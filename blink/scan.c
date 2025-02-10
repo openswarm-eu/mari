@@ -95,7 +95,7 @@ uint64_t bl_scan_select(uint32_t ts_now) {
         // compute average rssi, only including the rssi readings that are not too old
         int8_t avg_rssi = 0;
         int8_t n_rssi = 0;
-        for (size_t j = 0; j < BLINK_N_BLE_ADVERTISING_FREQUENCIES; j++) {
+        for (size_t j = 0; j < BLINK_N_BLE_ADVERTISING_CHANNELS; j++) {
             if (scan_vars.scans[i].rssi[j].timestamp == 0) { // no rssi reading here
                 continue;
             }
@@ -120,7 +120,7 @@ uint64_t bl_scan_select(uint32_t ts_now) {
 //=========================== private ==========================================
 
 inline void _save_rssi(size_t idx, int8_t rssi, uint8_t channel, uint32_t ts_now) {
-    size_t channel_idx = channel % BLINK_N_BLE_REGULAR_FREQUENCIES;
+    size_t channel_idx = channel % BLINK_N_BLE_REGULAR_CHANNELS;
     scan_vars.scans[idx].rssi[channel_idx].rssi = rssi;
     scan_vars.scans[idx].rssi[channel_idx].timestamp = ts_now;
 }
@@ -132,7 +132,7 @@ inline bool _scan_is_too_old(bl_scan_t scan, uint32_t ts_now) {
 
 inline uint32_t _get_ts_latest(bl_scan_t scan) {
     uint32_t latest = 0;
-    for (size_t i = 0; i < BLINK_N_BLE_ADVERTISING_FREQUENCIES; i++) {
+    for (size_t i = 0; i < BLINK_N_BLE_ADVERTISING_CHANNELS; i++) {
         if (scan.rssi[i].timestamp > latest) {
             latest = scan.rssi[i].timestamp;
         }

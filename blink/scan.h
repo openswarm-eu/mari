@@ -26,7 +26,7 @@ typedef struct {
 
 typedef struct {
     uint64_t   gateway_id;
-    bl_rssi_t  rssi[BLINK_N_BLE_ADVERTISING_FREQUENCIES]; // channels 37, 38, 39
+    bl_rssi_t  rssi[BLINK_N_BLE_ADVERTISING_CHANNELS]; // channels 37, 38, 39
 } bl_scan_t;
 
 //=========================== prototypes ======================================

@@ -8,9 +8,12 @@
   <project Name="01net_all">
     <configuration
       Name="Common"
-      project_directory="."
       project_dependencies="00drv_radio(00drv);00drv_timer_hf(00drv);00drv_gpio(00drv)"
+      project_directory="."
       project_type="Library" />
+    <configuration
+      Name="Debug"
+      c_preprocessor_definitions="BLINK_FIXED_CHANNEL=0" />
     <file file_name="protocol.c" />
     <file file_name="protocol.h" />
 

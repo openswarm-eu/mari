@@ -28,25 +28,13 @@
 
 //=========================== variables ========================================
 
-static const uint8_t _ble_chan_to_freq[40] = {
-    4, 6, 8,
-    10, 12, 14, 16, 18,
-    20, 22, 24, 28,
-    30, 32, 34, 36, 38,
-    40, 42, 44, 46, 48,
-    50, 52, 54, 56, 58,
-    60, 62, 64, 66, 68,
-    70, 72, 74, 76, 78,
-    2, 26, 80  // Advertising channels
-};
-
 typedef struct {
     bl_node_type_t node_type; // whether the node is a gateway or a dotbot
 
     // counters and indexes
     uint64_t asn; // absolute slot number
     schedule_t *active_schedule_ptr; // pointer to the currently active schedule
-    uint32_t slotframe_counter; // used to cycle beacon frequencies through slotframes (when listening for beacons at uplink slots)
+    uint32_t slotframe_counter; // used to cycle beacon channels through slotframes (when listening for beacons at uplink slots)
 
     // static data
     schedule_t available_schedules[BLINK_N_SCHEDULES];
@@ -121,7 +109,7 @@ bl_radio_event_t bl_scheduler_tick(uint64_t asn) {
 
     bl_radio_event_t radio_event = {
         .radio_action = BLINK_RADIO_ACTION_SLEEP,
-        .frequency = bl_scheduler_get_frequency(cell.type, asn, cell.channel_offset),
+        .channel = bl_scheduler_get_channel(cell.type, asn, cell.channel_offset),
         .slot_type = cell.type, // FIXME: only for debugging, remove before merge
     };
     if (_schedule_vars.node_type == NODE_TYPE_GATEWAY) {
@@ -130,7 +118,7 @@ bl_radio_event_t bl_scheduler_tick(uint64_t asn) {
         _compute_dotbot_action(cell, &radio_event);
     }
 
-    // if the slotframe wrapped, keep track of how many slotframes have passed (used to cycle beacon frequencies)
+    // if the slotframe wrapped, keep track of how many slotframes have passed (used to cycle beacon channels)
     if (asn != 0 && cell_index == 0) {
         _schedule_vars.slotframe_counter++;
     }
@@ -138,17 +126,20 @@ bl_radio_event_t bl_scheduler_tick(uint64_t asn) {
     return radio_event;
 }
 
-uint8_t bl_scheduler_get_frequency(slot_type_t slot_type, uint64_t asn, uint8_t channel_offset) {
+uint8_t bl_scheduler_get_channel(slot_type_t slot_type, uint64_t asn, uint8_t channel_offset) {
+#if(BLINK_FIXED_CHANNEL != 0)
+    (void)slot_type;
+    (void)asn;
+    (void)channel_offset;
+    return BLINK_FIXED_CHANNEL;
+#endif
     if (slot_type == SLOT_TYPE_BEACON) {
         // special handling in case the cell is a beacon
-        size_t beacon_channel = BLINK_N_BLE_REGULAR_FREQUENCIES + (asn % BLINK_N_BLE_ADVERTISING_FREQUENCIES);
-        uint8_t freq = _ble_chan_to_freq[beacon_channel];
-        return freq;
+        return BLINK_N_BLE_REGULAR_CHANNELS + (asn % BLINK_N_BLE_ADVERTISING_CHANNELS);
     } else {
         // As per RFC 7554:
         //   frequency = F {(ASN + channelOffset) mod nFreq}
-        size_t freq_index = (asn + channel_offset) % BLINK_N_BLE_REGULAR_FREQUENCIES;
-        return _ble_chan_to_freq[freq_index];
+        return (asn + channel_offset) % BLINK_N_BLE_REGULAR_CHANNELS;
     }
 }
 
@@ -183,11 +174,14 @@ void _compute_dotbot_action(cell_t cell, bl_radio_event_t *radio_event) {
             } else {
 #ifdef BLINK_LISTEN_DURING_UNSCHEDULED_UPLINK
                 // OPTIMIZATION: listen for beacons during unassigned uplink slot
-                // listen to the same beacon frequency for a whole slotframe
+                // listen to the same beacon channel for a whole slotframe
                 radio_event->radio_action = BLINK_RADIO_ACTION_RX;
-                size_t beacon_channel = BLINK_N_BLE_REGULAR_FREQUENCIES + (_schedule_vars.slotframe_counter % BLINK_N_BLE_ADVERTISING_FREQUENCIES);
-                radio_event->frequency = _ble_chan_to_freq[beacon_channel];
-#endif
+#if(BLINK_FIXED_CHANNEL != 0)
+                radio_event->channel = BLINK_FIXED_CHANNEL;
+#else
+                radio_event->channel = BLINK_N_BLE_REGULAR_CHANNELS + (_schedule_vars.slotframe_counter % BLINK_N_BLE_ADVERTISING_CHANNELS);
+#endif // BLINK_FIXED_CHANNEL
+#endif // BLINK_LISTEN_DURING_UNSCHEDULED_UPLINK
             }
             break;
         default:
