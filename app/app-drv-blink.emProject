@@ -25,11 +25,11 @@
       <file file_name="$(ProjectDir)/../../nRF/System/cpu.c" />
     </folder>
   </project>
-  <project Name="01net_scheduler">
+  <project Name="01net_maclow">
     <configuration
       Name="Common"
       project_dependencies="01net_all(01blink);00drv_timer_hf(00drv)"
-      project_directory="01net_scheduler"
+      project_directory="01net_maclow"
       project_type="Executable" />
     <configuration Name="Debug" linker_printf_fp_enabled="Float" />
     <folder Name="Setup">
@@ -50,13 +50,16 @@
       <file file_name="$(ProjectDir)/../../nRF/System/cpu.c" />
     </folder>
   </project>
-  <project Name="01net_maclow">
+  <project Name="01net_scheduler">
     <configuration
       Name="Common"
       project_dependencies="01net_all(01blink);00drv_timer_hf(00drv)"
-      project_directory="01net_maclow"
+      project_directory="01net_scheduler"
       project_type="Executable" />
-    <configuration Name="Debug" linker_printf_fp_enabled="Float" />
+    <configuration
+      Name="Debug"
+      c_preprocessor_definitions=""
+      linker_printf_fp_enabled="Float" />
     <folder Name="Setup">
       <file file_name="$(ProjectDir)/../../nRF/Setup/$(Target)_flash_placement.xml" />
       <file file_name="$(ProjectDir)/../../nRF/Setup/$(Target)_MemoryMap.xml">

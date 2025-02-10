@@ -139,6 +139,12 @@ bl_radio_event_t bl_scheduler_tick(uint64_t asn) {
 }
 
 uint8_t bl_scheduler_get_frequency(slot_type_t slot_type, uint64_t asn, uint8_t channel_offset) {
+#if(BLINK_FIXED_FREQUENCY != 0)
+    (void)slot_type;
+    (void)asn;
+    (void)channel_offset;
+    return BLINK_FIXED_FREQUENCY;
+#endif
     if (slot_type == SLOT_TYPE_BEACON) {
         // special handling in case the cell is a beacon
         size_t beacon_channel = BLINK_N_BLE_REGULAR_FREQUENCIES + (asn % BLINK_N_BLE_ADVERTISING_FREQUENCIES);
@@ -185,9 +191,13 @@ void _compute_dotbot_action(cell_t cell, bl_radio_event_t *radio_event) {
                 // OPTIMIZATION: listen for beacons during unassigned uplink slot
                 // listen to the same beacon frequency for a whole slotframe
                 radio_event->radio_action = BLINK_RADIO_ACTION_RX;
+#if(BLINK_FIXED_FREQUENCY != 0)
+                radio_event->frequency = BLINK_FIXED_FREQUENCY;
+#else
                 size_t beacon_channel = BLINK_N_BLE_REGULAR_FREQUENCIES + (_schedule_vars.slotframe_counter % BLINK_N_BLE_ADVERTISING_FREQUENCIES);
                 radio_event->frequency = _ble_chan_to_freq[beacon_channel];
-#endif
+#endif // BLINK_FIXED_FREQUENCY
+#endif // BLINK_LISTEN_DURING_UNSCHEDULED_UPLINK
             }
             break;
         default:

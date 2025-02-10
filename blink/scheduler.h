@@ -28,6 +28,10 @@
 #define BLINK_N_BLE_REGULAR_FREQUENCIES 37
 #define BLINK_N_BLE_ADVERTISING_FREQUENCIES 3
 
+#ifndef BLINK_FIXED_FREQUENCY
+#define BLINK_FIXED_FREQUENCY 0 // to hardcode the frequency, use a valid value other than 0
+#endif
+
 #define BLINK_N_CELLS_MAX 137
 
 #define BLINK_LISTEN_DURING_UNSCHEDULED_UPLINK 1

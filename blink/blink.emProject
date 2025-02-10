@@ -8,23 +8,22 @@
   <project Name="01net_all">
     <configuration
       Name="Common"
-      project_directory="."
       project_dependencies="00drv_radio(00drv);00drv_timer_hf(00drv);00drv_gpio(00drv)"
+      project_directory="."
       project_type="Library" />
-    <file file_name="protocol.c" />
-    <file file_name="protocol.h" />
-
-    <file file_name="scan.c" />
-    <file file_name="scan.h" />
-
-    <file file_name="scheduler.c" />
+    <configuration
+      Name="Debug"
+      c_preprocessor_definitions="BLINK_FIXED_FREQUENCY=2" />
     <file file_name="all_schedules.c" />
-    <file file_name="scheduler.h" />
-
-    <file file_name="maclow.c" />
-    <file file_name="maclow.h" />
-
     <file file_name="blink.c" />
     <file file_name="blink.h" />
+    <file file_name="maclow.c" />
+    <file file_name="maclow.h" />
+    <file file_name="protocol.c" />
+    <file file_name="protocol.h" />
+    <file file_name="scan.c" />
+    <file file_name="scan.h" />
+    <file file_name="scheduler.c" />
+    <file file_name="scheduler.h" />
   </project>
 </solution>

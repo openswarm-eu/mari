@@ -27,7 +27,7 @@ int main(void) {
     bl_timer_hf_init(BLINK_TIMER_DEV);
 
     // initialize schedule
-    schedule_t schedule = schedule_only_beacons_optimized_scan;
+    schedule_t schedule = schedule_minuscule;
     bl_node_type_t node_type = NODE_TYPE_NODE;
     bl_scheduler_init(node_type, &schedule);
 
