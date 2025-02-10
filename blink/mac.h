@@ -1,10 +1,10 @@
-#ifndef __MACLOW_H
-#define __MACLOW_H
+#ifndef __MAC_H
+#define __MAC_H
 
 /**
- * @defgroup    net_maclow      MAC-low radio driver
+ * @defgroup    net_mac      MAC-low radio driver
  * @ingroup     drv
- * @brief       Driver for Time-Slotted Channel Hopping (TSCH)
+ * @brief       MAC Driver for Blink
  *
  * @{
  * @file
@@ -53,12 +53,18 @@ typedef enum {
 
 /* Timing of intra-slot sections */
 typedef struct {
-    uint32_t rx_offset; ///< Offset for the receiver to start receiving.
-    uint32_t rx_max; ///< Maximum time the receiver can be active.
-    uint32_t tx_offset; ///< Offset for the transmitter to start transmitting. Has to be bigger than rx_offset.
-    uint32_t tx_max; ///< Maximum time the transmitter can be active. Has to be smaller than rx_max.
-    uint32_t end_guard; ///< Time to wait after the end of the slot, so that the radio can fully turn off. Can be overriden with a large value to facilitate debugging.
-    uint32_t total_duration; ///< Total duration of the slot
+    // transmitter
+    uint32_t ts_tx_offset; ///< Offset for the transmitter to start transmitting.
+    uint32_t ts_tx_max; ///< Maximum time the transmitter can be active.
+
+    // receiver
+    uint32_t ts_rx_offset; ///< Offset for the receiver to start receiving.
+    uint32_t ts_rx_max; ///< Maximum time the receiver can be active.
+    uint32_t ts_rx_guard;
+
+    // common
+    uint32_t ts_end_padding; ///< Time to wait after the end of the slot, so that the radio can fully turn off. Can be overriden with a large value to facilitate debugging. Must be at minimum ts_rx_guard.
+    uint32_t ts_total_duration; ///< Total duration of the slot
 } bl_slot_timing_t;
 
 extern bl_slot_timing_t bl_default_slot_timing;
@@ -71,12 +77,6 @@ typedef struct {
 
 //=========================== prototypes ==========================================
 
-/**
- * @brief Initializes the TSCH scheme
- *
- * @param[in] callback             pointer to a function that will be called each time a packet is received.
- *
- */
-void bl_maclow_init(bl_node_type_t node_type, bl_rx_cb_t rx_app_callback);
+void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback);
 
-#endif // __MACLOW_H
+#endif // __MAC_H

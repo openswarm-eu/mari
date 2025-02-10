@@ -24,8 +24,8 @@
     <file file_name="all_schedules.c" />
     <file file_name="scheduler.h" />
 
-    <file file_name="maclow.c" />
-    <file file_name="maclow.h" />
+    <file file_name="mac.c" />
+    <file file_name="mac.h" />
 
     <file file_name="blink.c" />
     <file file_name="blink.h" />

@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 #include "blink.h"
-#include "maclow.h"
+#include "mac.h"
 #include "protocol.h"
 #include "timer_hf.h"
 

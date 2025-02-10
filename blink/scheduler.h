@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <nrf.h>
 
-#include "maclow.h"
+#include "mac.h"
 
 //=========================== defines ==========================================
 

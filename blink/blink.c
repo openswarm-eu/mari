@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "protocol.h"
-#include "maclow.h"
+#include "mac.h"
 #include "scheduler.h"
 #include "radio.h"
 
@@ -56,7 +56,7 @@ void bl_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback, bl_event_cb_t eve
 
     bl_scheduler_init(node_type, NULL);
 
-    // TODO: bl_maclow_init(node_type, rx_callback);
+    // TODO: bl_mac_init(node_type, rx_callback);
 
     // TMP: using the radio directly
     bl_radio_init(&_bl_callback, DB_RADIO_BLE_2MBit);
