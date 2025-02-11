@@ -54,17 +54,17 @@ typedef enum {
 /* Timing of intra-slot sections */
 typedef struct {
     // transmitter
-    uint32_t ts_tx_offset; ///< Offset for the transmitter to start transmitting.
-    uint32_t ts_tx_max; ///< Maximum time the transmitter can be active.
+    uint32_t tx_offset; ///< Offset for the transmitter to start transmitting.
+    uint32_t tx_max; ///< Maximum time the transmitter can be active.
 
     // receiver
-    uint32_t ts_rx_offset; ///< Offset for the receiver to start receiving.
-    uint32_t ts_rx_max; ///< Maximum time the receiver can be active.
-    uint32_t ts_rx_guard;
+    uint32_t rx_offset; ///< Offset for the receiver to start receiving.
+    uint32_t rx_max; ///< Maximum time the receiver can be active.
+    uint32_t rx_guard;
 
     // common
-    uint32_t ts_end_padding; ///< Time to wait after the end of the slot, so that the radio can fully turn off. Can be overriden with a large value to facilitate debugging. Must be at minimum ts_rx_guard.
-    uint32_t ts_total_duration; ///< Total duration of the slot
+    uint32_t end_padding; ///< Time to wait after the end of the slot, so that the radio can fully turn off. Can be overriden with a large value to facilitate debugging. Must be at minimum ts_rx_guard.
+    uint32_t total_duration; ///< Total duration of the slot
 } bl_slot_timing_t;
 
 extern bl_slot_timing_t bl_default_slot_timing;
