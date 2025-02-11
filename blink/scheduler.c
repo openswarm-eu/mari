@@ -15,7 +15,7 @@
 #include <stdbool.h>
 
 #include "scheduler.h"
-#include "maclow.h"
+#include "mac.h"
 #include "device.h"
 #if defined(NRF5340_XXAA) && defined(NRF_NETWORK)
 #include "ipc.h"
@@ -112,7 +112,7 @@ bl_radio_event_t bl_scheduler_tick(uint64_t asn) {
         .channel = bl_scheduler_get_channel(cell.type, asn, cell.channel_offset),
         .slot_type = cell.type, // FIXME: only for debugging, remove before merge
     };
-    if (_schedule_vars.node_type == NODE_TYPE_GATEWAY) {
+    if (_schedule_vars.node_type == BLINK_GATEWAY) {
         _compute_gateway_action(cell, &radio_event);
     } else {
         _compute_dotbot_action(cell, &radio_event);

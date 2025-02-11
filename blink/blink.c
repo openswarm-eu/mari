@@ -126,7 +126,7 @@ static void _bl_callback(uint8_t *packet, uint8_t length) {
 
     switch (header->type) {
         case BLINK_PACKET_JOIN_REQUEST: // NOTE: handle this in the maclow instead?
-            if (_blink_vars.node_type == NODE_TYPE_GATEWAY && _blink_vars.joined_nodes_len < BLINK_MAX_NODES) {
+            if (_blink_vars.node_type == BLINK_GATEWAY && _blink_vars.joined_nodes_len < BLINK_MAX_NODES) {
                 // TODO:
                 // - check if node can join
                 // - send/enqueue join response
@@ -135,13 +135,13 @@ static void _bl_callback(uint8_t *packet, uint8_t length) {
             }
             break;
         case BLINK_PACKET_JOIN_RESPONSE: // NOTE: handle this in the maclow instead?
-            if (_blink_vars.node_type == NODE_TYPE_NODE) {
+            if (_blink_vars.node_type == BLINK_NODE) {
                 _blink_vars.is_connected = true;
                 _blink_vars.app_event_callback(BLINK_CONNECTED);
             }
             break;
         case BLINK_PACKET_DATA:
-            if (_blink_vars.app_rx_callback && (_blink_vars.node_type == NODE_TYPE_GATEWAY || _blink_vars.is_connected)) {
+            if (_blink_vars.app_rx_callback && (_blink_vars.node_type == BLINK_GATEWAY || _blink_vars.is_connected)) {
                 _blink_vars.app_rx_callback(packet + header_len, length - header_len);
             }
             break;

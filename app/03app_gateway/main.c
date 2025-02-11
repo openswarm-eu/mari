@@ -71,7 +71,7 @@ int main(void)
     printf("Hello Blink Gateway\n");
     bl_timer_hf_init(BLINK_TIMER_DEV);
 
-    bl_init(NODE_TYPE_GATEWAY, &rx_cb, &event_cb);
+    bl_init(BLINK_GATEWAY, &rx_cb, &event_cb);
 
     size_t i = 0;
     size_t packet_len = 0;

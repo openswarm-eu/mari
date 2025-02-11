@@ -18,8 +18,8 @@ typedef enum {
 } bl_event_t;
 
 typedef enum {
-    NODE_TYPE_GATEWAY = 'G',
-    NODE_TYPE_NODE = 'D',
+    BLINK_GATEWAY = 'G',
+    BLINK_NODE = 'D',
 } bl_node_type_t;
 
 typedef void (*bl_rx_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer to the callback function called on packet receive

@@ -28,7 +28,7 @@ int main(void) {
 
     // initialize schedule
     schedule_t schedule = schedule_minuscule;
-    bl_node_type_t node_type = NODE_TYPE_NODE;
+    bl_node_type_t node_type = BLINK_NODE;
     bl_scheduler_init(node_type, &schedule);
 
     printf("Device of type %c and id %llx is using schedule %d\n\n", node_type, db_device_id(), schedule.id);

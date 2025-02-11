@@ -13,7 +13,7 @@
       project_type="Library" />
     <configuration
       Name="Debug"
-      c_preprocessor_definitions="BLINK_FIXED_CHANNEL=0" />
+      c_preprocessor_definitions="BLINK_FIXED_CHANNEL=2" />
     <file file_name="protocol.c" />
     <file file_name="protocol.h" />
 

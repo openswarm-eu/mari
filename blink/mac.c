@@ -69,7 +69,7 @@ typedef enum {
     STATE_RX_DATA_LISTEN = 32,
     STATE_RX_DATA = 33,
 
-} bl_mac_state_t; // TODO: actually use this state in the handlers below
+} bl_mac_state_t;
 
 typedef struct {
     bl_node_type_t node_type; //< whether the node is a gateway or a dotbot
@@ -78,6 +78,7 @@ typedef struct {
     uint64_t asn; ///< Absolute slot number
 
     bl_mac_state_t state; ///< State within the slot
+    bool is_synced; ///< Whether the node is synchronized
 
     uint32_t start_slot_ts; ///< Timestamp of the start of the slot
 
@@ -95,13 +96,16 @@ bl_slot_timing_t slot_timing = {
 //=========================== prototypes =======================================
 
 static inline void _set_state(bl_mac_state_t state);
+static inline void _set_sync(bool is_synced);
 
 //static void _bl_state_machine_handler(void);
+static void _new_slot(void);
 
-static void _bl_new_slot(void);
+static void activity_sync_new_slot(void);
 
-// --------------------- timers ---------------------
 static inline void _set_timer_and_compensate(uint8_t channel, uint32_t duration, uint32_t start_ts, timer_hf_cb_t callback);
+
+static void isr_mac_radio_callback(uint8_t *packet, uint8_t length);
 
 //=========================== public ===========================================
 
@@ -118,12 +122,23 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
     // initialize the high frequency timer
     bl_timer_hf_init(BLINK_TIMER_DEV);
 
+    // initialize the radio
+    bl_radio_init(&isr_mac_radio_callback, DB_RADIO_BLE_2MBit);
+
+    // node stuff
     mac_vars.node_type = node_type;
     mac_vars.device_id = db_device_id();
+
+    // synchronization stuff
+    mac_vars.is_synced = false;
+    mac_vars.asn = 0;
+
+    // application callback
     mac_vars.app_rx_callback = rx_callback;
 
+    // begin the slot
     _set_state(STATE_SLEEP);
-    _bl_new_slot();
+    _new_slot();
 }
 
 //=========================== private ==========================================
@@ -133,21 +148,58 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
 
 static inline void _set_state(bl_mac_state_t state) {
     mac_vars.state = state;
+    DEBUG_GPIO_SET(&pin1); DEBUG_GPIO_CLEAR(&pin1);
 }
 
-static void _bl_new_slot(void) {
+static inline void _set_sync(bool is_synced) {
+    mac_vars.is_synced = is_synced;
+
+    if (is_synced) {
+        // TODO: LED on
+    } else {
+        // TODO: LED off
+    }
+}
+
+static void _new_slot(void) {
     mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
 
     DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0);
 
-    // set the timer for the next slot for TOTAL DURATION
+    // set the timer for the next slot
     _set_timer_and_compensate(
         BLINK_TIMER_INTER_SLOT_CHANNEL,
         slot_timing.total_duration,
         mac_vars.start_slot_ts,
-        &_bl_new_slot
+        &_new_slot
     );
+
+    if (!mac_vars.is_synced) {
+        if (mac_vars.node_type == BLINK_GATEWAY) {
+            _set_sync(true);
+            mac_vars.asn = 0;
+        } else {
+            // play the synchronizing state machine
+            activity_sync_new_slot();
+        }
+    } else {
+        // play the tx/rx state machine
+        // activity_tx_rx_new_slot();
+    }
 }
+
+// --------------------- sync activities ------------
+
+static void activity_sync_new_slot(void) {
+#ifdef BLINK_FIXED_CHANNEL
+    bl_radio_set_channel(BLINK_FIXED_CHANNEL); // not doing channel hopping for now
+#else
+    puts("Channel hopping not implemented yet");
+#endif
+    bl_radio_rx();
+}
+
+// --------------------- tx/rx activities ------------
 
 // --------------------- timers ---------------------
 
@@ -160,4 +212,11 @@ static inline void _set_timer_and_compensate(uint8_t channel, uint32_t duration,
         duration - elapsed_ts,
         callback
     );
+}
+
+// --------------------- radio ---------------------
+static void isr_mac_radio_callback(uint8_t *packet, uint8_t length) {
+    (void)packet;
+    (void)length;
+    // mac_vars.app_rx_callback(packet, length);
 }
