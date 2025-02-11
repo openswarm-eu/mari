@@ -17,6 +17,7 @@
 #include <assert.h>
 
 #include "clock.h"
+#include "timer.h"
 #include "radio.h"
 
 //=========================== defines ==========================================
@@ -51,7 +52,9 @@ typedef struct __attribute__((packed)) {
 
 typedef struct {
     radio_pdu_t     pdu;       ///< Variable that stores the radio PDU (protocol data unit) that arrives and the radio packets that are about to be sent.
-    radio_cb_t      callback;  ///< Function pointer, stores the callback to use in the RADIO_Irq handler.
+    radio_cb_t      rx_cb;     ///< Function pointer, stores the callback to use in the RADIO_Irq handler.
+    radio_ts_packet_t start_pac_cb;  ///< Function pointer, stores the callback to capture the start of the packet.
+    radio_ts_packet_t end_pac_cb;      ///< Function pointer, stores the callback to capture the end of the packet.
     uint8_t         state;     ///< Internal state of the radio
     bl_radio_mode_t mode;      ///< PHY protocol used by the radio (BLE, IEEE 802.15.4)
 } radio_vars_t;
@@ -78,7 +81,7 @@ static void _radio_enable(void);
 
 //=========================== public ===========================================
 
-void bl_radio_init(radio_cb_t callback, bl_radio_mode_t mode) {
+void bl_radio_init(radio_cb_t rx_cb, radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb, bl_radio_mode_t mode) {
 
 #if defined(NRF5340_XXAA)
     // On nrf53 configure constant latency mode for better performances
@@ -200,8 +203,10 @@ void bl_radio_init(radio_cb_t callback, bl_radio_mode_t mode) {
         NRF_RADIO->PACKETPTR = (uint32_t)&radio_vars.pdu;
     }
 
-    // Assign the callback function that will be called when a radio packet is received.
-    radio_vars.callback = callback;
+    // Assign the rx_cb function that will be called when a radio packet is received.
+    radio_vars.rx_cb = rx_cb;
+    radio_vars.start_pac_cb = start_pac_cb;
+    radio_vars.end_pac_cb = end_pac_cb;
     radio_vars.state    = RADIO_STATE_IDLE;
 
     // Configure the external High-frequency Clock. (Needed for correct operation)
@@ -321,14 +326,19 @@ static void _radio_enable(void) {
  *
  * This function will be called each time a radio packet is received.
  * it will clear the interrupt, copy the last received packet
- * and called the user-defined callback to process the package.
+ * and called the user-defined rx_cb to process the package.
  *
  */
 void RADIO_IRQHandler(void) {
+    uint8_t timer_dev = 2; // FIXME: pass by parameter, or have radio report it somehow
+    uint32_t now = db_timer_hf_now(timer_dev);
 
     if (NRF_RADIO->EVENTS_ADDRESS) {
         NRF_RADIO->EVENTS_ADDRESS = 0;
         radio_vars.state |= RADIO_STATE_BUSY;
+        if (radio_vars.start_pac_cb) {
+            radio_vars.start_pac_cb(now);
+        }
     }
 
     if (NRF_RADIO->EVENTS_DISABLED) {
@@ -338,8 +348,13 @@ void RADIO_IRQHandler(void) {
         if (radio_vars.state == (RADIO_STATE_BUSY | RADIO_STATE_RX)) {
             if (NRF_RADIO->CRCSTATUS != RADIO_CRCSTATUS_CRCSTATUS_CRCOk) {
                 puts("Invalid CRC");
-            } else if (radio_vars.callback) {
-                radio_vars.callback(radio_vars.pdu.payload, radio_vars.pdu.length);
+            } else {
+                if (radio_vars.end_pac_cb) {
+                    radio_vars.end_pac_cb(now);
+                }
+                if (radio_vars.rx_cb) {
+                    radio_vars.rx_cb(radio_vars.pdu.payload, radio_vars.pdu.length);
+                }
             }
             radio_vars.state = RADIO_STATE_RX;
         } else {  // TX

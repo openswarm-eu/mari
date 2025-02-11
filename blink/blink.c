@@ -59,7 +59,7 @@ void bl_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback, bl_event_cb_t eve
     // TODO: bl_mac_init(node_type, rx_callback);
 
     // TMP: using the radio directly
-    bl_radio_init(&_bl_callback, DB_RADIO_BLE_2MBit);
+    bl_radio_init(&_bl_callback, NULL, NULL, DB_RADIO_BLE_2MBit);
     bl_radio_set_channel(BLINK_FIXED_CHANNEL); // temporary value
     bl_radio_rx();
 }

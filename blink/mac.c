@@ -95,17 +95,19 @@ bl_slot_timing_t slot_timing = {
 
 //=========================== prototypes =======================================
 
-static inline void _set_state(bl_mac_state_t state);
-static inline void _set_sync(bool is_synced);
+static inline void set_state(bl_mac_state_t state);
+static inline void set_sync(bool is_synced);
 
-//static void _bl_state_machine_handler(void);
-static void _new_slot(void);
+//static void bl_state_machine_handler(void);
+static void new_slot(void);
 
 static void activity_sync_new_slot(void);
 
-static inline void _set_timer_and_compensate(uint8_t channel, uint32_t duration, uint32_t start_ts, timer_hf_cb_t callback);
+static inline void set_timer_and_compensate(uint8_t channel, uint32_t duration, uint32_t start_ts, timer_hf_cb_t callback);
 
-static void isr_mac_radio_callback(uint8_t *packet, uint8_t length);
+static void isr_mac_radio_rx(uint8_t *packet, uint8_t length);
+static void isr_mac_radio_start_frame(uint32_t now);
+static void isr_mac_radio_end_frame(uint32_t now);
 
 //=========================== public ===========================================
 
@@ -123,7 +125,7 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
     bl_timer_hf_init(BLINK_TIMER_DEV);
 
     // initialize the radio
-    bl_radio_init(&isr_mac_radio_callback, DB_RADIO_BLE_2MBit);
+    bl_radio_init(&isr_mac_radio_rx, &isr_mac_radio_start_frame, &isr_mac_radio_end_frame, DB_RADIO_BLE_2MBit);
 
     // node stuff
     mac_vars.node_type = node_type;
@@ -137,21 +139,21 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
     mac_vars.app_rx_callback = rx_callback;
 
     // begin the slot
-    _set_state(STATE_SLEEP);
-    _new_slot();
+    set_state(STATE_SLEEP);
+    new_slot();
 }
 
 //=========================== private ==========================================
 
-// static void _bl_state_machine_handler(void) {
+// static void bl_state_machine_handler(void) {
 // }
 
-static inline void _set_state(bl_mac_state_t state) {
+static inline void set_state(bl_mac_state_t state) {
     mac_vars.state = state;
     DEBUG_GPIO_SET(&pin1); DEBUG_GPIO_CLEAR(&pin1);
 }
 
-static inline void _set_sync(bool is_synced) {
+static inline void set_sync(bool is_synced) {
     mac_vars.is_synced = is_synced;
 
     if (is_synced) {
@@ -161,22 +163,22 @@ static inline void _set_sync(bool is_synced) {
     }
 }
 
-static void _new_slot(void) {
+static void new_slot(void) {
     mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
 
     DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0);
 
     // set the timer for the next slot
-    _set_timer_and_compensate(
+    set_timer_and_compensate(
         BLINK_TIMER_INTER_SLOT_CHANNEL,
         slot_timing.total_duration,
         mac_vars.start_slot_ts,
-        &_new_slot
+        &new_slot
     );
 
     if (!mac_vars.is_synced) {
         if (mac_vars.node_type == BLINK_GATEWAY) {
-            _set_sync(true);
+            set_sync(true);
             mac_vars.asn = 0;
         } else {
             // play the synchronizing state machine
@@ -191,19 +193,28 @@ static void _new_slot(void) {
 // --------------------- sync activities ------------
 
 static void activity_sync_new_slot(void) {
+    if (mac_vars.state == STATE_SYNC_RX) {
+        // in the middle of receiving a packet
+        return;
+    }
+
+    if (mac_vars.state != STATE_SYNC_LISTEN) {
+        // if not in listen state, go to it
+        set_state(STATE_SYNC_LISTEN);
 #ifdef BLINK_FIXED_CHANNEL
-    bl_radio_set_channel(BLINK_FIXED_CHANNEL); // not doing channel hopping for now
+        bl_radio_set_channel(BLINK_FIXED_CHANNEL); // not doing channel hopping for now
 #else
-    puts("Channel hopping not implemented yet");
+        puts("Channel hopping not implemented yet");
 #endif
-    bl_radio_rx();
+        bl_radio_rx();
+    }
 }
 
 // --------------------- tx/rx activities ------------
 
 // --------------------- timers ---------------------
 
-static inline void _set_timer_and_compensate(uint8_t channel, uint32_t duration, uint32_t start_ts, timer_hf_cb_t callback) {
+static inline void set_timer_and_compensate(uint8_t channel, uint32_t duration, uint32_t start_ts, timer_hf_cb_t callback) {
     uint32_t elapsed_ts = bl_timer_hf_now(BLINK_TIMER_DEV) - start_ts;
     // printf("Setting timer for duration %d, compensating for elapsed %d gives: %d\n", duration, elapsed_ts, duration - elapsed_ts);
     bl_timer_hf_set_oneshot_us(
@@ -215,7 +226,17 @@ static inline void _set_timer_and_compensate(uint8_t channel, uint32_t duration,
 }
 
 // --------------------- radio ---------------------
-static void isr_mac_radio_callback(uint8_t *packet, uint8_t length) {
+static void isr_mac_radio_start_frame(uint32_t now) {
+    (void)now;
+    DEBUG_GPIO_SET(&pin2); DEBUG_GPIO_CLEAR(&pin2);
+}
+
+static void isr_mac_radio_end_frame(uint32_t now) {
+    (void)now;
+    DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3);
+}
+
+static void isr_mac_radio_rx(uint8_t *packet, uint8_t length) {
     (void)packet;
     (void)length;
     // mac_vars.app_rx_callback(packet, length);

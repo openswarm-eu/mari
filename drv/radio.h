@@ -40,7 +40,8 @@ typedef enum {
     DB_RADIO_IEEE802154_250Kbit
 } bl_radio_mode_t;
 
-typedef void (*radio_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer to the callback function called on packet receive
+typedef void (*radio_cb_t)(uint8_t *packet, uint8_t length);  ///< get the received packet
+typedef void (*radio_ts_packet_t)(uint32_t ts);  ///< capture timestamp for start/end of packet
 
 //=========================== public ===========================================
 
@@ -50,11 +51,11 @@ typedef void (*radio_cb_t)(uint8_t *packet, uint8_t length);  ///< Function poin
  * After this function you must explicitly set the frequency of the radio
  * with the bl_radio_set_frequency function.
  *
- * @param[in] callback pointer to a function that will be called each time a packet is received.
+ * @param[in] rx_cb pointer to a function that will be called each time a packet is received.
  * @param[in] mode     Mode used by the radio BLE (1MBit, 2MBit, LR125KBit, LR500Kbit) or IEEE 802.15.4 (250Kbit)
  *
  */
-void bl_radio_init(radio_cb_t callback, bl_radio_mode_t mode);
+void bl_radio_init(radio_cb_t rx_cb, radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb, bl_radio_mode_t mode);
 
 /**
  * @brief Set the tx-rx frequency of the radio, by the following formula
