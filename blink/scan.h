@@ -20,14 +20,15 @@
 //=========================== variables =======================================
 
 typedef struct {
-    int8_t    rssi;
-    uint32_t  timestamp;
-} bl_rssi_t;
+    // bl_beacon_packet_header_t   beacon;
+    uint32_t                    timestamp;
+    int8_t                      rssi;
+} bl_scan_channel_t;
 
 typedef struct {
-    uint64_t   gateway_id;
-    bl_rssi_t  rssi[BLINK_N_BLE_ADVERTISING_CHANNELS]; // channels 37, 38, 39
-} bl_scan_t;
+    uint64_t            gateway_id;
+    bl_scan_channel_t   channel_info[BLINK_N_BLE_ADVERTISING_CHANNELS]; // channels 37, 38, 39
+} bl_scan_gateway_t;
 
 //=========================== prototypes ======================================
 
