@@ -20,19 +20,20 @@
 //=========================== variables =======================================
 
 typedef struct {
-    int8_t    rssi;
-    uint32_t  timestamp;
-} bl_rssi_t;
+    int8_t                      rssi;
+    uint32_t                    timestamp;
+    bl_beacon_packet_header_t   beacon;
+} bl_channel_info_t;
 
 typedef struct {
-    uint64_t   gateway_id;
-    bl_rssi_t  rssi[BLINK_N_BLE_ADVERTISING_CHANNELS]; // channels 37, 38, 39
-} bl_scan_t;
+    uint64_t            gateway_id;
+    bl_channel_info_t   channel_info[BLINK_N_BLE_ADVERTISING_CHANNELS]; // channels 37, 38, 39
+} bl_gateway_scan_t;
 
 //=========================== prototypes ======================================
 
-void bl_scan_add(uint64_t gateway_id, int8_t rssi, uint8_t channel, uint32_t ts);
+void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts);
 
-uint64_t bl_scan_select(uint32_t ts_now);
+bl_channel_info_t bl_scan_select(uint32_t ts_scan);
 
 #endif // __SCAN_H
