@@ -34,6 +34,6 @@ typedef struct {
 
 void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts);
 
-uint64_t bl_scan_select(uint32_t ts_now);
+bl_scan_channel_t bl_scan_select(uint32_t ts_scan);
 
 #endif // __SCAN_H
