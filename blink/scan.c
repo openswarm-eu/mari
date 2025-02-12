@@ -10,7 +10,7 @@
 //=========================== variables =======================================
 
 typedef struct {
-    bl_scan_gateway_t scans[BLINK_MAX_SCAN_LIST_SIZE];
+    bl_gateway_scan_t scans[BLINK_MAX_SCAN_LIST_SIZE];
 } scan_vars_t;
 
 scan_vars_t scan_vars = { 0 };
@@ -18,9 +18,9 @@ scan_vars_t scan_vars = { 0 };
 //=========================== prototypes ======================================
 
 void _save_rssi(size_t idx, bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts_scan);
-uint32_t _get_ts_latest(bl_scan_gateway_t scan);
-bl_scan_channel_t _get_channel_info_latest(bl_scan_gateway_t scan);
-bool _scan_is_too_old(bl_scan_gateway_t scan, uint32_t ts_scan);
+uint32_t _get_ts_latest(bl_gateway_scan_t scan);
+bl_channel_info_t _get_channel_info_latest(bl_gateway_scan_t scan);
+bool _scan_is_too_old(bl_gateway_scan_t scan, uint32_t ts_scan);
 
 //=========================== public ===========================================
 
@@ -50,7 +50,7 @@ void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel,
         // if newest rssi entry is too old, remove it (just set gateway_id = 0)
         if (_scan_is_too_old(scan_vars.scans[i], ts_scan)) {
             // scan_vars.scans[i].gateway_id = 0;
-            memset(&scan_vars.scans[i], 0, sizeof(bl_scan_gateway_t));
+            memset(&scan_vars.scans[i], 0, sizeof(bl_gateway_scan_t));
         }
 
         // try and save the first empty spot we see
@@ -77,7 +77,7 @@ void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel,
         } else {
             // last case: didn't match the gateeway_id, and didn't find an empty slot,
             // so overwrite the oldest reading
-            memset(&scan_vars.scans[ts_oldest_all_idx], 0, sizeof(bl_scan_gateway_t));
+            memset(&scan_vars.scans[ts_oldest_all_idx], 0, sizeof(bl_gateway_scan_t));
             scan_vars.scans[ts_oldest_all_idx].gateway_id = gateway_id;
             _save_rssi(ts_oldest_all_idx, beacon, rssi, channel, ts_scan);
         }
@@ -87,9 +87,9 @@ void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel,
 // Compute the average rssi for each gateway, and return the highest one.
 // The documentation says that remaining capacity should also be taken into account,
 // but we will simply not add a gateway to the scan list if its capacity if full.
-bl_scan_channel_t bl_scan_select(uint32_t ts_scan) {
+bl_channel_info_t bl_scan_select(uint32_t ts_scan) {
     uint64_t best_gateway_idx = 0;
-    bl_scan_channel_t best_channel_info = { 0 };
+    bl_channel_info_t best_channel_info = { 0 };
     int8_t best_gateway_rssi = INT8_MIN;
     for (size_t i = 0; i < BLINK_MAX_SCAN_LIST_SIZE; i++) {
         if (scan_vars.scans[i].gateway_id == 0) {
@@ -130,23 +130,18 @@ inline void _save_rssi(size_t idx, bl_beacon_packet_header_t beacon, int8_t rssi
     scan_vars.scans[idx].channel_info[channel_idx].beacon = beacon;
 }
 
-inline bool _scan_is_too_old(bl_scan_gateway_t scan, uint32_t ts_scan) {
+inline bool _scan_is_too_old(bl_gateway_scan_t scan, uint32_t ts_scan) {
     uint32_t ts_latest = _get_ts_latest(scan);
     return (ts_scan - ts_latest) > BLINK_SCAN_OLD_US;
 }
 
-inline uint32_t _get_ts_latest(bl_scan_gateway_t scan) {
-    uint32_t latest = 0;
-    for (size_t i = 0; i < BLINK_N_BLE_ADVERTISING_CHANNELS; i++) {
-        if (scan.channel_info[i].timestamp > latest) {
-            latest = scan.channel_info[i].timestamp;
-        }
-    }
-    return latest;
+inline uint32_t _get_ts_latest(bl_gateway_scan_t scan) {
+    bl_channel_info_t latest = _get_channel_info_latest(scan);
+    return latest.timestamp;
 }
 
-// get the latest channel info for a given scan, which will have minimum drift
-inline bl_scan_channel_t _get_channel_info_latest(bl_scan_gateway_t scan) {
+// get the latest channel_info for a given scan (could be any of them, but the latest will have minimum drift)
+inline bl_channel_info_t _get_channel_info_latest(bl_gateway_scan_t scan) {
     uint32_t latest_idx = 0;
     for (size_t i = 0; i < BLINK_N_BLE_ADVERTISING_CHANNELS; i++) {
         if (scan.channel_info[i].timestamp > scan.channel_info[latest_idx].timestamp) {

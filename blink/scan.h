@@ -23,17 +23,17 @@ typedef struct {
     int8_t                      rssi;
     uint32_t                    timestamp;
     bl_beacon_packet_header_t   beacon;
-} bl_scan_channel_t;
+} bl_channel_info_t;
 
 typedef struct {
     uint64_t            gateway_id;
-    bl_scan_channel_t   channel_info[BLINK_N_BLE_ADVERTISING_CHANNELS]; // channels 37, 38, 39
-} bl_scan_gateway_t;
+    bl_channel_info_t   channel_info[BLINK_N_BLE_ADVERTISING_CHANNELS]; // channels 37, 38, 39
+} bl_gateway_scan_t;
 
 //=========================== prototypes ======================================
 
 void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts);
 
-bl_scan_channel_t bl_scan_select(uint32_t ts_scan);
+bl_channel_info_t bl_scan_select(uint32_t ts_scan);
 
 #endif // __SCAN_H
