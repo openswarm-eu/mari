@@ -32,6 +32,19 @@ size_t bl_build_packet_join_response(uint8_t *buffer, uint64_t dst) {
     return _set_header(buffer, dst, BLINK_PACKET_JOIN_RESPONSE);
 }
 
+size_t bl_build_packet_beacon(uint8_t *buffer, uint64_t asn, uint8_t remaining_capacity, uint8_t active_schedule_id) {
+    bl_beacon_packet_header_t beacon = {
+        .version = BLINK_PROTOCOL_VERSION,
+        .type = BLINK_PACKET_BEACON,
+        .asn = asn,
+        .src = db_device_id(),
+        .remaining_capacity = remaining_capacity,
+        .active_schedule_id = active_schedule_id,
+    };
+    memcpy(buffer, &beacon, sizeof(bl_beacon_packet_header_t));
+    return sizeof(bl_beacon_packet_header_t);
+}
+
 //=========================== private ==========================================
 
 static size_t _set_header(uint8_t *buffer, uint64_t dst, bl_packet_type_t packet_type) {

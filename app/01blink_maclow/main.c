@@ -59,6 +59,8 @@ int main(void) {
     bl_scheduler_init(node_type, &schedule);
     printf("\n==== Device of type %c and id %llx is using schedule %d ====\n\n", node_type, db_device_id(), schedule.id);
 
+    printf("BLINK_FIXED_CHANNEL = %d\n", BLINK_FIXED_CHANNEL);
+
     // initialize the TSCH driver
     //bl_default_slot_timing.end_guard = 1000 * 1000; // add an extra second of delay.
     bl_mac_init(node_type, radio_callback);

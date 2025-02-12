@@ -31,9 +31,6 @@
 #define DEBUG
 #endif
 
-#ifdef DEBUG // comes from segger config
-#endif
-
 #ifdef DEBUG
 #include "gpio.h" // for debugging
 gpio_t pin0 = { .port = 1, .pin = 2 }; // variable names reflect the logic analyzer channels
@@ -47,6 +44,7 @@ gpio_t pin3 = { .port = 1, .pin = 5 };
 // No-op when DEBUG is not defined
 #define DEBUG_GPIO_TOGGLE(pin) ((void)0))
 #define DEBUG_GPIO_SET(pin) ((void)0))
+#define DEBUG_GPIO_CLEAR(pin) ((void)0))
 #endif // DEBUG
 
 //=========================== defines ==========================================
@@ -322,7 +320,7 @@ static inline void set_timer_and_compensate(uint8_t channel, uint32_t duration, 
 // --------------------- radio ---------------------
 static void isr_mac_radio_start_frame(uint32_t ts) {
     (void)ts;
-    DEBUG_GPIO_SET(&pin2); DEBUG_GPIO_CLEAR(&pin2);
+    DEBUG_GPIO_SET(&pin2);
     if (!mac_vars.is_synced) {
         activity_sync_start_frame(ts);
     }
@@ -330,7 +328,7 @@ static void isr_mac_radio_start_frame(uint32_t ts) {
 
 static void isr_mac_radio_end_frame(uint32_t ts) {
     (void)ts;
-    DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3);
+    DEBUG_GPIO_CLEAR(&pin2);
     if (!mac_vars.is_synced) {
         activity_sync_end_frame(ts);
     }

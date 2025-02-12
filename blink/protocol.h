@@ -45,4 +45,6 @@ size_t bl_build_packet_join_request(uint8_t *buffer, uint64_t dst);
 
 size_t bl_build_packet_join_response(uint8_t *buffer, uint64_t dst);
 
+size_t bl_build_packet_beacon(uint8_t *buffer, uint64_t asn, uint8_t remaining_capacity, uint8_t active_schedule_id);
+
 #endif
