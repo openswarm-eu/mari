@@ -20,9 +20,9 @@
 //=========================== variables =======================================
 
 typedef struct {
-    // bl_beacon_packet_header_t   beacon;
-    uint32_t                    timestamp;
     int8_t                      rssi;
+    uint32_t                    timestamp;
+    bl_beacon_packet_header_t   beacon;
 } bl_scan_channel_t;
 
 typedef struct {
@@ -32,7 +32,7 @@ typedef struct {
 
 //=========================== prototypes ======================================
 
-void bl_scan_add(uint64_t gateway_id, int8_t rssi, uint8_t channel, uint32_t ts);
+void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts);
 
 uint64_t bl_scan_select(uint32_t ts_now);
 
