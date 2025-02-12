@@ -12,8 +12,7 @@
       project_directory="."
       project_type="Library" />
     <configuration
-      Name="Debug"
-      c_preprocessor_definitions="BLINK_FIXED_CHANNEL=0" />
+      Name="Debug" />
     <file file_name="protocol.c" />
     <file file_name="protocol.h" />
 
@@ -24,8 +23,8 @@
     <file file_name="all_schedules.c" />
     <file file_name="scheduler.h" />
 
-    <file file_name="maclow.c" />
-    <file file_name="maclow.h" />
+    <file file_name="mac.c" />
+    <file file_name="mac.h" />
 
     <file file_name="blink.c" />
     <file file_name="blink.h" />

@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <nrf.h>
 
-#include "maclow.h"
+#include "mac.h"
 
 //=========================== defines ==========================================
 
@@ -28,9 +28,9 @@
 #define BLINK_N_BLE_REGULAR_CHANNELS 37
 #define BLINK_N_BLE_ADVERTISING_CHANNELS 3
 
-#ifndef BLINK_FIXED_CHANNEL
-#define BLINK_FIXED_CHANNEL 0 // to hardcode the channel, use a valid value other than 0
-#endif
+// #ifndef BLINK_FIXED_CHANNEL
+#define BLINK_FIXED_CHANNEL 4 // to hardcode the channel, use a valid value other than 0
+// #endif
 
 #define BLINK_N_CELLS_MAX 137
 
@@ -91,6 +91,8 @@ bool bl_scheduler_set_schedule(uint8_t schedule_id);
  * @return true if the uplink cell was successfully assigned, false otherwise (e.g., all uplink cells are already assigned)
  */
 bool bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id);
+
+bool bl_scheduler_assign_myself_to_cell(uint8_t cell_index);
 
 /**
  * @brief Deassigns the uplink cell assigned to a given node.

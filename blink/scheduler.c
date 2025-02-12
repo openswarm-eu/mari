@@ -15,7 +15,7 @@
 #include <stdbool.h>
 
 #include "scheduler.h"
-#include "maclow.h"
+#include "mac.h"
 #include "device.h"
 #if defined(NRF5340_XXAA) && defined(NRF_NETWORK)
 #include "ipc.h"
@@ -80,11 +80,24 @@ bool bl_scheduler_set_schedule(uint8_t schedule_id) {
     return false;
 }
 
+// to be called at the GATEWAY when processing a JOIN_REQUEST
 bool bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id) {
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
         if (cell->type == SLOT_TYPE_UPLINK && cell->assigned_node_id == NULL) {
             cell->assigned_node_id = node_id;
+            return true;
+        }
+    }
+    return false;
+}
+
+// to be called at the NODE when processing a JOIN_RESPONSE
+bool bl_scheduler_assign_myself_to_cell(uint8_t cell_index) {
+    for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
+        cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
+        if (cell->type == SLOT_TYPE_UPLINK && i == cell_index) {
+            cell->assigned_node_id = db_device_id();
             return true;
         }
     }
@@ -112,7 +125,7 @@ bl_radio_event_t bl_scheduler_tick(uint64_t asn) {
         .channel = bl_scheduler_get_channel(cell.type, asn, cell.channel_offset),
         .slot_type = cell.type, // FIXME: only for debugging, remove before merge
     };
-    if (_schedule_vars.node_type == NODE_TYPE_GATEWAY) {
+    if (_schedule_vars.node_type == BLINK_GATEWAY) {
         _compute_gateway_action(cell, &radio_event);
     } else {
         _compute_dotbot_action(cell, &radio_event);

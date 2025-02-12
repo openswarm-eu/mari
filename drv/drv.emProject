@@ -33,7 +33,7 @@
   <project Name="00drv_radio">
     <configuration
       Name="Common"
-      project_dependencies="00drv_clock"
+      project_dependencies="00drv_clock(00drv);00drv_timer_hf(00drv)"
       project_directory="radio"
       project_type="Library" />
     <file file_name="radio.c" />

@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "maclow.h"
+#include "mac.h"
 #include "scheduler.h"
 #include "device.h"
 
@@ -52,17 +52,19 @@ int main(void) {
     // initialize schedule
 
     //schedule_t schedule = schedule_only_beacons;
-    //bl_node_type_t node_type = NODE_TYPE_GATEWAY;
+    //bl_node_type_t node_type = BLINK_GATEWAY;
     schedule_t schedule = schedule_huge;
-    bl_node_type_t node_type = NODE_TYPE_NODE;
+    bl_node_type_t node_type = BLINK_NODE;
 
     bl_scheduler_init(node_type, &schedule);
     printf("\n==== Device of type %c and id %llx is using schedule %d ====\n\n", node_type, db_device_id(), schedule.id);
 
+    printf("BLINK_FIXED_CHANNEL = %d\n", BLINK_FIXED_CHANNEL);
+
     // initialize the TSCH driver
     //bl_default_slot_timing.end_guard = 1000 * 1000; // add an extra second of delay.
-    bl_maclow_init(node_type, radio_callback);
-    printf("Slot total duration: %d us\n", bl_default_slot_timing.total_duration);
+    bl_mac_init(node_type, radio_callback);
+    //printf("Slot total duration: %d us\n", bl_default_slot_timing.total_duration);
 
     while (1) {
         __WFE();

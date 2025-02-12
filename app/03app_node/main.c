@@ -60,7 +60,7 @@ int main(void)
 {
     printf("Hello Blink Node\n");
 
-    bl_init(NODE_TYPE_NODE, &rx_cb, &event_cb);
+    bl_init(BLINK_NODE, &rx_cb, &event_cb);
 
     size_t i = 0;
     while (1) {
