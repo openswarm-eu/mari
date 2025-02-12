@@ -17,6 +17,10 @@
 #define BLINK_SCAN_OLD_US (1000*1000*3) // rssi reading considered old after 3 seconds
 #define BLINK_SCAN_HANDOVER_HYSTERESIS (6) // hysteresis (in dBm) for handover
 
+// default scan duration in us
+// #define BLINK_SCAN_DEFAULT_DURATION (BLINK_DEFAULT_SLOT_TOTAL_DURATION*BLINK_N_CELLS_MAX) // 274 ms
+#define BLINK_SCAN_DEFAULT_DURATION (20000) // 20 ms
+
 //=========================== variables =======================================
 
 typedef struct {
@@ -32,8 +36,8 @@ typedef struct {
 
 //=========================== prototypes ======================================
 
-void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts);
+void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts_scan);
 
-bl_channel_info_t bl_scan_select(uint32_t ts_scan);
+bl_channel_info_t bl_scan_select(uint32_t ts_scan_started, uint32_t ts_scan_ended);
 
 #endif // __SCAN_H
