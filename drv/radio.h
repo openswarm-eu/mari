@@ -122,6 +122,8 @@ int8_t bl_radio_rssi(void);
  */
 void bl_radio_disable(void);
 
+void bl_radio_get_rx_packet(uint8_t *packet, uint8_t *length);
+
 void bl_radio_tx_prepare(const uint8_t *tx_buffer, uint8_t length);
 void bl_radio_tx_dispatch(void);
 

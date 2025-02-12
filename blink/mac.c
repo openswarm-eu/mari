@@ -75,10 +75,12 @@ typedef struct {
     bl_node_type_t node_type; //< whether the node is a gateway or a dotbot
     uint64_t device_id; ///< Device ID
 
-    uint64_t asn; ///< Absolute slot number
-
     bl_mac_state_t state; ///< State within the slot
-    bool is_synced; ///< Whether the node is synchronized
+
+    bool is_synced; ///< Whether the node is synchronized with a gateway
+    uint32_t sync_ts; ///< Timestamp of the packet
+    uint64_t asn; ///< Absolute slot number
+    uint64_t synced_gateway; ///< ID of the gateway the node is synchronized with
 
     uint32_t start_slot_ts; ///< Timestamp of the start of the slot
 
@@ -100,14 +102,18 @@ static inline void set_sync(bool is_synced);
 
 //static void bl_state_machine_handler(void);
 static void new_slot(void);
+static void end_slot(void);
 
 static void activity_sync_new_slot(void);
+static void activity_sync_start_frame(uint32_t ts);
+static void activity_sync_end_frame(uint32_t ts);
+static void do_synchronize(void);
 
 static inline void set_timer_and_compensate(uint8_t channel, uint32_t duration, uint32_t start_ts, timer_hf_cb_t callback);
 
 static void isr_mac_radio_rx(uint8_t *packet, uint8_t length);
-static void isr_mac_radio_start_frame(uint32_t now);
-static void isr_mac_radio_end_frame(uint32_t now);
+static void isr_mac_radio_start_frame(uint32_t ts);
+static void isr_mac_radio_end_frame(uint32_t ts);
 
 //=========================== public ===========================================
 
@@ -190,6 +196,10 @@ static void new_slot(void) {
     }
 }
 
+static void end_slot(void) {
+    // do any needed cleanup
+}
+
 // --------------------- sync activities ------------
 
 static void activity_sync_new_slot(void) {
@@ -210,9 +220,93 @@ static void activity_sync_new_slot(void) {
     }
 }
 
+static void activity_sync_start_frame(uint32_t ts) {
+    if (mac_vars.state != STATE_SYNC_LISTEN) {
+        // if not in listen state, just return
+        return;
+    }
+
+    set_state(STATE_SYNC_RX);
+    mac_vars.sync_ts = ts;
+}
+
+static void activity_sync_end_frame(uint32_t ts) {
+    (void)ts;
+
+    if (mac_vars.state != STATE_SYNC_RX) {
+        // this should not happen!
+        return;
+    }
+
+    set_state(STATE_SYNC_PROCESS);
+
+    uint8_t packet[BLINK_PACKET_MAX_SIZE];
+    uint8_t packet_len;
+    bl_radio_get_rx_packet(packet, &packet_len);
+
+    // The `do { ... } while (0)` is a trick to allow using `break` to exit the block
+    // in order to handle errors and avoid using `goto`.
+    // To exit with success, we use `return` after all processing is done.
+    do {
+        // if not a beacon packet, ignore it and go back to listen
+        if (packet[1] != BLINK_PACKET_BEACON) {
+            break;
+        }
+
+        // now that we know it's a beacon packet, parse and process it
+        bl_beacon_packet_header_t *beacon = (bl_beacon_packet_header_t *)packet;
+
+        if (beacon->version != BLINK_PROTOCOL_VERSION) {
+            // ignore packet with different protocol version
+            break;
+        }
+
+        if (beacon->remaining_capacity == 0) {
+            // this gateway is full, ignore it
+            break;
+        }
+
+        if (!bl_scheduler_set_schedule(beacon->active_schedule_id)) {
+            // schedule not found, stop and go back to listen
+            break;
+        }
+
+        // save relevant fields
+        mac_vars.asn = beacon->asn;
+        mac_vars.synced_gateway = beacon->src;
+
+        // actually synchronize the timers, and set the state
+        do_synchronize();
+        set_sync(true);
+        set_state(STATE_SLEEP);
+
+        // synchronization is done!
+        end_slot();
+
+        return;
+    } while (0);
+
+    // go back to listen
+    set_state(STATE_SYNC_LISTEN);
+    // NOTE: assuming the radio is already in rx state
+}
+
+// adjust timers based on mac_vars.sync_ts
+static void do_synchronize(void) {
+    // TODO: handle case when too close to end of slot
+
+    // set new slot ticking reference
+    set_timer_and_compensate(
+        BLINK_TIMER_INTER_SLOT_CHANNEL, // overrides the currently set timer, which is non-synchronized
+        slot_timing.total_duration,
+        mac_vars.sync_ts, // timestamp of the beacon packet start_frame, which matches the start of the slot for synced_gateway
+        &new_slot
+    );
+}
+
 // --------------------- tx/rx activities ------------
 
-// --------------------- timers ---------------------
+// --------------------- timers ----------------------
 
 static inline void set_timer_and_compensate(uint8_t channel, uint32_t duration, uint32_t start_ts, timer_hf_cb_t callback) {
     uint32_t elapsed_ts = bl_timer_hf_now(BLINK_TIMER_DEV) - start_ts;
@@ -226,14 +320,20 @@ static inline void set_timer_and_compensate(uint8_t channel, uint32_t duration, 
 }
 
 // --------------------- radio ---------------------
-static void isr_mac_radio_start_frame(uint32_t now) {
-    (void)now;
+static void isr_mac_radio_start_frame(uint32_t ts) {
+    (void)ts;
     DEBUG_GPIO_SET(&pin2); DEBUG_GPIO_CLEAR(&pin2);
+    if (!mac_vars.is_synced) {
+        activity_sync_start_frame(ts);
+    }
 }
 
-static void isr_mac_radio_end_frame(uint32_t now) {
-    (void)now;
+static void isr_mac_radio_end_frame(uint32_t ts) {
+    (void)ts;
     DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3);
+    if (!mac_vars.is_synced) {
+        activity_sync_end_frame(ts);
+    }
 }
 
 static void isr_mac_radio_rx(uint8_t *packet, uint8_t length) {

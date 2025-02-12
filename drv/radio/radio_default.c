@@ -17,7 +17,7 @@
 #include <assert.h>
 
 #include "clock.h"
-#include "timer.h"
+#include "timer_hf.h"
 #include "radio.h"
 
 //=========================== defines ==========================================
@@ -286,6 +286,10 @@ int8_t bl_radio_rssi(void) {
     return (uint8_t)NRF_RADIO->RSSISAMPLE * -1;
 }
 
+void bl_radio_get_rx_packet(uint8_t *packet, uint8_t *length) {
+    *length = radio_vars.pdu.length;
+    memcpy(packet, radio_vars.pdu.payload, radio_vars.pdu.length);
+}
 
 void bl_radio_tx_prepare(const uint8_t *tx_buffer, uint8_t length) {
     radio_vars.pdu.length = length;
@@ -331,7 +335,7 @@ static void _radio_enable(void) {
  */
 void RADIO_IRQHandler(void) {
     uint8_t timer_dev = 2; // FIXME: pass by parameter, or have radio report it somehow
-    uint32_t now = db_timer_hf_now(timer_dev);
+    uint32_t now = bl_timer_hf_now(timer_dev);
 
     if (NRF_RADIO->EVENTS_ADDRESS) {
         NRF_RADIO->EVENTS_ADDRESS = 0;

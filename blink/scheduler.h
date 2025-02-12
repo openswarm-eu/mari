@@ -92,6 +92,8 @@ bool bl_scheduler_set_schedule(uint8_t schedule_id);
  */
 bool bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id);
 
+bool bl_scheduler_assign_myself_to_cell(uint8_t cell_index);
+
 /**
  * @brief Deassigns the uplink cell assigned to a given node.
  *
