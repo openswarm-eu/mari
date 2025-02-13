@@ -36,7 +36,7 @@
 #define _BLINK_PACKET_TOA (BLE_2M_US_PER_BYTE * DB_BLE_PAYLOAD_MAX_LENGTH) // Time on air for the maximum payload.
 #define _BLINK_PACKET_TOA_WITH_PADDING (_BLINK_PACKET_TOA + (BLE_2M_US_PER_BYTE * 32)) // Add some padding just in case.
 
-#define BLINK_DEFAULT_SLOT_TOTAL_DURATION (2000) // 2 ms
+#define BLINK_DEFAULT_SLOT_TOTAL_DURATION (1000) // 1 ms
 
 //=========================== variables ========================================
 

@@ -61,10 +61,10 @@ int main(void) {
 
     tx_vars.asn = 32; // start at arbitrary value
 
+    bl_timer_hf_set_periodic_us(BLINK_TIMER_DEV, 0, 1000, send_beacon); // 1 ms
+
     while (1) {
-        send_beacon();
-        //printf("Sent beacon, asn = %lld\n", tx_vars.asn);
-        bl_timer_hf_delay_us(BLINK_TIMER_DEV, 1000); // 1 s
+        __WFE();
     }
 }
 
