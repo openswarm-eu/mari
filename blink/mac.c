@@ -81,6 +81,7 @@ typedef struct {
     uint64_t device_id; ///< Device ID
 
     bl_mac_state_t state; ///< State within the slot
+    uint32_t start_slot_ts; ///< Timestamp of the start of the slot
 
     uint32_t scan_started_ts; ///< Timestamp of the start of the scan
     uint32_t current_scan_item_ts; ///< Timestamp of the current scan item
@@ -90,8 +91,6 @@ typedef struct {
     uint32_t sync_ts; ///< Timestamp of the packet
     uint64_t asn; ///< Absolute slot number
     uint64_t synced_gateway; ///< ID of the gateway the node is synchronized with
-
-    uint32_t start_slot_ts; ///< Timestamp of the start of the slot
 
     bl_rx_cb_t app_rx_callback; ///< Function pointer, stores the application callback
 } mac_vars_t;
@@ -112,6 +111,11 @@ static inline void set_sync(bool is_synced);
 //static void bl_state_machine_handler(void);
 static void new_slot(void);
 static void end_slot(void);
+
+static void activity_ti1(void);
+static void activity_ti2(void);
+static void activity_tte1(void);
+
 
 static void activity_scan_new_slot(void);
 static void activity_scan_start_frame(uint32_t ts);
@@ -163,7 +167,7 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
 // static void bl_state_machine_handler(void) {
 // }
 
-static inline void set_state(bl_mac_state_t state) {
+static void set_state(bl_mac_state_t state) {
     mac_vars.state = state;
 
     if (!mac_vars.is_synced) {
@@ -175,6 +179,20 @@ static inline void set_state(bl_mac_state_t state) {
                 DEBUG_GPIO_CLEAR(&pin1);
                 break;
         }
+        return;
+    }
+
+    DEBUG_GPIO_SET(&pin2); DEBUG_GPIO_CLEAR(&pin2);
+    switch (state) {
+        case STATE_TX_DATA:
+        case STATE_RX_DATA:
+            DEBUG_GPIO_SET(&pin1);
+            break;
+        case STATE_SLEEP:
+            DEBUG_GPIO_CLEAR(&pin1);
+            break;
+        default:
+            break;
     }
 }
 
@@ -212,12 +230,13 @@ static void new_slot(void) {
         } else {
             // begin the scan procedure
             activity_scan_new_slot();
+            return;
         }
-    } else {
-        // play the tx/rx state machine
-        // TODO: if radio_event.radio_action == BLINK_RADIO_ACTION_TX
-        activity_tx_new_slot();
     }
+
+    // play the tx/rx state machine
+    // TODO: for now only tx, need to implement if radio_event.radio_action == BLINK_RADIO_ACTION_TX ...
+    activity_ti1();
 }
 
 static void end_slot(void) {
@@ -226,27 +245,35 @@ static void end_slot(void) {
 
 // --------------------- tx/rx activities -----------
 
-static void activity_tx_new_slot(void) {
-    set_timer_and_connect_to_ppi_radio_tx( // TODO: implement this function
+static void activity_ti1(void) {
+    // ti1: arm tx timers and prepare the radio for tx
+    set_state(STATE_TX_OFFSET);
+
+    // set_timer_and_connect_to_ppi_radio_tx( // TODO: implement this function
+    //     BLINK_TIMER_CHANNEL_1,
+    //     200, // FIXME
+    //     mac_vars.start_slot_ts,
+    //     &new_slot
+    // );
+    set_timer_and_compensate( // TODO: use PPI instead
         BLINK_TIMER_CHANNEL_1,
-        500, // FIXME
+        200, // FIXME
         mac_vars.start_slot_ts,
-        &new_slot
+        &activity_ti2
     );
 
     set_timer_and_compensate(
         BLINK_TIMER_CHANNEL_2,
-        500 + _BLINK_PACKET_TOA + 50, // FIXME
+        200 + _BLINK_PACKET_TOA + 50, // FIXME
         mac_vars.start_slot_ts,
-        &new_slot
+        &activity_tte1
     );
 
     // FIXME: send other types of packets, depending on slot type
-    uint8_t packet[BLINK_PACKET_MAX_SIZE], packet_len;
+    uint8_t packet[BLINK_PACKET_MAX_SIZE];
     uint8_t dummy_remainig_capacity = 10; // FIXME
-    bl_build_packet_beacon(
+    uint8_t packet_len = bl_build_packet_beacon(
         packet,
-        &packet_len,
         mac_vars.asn,
         dummy_remainig_capacity,
         bl_scheduler_get_active_schedule_id()
@@ -255,7 +282,32 @@ static void activity_tx_new_slot(void) {
     bl_radio_tx_prepare(packet, packet_len);
 }
 
-static void activity_tt1(void) {
+static void activity_ti2(void) {
+    // ti2: tx actually begins
+    set_state(STATE_TX_DATA);
+
+    // FIXME: replace this call with a direct PPI connection, i.e., TsTxOffset expires -> radio tx
+    bl_radio_disable();
+    bl_radio_tx_dispatch();
+}
+
+static void activity_tte1(void) {
+    // tte1: something went wrong, stayed in tx for too long, abort
+    set_state(STATE_SLEEP);
+
+    bl_radio_disable();
+    end_slot();
+}
+
+static void activity_ti3(void) {
+    // ti3: all fine, finished tx, cancel error timers and go to sleep
+    set_state(STATE_SLEEP);
+
+    // cancel tte1 timer
+    bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
+
+    bl_radio_disable();
+    end_slot();
 }
 
 // --------------------- sync activities ------------
@@ -417,8 +469,18 @@ static void isr_mac_radio_start_frame(uint32_t ts) {
 static void isr_mac_radio_end_frame(uint32_t ts) {
     (void)ts;
     DEBUG_GPIO_CLEAR(&pin2);
-    if (!mac_vars.is_synced) {
+
+    if (!mac_vars.is_synced) { // NOTE: should probably check for if (is_scanning) instead, since it may scan while joined
         activity_scan_end_frame(ts);
+        return;
+    }
+
+    switch (mac_vars.state) {
+        case STATE_TX_DATA:
+            activity_ti3();
+            break;
+        default:
+            break;
     }
 }
 

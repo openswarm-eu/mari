@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stddef.h>
 #include "clock.h"
 #include "timer_hf.h"
 
@@ -156,6 +157,15 @@ void bl_timer_hf_set_oneshot_ms(timer_hf_t timer, uint8_t channel, uint32_t ms, 
 
 void bl_timer_hf_set_oneshot_s(timer_hf_t timer, uint8_t channel, uint32_t s, timer_hf_cb_t cb) {
     bl_timer_hf_set_oneshot_us(timer, channel, s * 1000UL * 1000UL, cb);
+}
+
+void bl_timer_hf_cancel(timer_hf_t timer, uint8_t channel) {
+    assert(channel >= 0 && channel < _devs[timer].cc_num + 1);
+
+    // Disable the interrupt, clear the event flag and clear the callback
+    _devs[timer].p->INTENCLR = (1 << (TIMER_INTENCLR_COMPARE0_Pos + channel));
+    _devs[timer].p->EVENTS_COMPARE[channel] = 0;
+    _timer_hf_vars[timer].timer_callback[channel].callback = NULL;
 }
 
 void bl_timer_hf_delay_us(timer_hf_t timer, uint32_t us) {

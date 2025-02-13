@@ -115,4 +115,6 @@ bool bl_scheduler_deassign_uplink_cell(uint64_t node_id);
  */
 uint8_t bl_scheduler_get_channel(slot_type_t slot_type, uint64_t asn, uint8_t channel_offset);
 
+uint8_t bl_scheduler_get_active_schedule_id(void);
+
 #endif
