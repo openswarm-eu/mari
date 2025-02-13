@@ -87,7 +87,7 @@ void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel,
 // Compute the average rssi for each gateway, and return the highest one.
 // The documentation says that remaining capacity should also be taken into account,
 // but we will simply not add a gateway to the scan list if its capacity if full.
-bl_channel_info_t bl_scan_select(uint32_t ts_scan) {
+bl_channel_info_t bl_scan_select(uint32_t ts_scan_started, uint32_t ts_scan_ended) {
     uint64_t best_gateway_idx = 0;
     bl_channel_info_t best_channel_info = { 0 };
     int8_t best_gateway_rssi = INT8_MIN;
@@ -99,10 +99,14 @@ bl_channel_info_t bl_scan_select(uint32_t ts_scan) {
         int8_t avg_rssi = 0;
         int8_t n_rssi = 0;
         for (size_t j = 0; j < BLINK_N_BLE_ADVERTISING_CHANNELS; j++) {
-            if (scan_vars.scans[i].channel_info[j].timestamp == 0) { // no rssi reading here
+            if (scan_vars.scans[i].channel_info[j].timestamp == 0) { // no scan info reading here
                 continue;
             }
-            if (ts_scan - scan_vars.scans[i].channel_info[j].timestamp > BLINK_SCAN_OLD_US) { // rssi reading is too old
+            // check twice for old scans: scans from before this scan started, and scans older than the blink configuration
+            if (scan_vars.scans[i].channel_info[j].timestamp < ts_scan_started) { // scan info is too old
+                continue;
+            }
+            if (ts_scan_ended - scan_vars.scans[i].channel_info[j].timestamp > BLINK_SCAN_OLD_US) { // scan info is is too old
                 continue;
             }
             avg_rssi += scan_vars.scans[i].channel_info[j].rssi;
