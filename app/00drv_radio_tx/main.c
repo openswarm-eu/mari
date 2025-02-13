@@ -42,11 +42,10 @@ extern schedule_t schedule_only_beacons;
 
 //=========================== prototypes ======================================
 
-static void send_beacon(void);
+//static void send_beacon(void);
 
-static void isr_radio_rx(uint8_t *packet, uint8_t length);
-//static void isr_radio_start_frame(uint32_t ts);
-//static void isr_radio_end_frame(uint32_t ts);
+static void isr_radio_start_frame(uint32_t ts);
+static void isr_radio_end_frame(uint32_t ts);
 
 //=========================== main ============================================
 
@@ -54,14 +53,17 @@ int main(void) {
     bl_timer_hf_init(BLINK_TIMER_DEV);
     db_gpio_init(&pin0, DB_GPIO_OUT);
 
-    bl_radio_init(&isr_radio_rx, NULL, NULL, DB_RADIO_BLE_2MBit);
+    bl_radio_init(&isr_radio_start_frame, &isr_radio_end_frame, DB_RADIO_BLE_2MBit);
     bl_radio_set_channel(BLINK_FIXED_CHANNEL);
 
     printf("BLINK_FIXED_CHANNEL = %d\n", BLINK_FIXED_CHANNEL);
 
     tx_vars.asn = 32; // start at arbitrary value
 
-    bl_timer_hf_set_periodic_us(BLINK_TIMER_DEV, 0, 1000, send_beacon); // 1 ms
+    bl_radio_rx(); // start listening
+
+    //bl_radio_disable();
+    //bl_timer_hf_set_periodic_us(BLINK_TIMER_DEV, 0, 1000*1000, send_beacon); // 1 ms
 
     while (1) {
         __WFE();
@@ -70,22 +72,35 @@ int main(void) {
 
 //=========================== private =========================================
 
-static void send_beacon(void) {
-    uint8_t packet[BLINK_PACKET_MAX_SIZE] = { 0 };
-    size_t len = bl_build_packet_beacon(packet, tx_vars.asn++, 10, schedule_only_beacons.id);
-    bl_radio_tx_prepare(packet, len);
-    bl_radio_disable();
-    DEBUG_GPIO_SET(&pin0);
-    bl_radio_tx_dispatch();
-    DEBUG_GPIO_CLEAR(&pin0);
+//static void send_beacon(void) {
+//    puts("Sending beacon");
+//    uint8_t packet[BLINK_PACKET_MAX_SIZE] = { 0 };
+//    size_t len = bl_build_packet_beacon(packet, tx_vars.asn++, 10, schedule_only_beacons.id);
+//    bl_radio_tx_prepare(packet, len);
+//    DEBUG_GPIO_SET(&pin0);
+//    bl_radio_tx_dispatch();
+//    DEBUG_GPIO_CLEAR(&pin0);
+//}
+
+static void isr_radio_start_frame(uint32_t ts) {
+    DEBUG_GPIO_SET(&pin1);
+    printf("Start frame at %d\n", ts);
 }
 
-static void isr_radio_rx(uint8_t *packet, uint8_t length) {
-    (void) packet;
-    (void) length;
-    //printf("Received packet of length %d\n", length);
-    //for (uint8_t i = 0; i < length; i++) {
-    //    printf("%02x ", packet[i]);
-    //}
-    //puts("");
+static void isr_radio_end_frame(uint32_t ts) {
+    DEBUG_GPIO_CLEAR(&pin1);
+    printf("End frame at %d\n", ts);
+
+    if (bl_radio_pending_rx_read()) {
+        uint8_t packet[BLINK_PACKET_MAX_SIZE];
+        uint8_t length;
+        bl_radio_get_rx_packet(packet, &length);
+        // print the packet
+        printf("Received packet of length %d\n", length);
+        for (size_t i = 0; i < length; i++) {
+            printf("%02x ", packet[i]);
+        }
+        // go back to listening in 100 us
+        bl_timer_hf_set_oneshot_us(BLINK_TIMER_DEV, 1, 100, bl_radio_rx);
+    }
 }

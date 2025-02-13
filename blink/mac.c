@@ -108,7 +108,6 @@ bl_slot_timing_t slot_timing = {
 static inline void set_state(bl_mac_state_t state);
 static inline void set_sync(bool is_synced);
 
-//static void bl_state_machine_handler(void);
 static void new_slot(void);
 static void end_slot(void);
 
@@ -124,7 +123,6 @@ static void do_synchronize(void);
 
 static inline void set_timer_and_compensate(uint8_t channel, uint32_t duration, uint32_t start_ts, timer_hf_cb_t callback);
 
-static void isr_mac_radio_rx(uint8_t *packet, uint8_t length);
 static void isr_mac_radio_start_frame(uint32_t ts);
 static void isr_mac_radio_end_frame(uint32_t ts);
 
@@ -144,7 +142,7 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
     bl_timer_hf_init(BLINK_TIMER_DEV);
 
     // initialize the radio
-    bl_radio_init(&isr_mac_radio_rx, &isr_mac_radio_start_frame, &isr_mac_radio_end_frame, DB_RADIO_BLE_2MBit);
+    bl_radio_init(&isr_mac_radio_start_frame, &isr_mac_radio_end_frame, DB_RADIO_BLE_2MBit);
 
     // node stuff
     mac_vars.node_type = node_type;
@@ -482,10 +480,4 @@ static void isr_mac_radio_end_frame(uint32_t ts) {
         default:
             break;
     }
-}
-
-static void isr_mac_radio_rx(uint8_t *packet, uint8_t length) {
-    (void)packet;
-    (void)length;
-    // mac_vars.app_rx_callback(packet, length);
 }
