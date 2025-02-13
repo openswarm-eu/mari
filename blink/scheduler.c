@@ -156,6 +156,10 @@ uint8_t bl_scheduler_get_channel(slot_type_t slot_type, uint64_t asn, uint8_t ch
     }
 }
 
+uint8_t bl_scheduler_get_active_schedule_id(void) {
+    return _schedule_vars.active_schedule_ptr->id;
+}
+
 //=========================== private ==========================================
 
 void _compute_gateway_action(cell_t cell, bl_radio_event_t *radio_event) {

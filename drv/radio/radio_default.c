@@ -330,7 +330,7 @@ static void _radio_enable(void) {
  *
  * This function will be called each time a radio packet is received.
  * it will clear the interrupt, copy the last received packet
- * and called the user-defined rx_cb to process the package.
+ * and called the user-defined callbacks to process the packet.
  *
  */
 void RADIO_IRQHandler(void) {

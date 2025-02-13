@@ -23,8 +23,9 @@
 
 #define BLINK_TIMER_DEV 2 ///< HF timer device used for the TSCH scheduler
 #define BLINK_TIMER_INTER_SLOT_CHANNEL 0 ///< Channel for ticking the whole slot
-#define BLINK_TIMER_INTRA_SLOT_CHANNEL 1 ///< Channel for ticking intra-slot sections, such as tx offset and tx max
-#define BLINK_TIMER_DESYNC_WINDOW_CHANNEL 2 ///< Channel for ticking the desynchronization window
+#define BLINK_TIMER_CHANNEL_1 1 ///< Channel for ticking intra-slot sections
+#define BLINK_TIMER_CHANNEL_2 2 ///< Channel for ticking intra-slot sections
+#define BLINK_TIMER_CHANNEL_3 3 ///< Channel for ticking the desynchronization window
 
 // Bytes per millisecond in BLE 2M mode
 #define BLE_2M (1000 * 1000 * 2) // 2 Mbps
@@ -37,6 +38,10 @@
 #define _BLINK_PACKET_TOA_WITH_PADDING (_BLINK_PACKET_TOA + (BLE_2M_US_PER_BYTE * 32)) // Add some padding just in case.
 
 #define BLINK_DEFAULT_SLOT_TOTAL_DURATION (1000) // 1 ms
+
+// default scan duration in us
+// #define BLINK_SCAN_DEFAULT_DURATION (BLINK_DEFAULT_SLOT_TOTAL_DURATION*BLINK_N_CELLS_MAX) // 274 ms
+#define BLINK_SCAN_DEFAULT_DURATION (80000) // 80 ms
 
 //=========================== variables ========================================
 

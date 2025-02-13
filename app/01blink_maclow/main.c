@@ -51,10 +51,10 @@ static void radio_callback(uint8_t *packet, uint8_t length);
 int main(void) {
     // initialize schedule
 
-    //schedule_t schedule = schedule_only_beacons;
-    //bl_node_type_t node_type = BLINK_GATEWAY;
-    schedule_t schedule = schedule_huge;
-    bl_node_type_t node_type = BLINK_NODE;
+    schedule_t schedule = schedule_only_beacons;
+    bl_node_type_t node_type = BLINK_GATEWAY;
+    //schedule_t schedule = schedule_huge;
+    //bl_node_type_t node_type = BLINK_NODE;
 
     bl_scheduler_init(node_type, &schedule);
     printf("\n==== Device of type %c and id %llx is using schedule %d ====\n\n", node_type, db_device_id(), schedule.id);

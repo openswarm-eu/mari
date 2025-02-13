@@ -201,6 +201,10 @@ static void new_slot(void) {
         &new_slot
     );
 
+    // TODO:
+    // - radio_event = bl_scheduler_get_action(mac_vars.asn);
+    // - if radio_event.slot_type == SLOT_TYPE_SHARED_UPLINK then run the scan procedure
+
     if (!mac_vars.is_synced) {
         if (mac_vars.node_type == BLINK_GATEWAY) {
             set_sync(true);
@@ -211,12 +215,47 @@ static void new_slot(void) {
         }
     } else {
         // play the tx/rx state machine
-        // activity_tx_rx_new_slot();
+        // TODO: if radio_event.radio_action == BLINK_RADIO_ACTION_TX
+        activity_tx_new_slot();
     }
 }
 
 static void end_slot(void) {
     // do any needed cleanup
+}
+
+// --------------------- tx/rx activities -----------
+
+static void activity_tx_new_slot(void) {
+    set_timer_and_connect_to_ppi_radio_tx( // TODO: implement this function
+        BLINK_TIMER_CHANNEL_1,
+        500, // FIXME
+        mac_vars.start_slot_ts,
+        &new_slot
+    );
+
+    set_timer_and_compensate(
+        BLINK_TIMER_CHANNEL_2,
+        500 + _BLINK_PACKET_TOA + 50, // FIXME
+        mac_vars.start_slot_ts,
+        &new_slot
+    );
+
+    // FIXME: send other types of packets, depending on slot type
+    uint8_t packet[BLINK_PACKET_MAX_SIZE], packet_len;
+    uint8_t dummy_remainig_capacity = 10; // FIXME
+    bl_build_packet_beacon(
+        packet,
+        &packet_len,
+        mac_vars.asn,
+        dummy_remainig_capacity,
+        bl_scheduler_get_active_schedule_id()
+    );
+
+    bl_radio_tx_prepare(packet, packet_len);
+}
+
+static void activity_tt1(void) {
 }
 
 // --------------------- sync activities ------------
