@@ -260,14 +260,6 @@ void bl_radio_get_rx_packet(uint8_t *packet, uint8_t *length) {
     radio_vars.pending_rx_read = false;
 }
 
-void bl_radio_tx_prepare(const uint8_t *tx_buffer, uint8_t length) {
-    radio_vars.pdu.length = length;
-    memcpy(radio_vars.pdu.payload, tx_buffer, length);
-
-    // ramp up the radio for tx (packey will not be sent yet)
-    NRF_RADIO->TASKS_TXEN = RADIO_TASKS_TXEN_TASKS_TXEN_Trigger << RADIO_TASKS_TXEN_TASKS_TXEN_Pos;
-}
-
 //--------------------------- send and receive --------------------------------
 
 void bl_radio_rx(void) {
@@ -281,6 +273,14 @@ void bl_radio_rx(void) {
 
     NRF_RADIO->TASKS_RXEN = RADIO_TASKS_RXEN_TASKS_RXEN_Trigger;
     radio_vars.state = RADIO_STATE_RX;
+}
+
+void bl_radio_tx_prepare(const uint8_t *tx_buffer, uint8_t length) {
+    radio_vars.pdu.length = length;
+    memcpy(radio_vars.pdu.payload, tx_buffer, length);
+
+    // ramp up the radio for tx (packet will not be sent yet)
+    NRF_RADIO->TASKS_TXEN = RADIO_TASKS_TXEN_TASKS_TXEN_Trigger << RADIO_TASKS_TXEN_TASKS_TXEN_Pos;
 }
 
 void bl_radio_tx_dispatch(void) {
