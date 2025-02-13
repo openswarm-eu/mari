@@ -276,6 +276,7 @@ void bl_radio_rx(void) {
     }
 
     // enable the radio shorts and interrupts
+    NRF_RADIO->SHORTS = RADIO_SHORTS_COMMON | (RADIO_SHORTS_RXREADY_START_Enabled << RADIO_SHORTS_RXREADY_START_Pos);
     _radio_enable();
 
     NRF_RADIO->TASKS_RXEN = RADIO_TASKS_RXEN_TASKS_RXEN_Trigger;
@@ -288,6 +289,7 @@ void bl_radio_tx_dispatch(void) {
     }
 
     // enable the radio shorts and interrupts
+    NRF_RADIO->SHORTS = RADIO_SHORTS_COMMON;
     _radio_enable();
 
     // tell radio to start transmission
@@ -301,7 +303,6 @@ static void _radio_enable(void) {
     NRF_RADIO->EVENTS_ADDRESS  = 0;
     NRF_RADIO->EVENTS_END      = 0;
     NRF_RADIO->EVENTS_DISABLED = 0;
-    NRF_RADIO->SHORTS = RADIO_SHORTS_COMMON;
     NRF_RADIO->INTENSET = RADIO_INTERRUPTS;
 }
 
