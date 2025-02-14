@@ -32,18 +32,18 @@
 #define BLE_2M_B_MS (BLE_2M / 8 / 1000) // 250 bytes/ms
 #define BLE_2M_US_PER_BYTE (1000 / BLE_2M_B_MS) // 4 us
 
-#define _BLINK_START_GUARD_TIME (200)
-#define _BLINK_END_GUARD_TIME (100)
-#define _BLINK_PACKET_TOA (BLE_2M_US_PER_BYTE * DB_BLE_PAYLOAD_MAX_LENGTH) // Time on air for the maximum payload.
-#define _BLINK_PACKET_TOA_WITH_PADDING (_BLINK_PACKET_TOA + (BLE_2M_US_PER_BYTE * 32)) // Add some padding just in case.
+// Intra-slot durations. TOA definitions consider BLE 2M mode.
+#define BLINK_TS_TX_OFFSET (400) // time for radio setup before TX
+#define BLINK_RX_GUARD_TIME (200) // time range relative to BLINK_TS_TX_OFFSET for the receiver to start RXing
+#define BLINK_END_GUARD_TIME BLINK_RX_GUARD_TIME
+#define BLINK_PACKET_TOA (BLE_2M_US_PER_BYTE * DB_BLE_PAYLOAD_MAX_LENGTH) // Time on air for the maximum payload.
+#define BLINK_PACKET_TOA_WITH_PADDING (BLINK_PACKET_TOA + (BLE_2M_US_PER_BYTE * 32)) // Add some padding just in case.
 
 #define BLINK_DEFAULT_SLOT_TOTAL_DURATION (1000) // 1 ms
 
 // default scan duration in us
 // #define BLINK_SCAN_DEFAULT_DURATION (BLINK_DEFAULT_SLOT_TOTAL_DURATION*BLINK_N_CELLS_MAX) // 274 ms
 #define BLINK_SCAN_DEFAULT_DURATION (80000) // 80 ms
-
-//=========================== variables ========================================
 
 typedef enum {
     BLINK_RADIO_ACTION_SLEEP = 'S',
@@ -61,20 +61,22 @@ typedef enum {
 /* Timing of intra-slot sections */
 typedef struct {
     // transmitter
-    uint32_t tx_offset; ///< Offset for the transmitter to start transmitting.
-    uint32_t tx_max; ///< Maximum time the transmitter can be active.
+    uint32_t ts_tx_offset; ///< Offset for the transmitter to start transmitting.
+    uint32_t ts_tx_max; ///< Maximum time the transmitter can be active.
 
     // receiver
-    uint32_t rx_offset; ///< Offset for the receiver to start receiving.
-    uint32_t rx_max; ///< Maximum time the receiver can be active.
-    uint32_t rx_guard;
+    uint32_t ts_rx_guard; ///< Time range relative to ts_tx_offset for the receiver to start RXing.
+    uint32_t ts_rx_offset; ///< Offset for the receiver to start receiving.
+    uint32_t ts_rx_max; ///< Maximum time the receiver can be active.
 
     // common
-    uint32_t end_padding; ///< Time to wait after the end of the slot, so that the radio can fully turn off. Can be overriden with a large value to facilitate debugging. Must be at minimum ts_rx_guard.
+    uint32_t ts_end_guard; ///< Time to wait after the end of the slot, so that the radio can fully turn off. Can be overriden with a large value to facilitate debugging. Must be at minimum ts_rx_guard.
     uint32_t total_duration; ///< Total duration of the slot
 } bl_slot_timing_t;
 
-extern bl_slot_timing_t bl_default_slot_timing;
+//=========================== variables ========================================
+
+extern bl_slot_timing_t slot_timing;
 
 typedef struct {
     bl_radio_action_t radio_action;

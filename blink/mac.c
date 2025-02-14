@@ -100,7 +100,16 @@ typedef struct {
 mac_vars_t mac_vars = { 0 };
 
 bl_slot_timing_t slot_timing = {
-    .total_duration = 1000,
+    .ts_tx_offset = BLINK_TS_TX_OFFSET,
+    .ts_tx_max = BLINK_PACKET_TOA_WITH_PADDING,
+
+    .ts_rx_guard = BLINK_RX_GUARD_TIME,
+    .ts_rx_offset = BLINK_TS_TX_OFFSET - BLINK_RX_GUARD_TIME,
+    .ts_rx_max = BLINK_RX_GUARD_TIME + BLINK_PACKET_TOA_WITH_PADDING,
+
+    .ts_end_guard = BLINK_END_GUARD_TIME,
+
+    .total_duration = BLINK_TS_TX_OFFSET + BLINK_PACKET_TOA_WITH_PADDING + BLINK_END_GUARD_TIME,
 };
 
 //=========================== prototypes =======================================
@@ -256,14 +265,14 @@ static void activity_ti1(void) {
     // );
     set_timer_and_compensate( // TODO: use PPI instead
         BLINK_TIMER_CHANNEL_1,
-        200, // FIXME
+        slot_timing.ts_tx_offset,
         mac_vars.start_slot_ts,
         &activity_ti2
     );
 
     set_timer_and_compensate(
         BLINK_TIMER_CHANNEL_2,
-        200 + _BLINK_PACKET_TOA + 50, // FIXME
+        slot_timing.ts_tx_offset + slot_timing.ts_tx_max,
         mac_vars.start_slot_ts,
         &activity_tte1
     );

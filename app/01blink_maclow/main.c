@@ -45,16 +45,19 @@ schedule_t schedule_test = {
 };
 
 extern schedule_t schedule_minuscule, schedule_small, schedule_huge, schedule_only_beacons, schedule_only_beacons_optimized_scan;
+extern bl_slot_timing_t slot_timing;
 
 static void radio_callback(uint8_t *packet, uint8_t length);
+static void print_slot_timing(void);
 
 int main(void) {
     // initialize schedule
-
     schedule_t schedule = schedule_only_beacons;
     bl_node_type_t node_type = BLINK_GATEWAY;
     //schedule_t schedule = schedule_huge;
     //bl_node_type_t node_type = BLINK_NODE;
+
+    print_slot_timing();
 
     bl_scheduler_init(node_type, &schedule);
     printf("\n==== Device of type %c and id %llx is using schedule %d ====\n\n", node_type, db_device_id(), schedule.id);
@@ -69,6 +72,17 @@ int main(void) {
     while (1) {
         __WFE();
     }
+}
+
+static void print_slot_timing(void) {
+    printf("Slot timing:\n");
+    printf("  tx_offset: %d\n", slot_timing.ts_tx_offset);
+    printf("  tx_max: %d\n", slot_timing.ts_tx_max);
+    printf("  rx_guard: %d\n", slot_timing.ts_rx_guard);
+    printf("  rx_offset: %d\n", slot_timing.ts_rx_offset);
+    printf("  rx_max: %d\n", slot_timing.ts_rx_max);
+    printf("  ts_end_guard: %d\n", slot_timing.ts_end_guard);
+    printf("  total_duration: %d\n", slot_timing.total_duration);
 }
 
 static void radio_callback(uint8_t *packet, uint8_t length) {
