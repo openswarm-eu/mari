@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "device.h"
 #include "radio.h"
 #include "timer_hf.h"
 #include "protocol.h"
@@ -32,17 +33,18 @@ gpio_t pin3 = { .port = 1, .pin = 5 };
 
 typedef struct {
     uint64_t asn;
-} tx_vars_t;
+} txrx_vars_t;
 
 //=========================== variables =======================================
 
-tx_vars_t tx_vars = { 0 };
+txrx_vars_t txrx_vars = { 0 };
 
 extern schedule_t schedule_only_beacons;
 
 //=========================== prototypes ======================================
 
-static void send_beacon(void);
+static void send_beacon_prepare(void);
+static void send_beacon_dispatch(void);
 
 static void isr_radio_start_frame(uint32_t ts);
 static void isr_radio_end_frame(uint32_t ts);
@@ -58,12 +60,7 @@ int main(void) {
 
     printf("BLINK_FIXED_CHANNEL = %d\n", BLINK_FIXED_CHANNEL);
 
-    tx_vars.asn = 32; // start at arbitrary value
-
-    //bl_radio_rx(); // start listening
-
-    //bl_radio_disable();
-    bl_timer_hf_set_periodic_us(BLINK_TIMER_DEV, 0, 1000, send_beacon); // 1 ms
+    bl_timer_hf_set_periodic_us(BLINK_TIMER_DEV, 0, 5000, send_beacon_prepare); // 5 ms
 
     while (1) {
         __WFE();
@@ -72,14 +69,24 @@ int main(void) {
 
 //=========================== private =========================================
 
-static void send_beacon(void) {
-    puts("Sending beacon");
+static void send_beacon_prepare(void) {
+    printf("Sending beacon from %llx\n", db_device_id());
     uint8_t packet[BLINK_PACKET_MAX_SIZE] = { 0 };
-    size_t len = bl_build_packet_beacon(packet, tx_vars.asn++, 10, schedule_only_beacons.id);
+    size_t len = bl_build_packet_beacon(packet, txrx_vars.asn++, 10, schedule_only_beacons.id);
+    bl_radio_disable();
     bl_radio_tx_prepare(packet, len);
-    DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0);
-    // give some time for radio ramp up
-    bl_timer_hf_set_oneshot_us(BLINK_TIMER_DEV, 1, 100, &bl_radio_tx_dispatch);
+    DEBUG_GPIO_SET(&pin0);
+    // give 100 us for radio to ramp up
+    bl_timer_hf_set_oneshot_us(BLINK_TIMER_DEV, 1, 100, &send_beacon_dispatch);
+}
+
+static void send_beacon_dispatch(void) {
+    bl_radio_tx_dispatch();
+    DEBUG_GPIO_CLEAR(&pin0);
+
+    // beacon = 20 bytes = TOA 80 us
+    // schedule radio for RX in 200 us
+    bl_timer_hf_set_oneshot_us(BLINK_TIMER_DEV, 1, 200, bl_radio_rx);
 }
 
 static void isr_radio_start_frame(uint32_t ts) {
@@ -91,16 +98,15 @@ static void isr_radio_end_frame(uint32_t ts) {
     DEBUG_GPIO_CLEAR(&pin1);
     printf("End frame at %d\n", ts);
 
-    if (bl_radio_pending_rx_read()) {
+    if (bl_radio_pending_rx_read()) { // interrupt came from RX
         uint8_t packet[BLINK_PACKET_MAX_SIZE];
         uint8_t length;
         bl_radio_get_rx_packet(packet, &length);
-        // print the packet
         printf("Received packet of length %d\n", length);
         for (size_t i = 0; i < length; i++) {
             printf("%02x ", packet[i]);
         }
-        // go back to listening in 100 us
-        bl_timer_hf_set_oneshot_us(BLINK_TIMER_DEV, 1, 100, bl_radio_rx);
+    } else { // interrupt came from TX
+        // handle, if needed
     }
 }
