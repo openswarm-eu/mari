@@ -220,7 +220,7 @@ static void new_slot(void) {
     // set the timer for the next slot
     set_timer_and_compensate(
         BLINK_TIMER_INTER_SLOT_CHANNEL,
-        BLINK_DEFAULT_SLOT_TOTAL_DURATION,
+        slot_timing.total_duration,
         mac_vars.start_slot_ts,
         &new_slot
     );
@@ -444,7 +444,7 @@ static void do_synchronize(void) {
     // set new slot ticking reference, overriding the timer set at new_slot
     set_timer_and_compensate(
         BLINK_TIMER_INTER_SLOT_CHANNEL, // overrides the currently set timer, which is non-synchronized
-        BLINK_DEFAULT_SLOT_TOTAL_DURATION,
+        slot_timing.total_duration,
         mac_vars.sync_ts, // timestamp of the beacon at start_frame (which matches the start of the slot for synced_gateway), corrected by the asn_diff to account for the scan delay
         &new_slot
     );

@@ -54,6 +54,7 @@ static void isr_radio_end_frame(uint32_t ts);
 int main(void) {
     bl_timer_hf_init(BLINK_TIMER_DEV);
     db_gpio_init(&pin0, DB_GPIO_OUT);
+    db_gpio_init(&pin1, DB_GPIO_OUT);
 
     bl_radio_init(&isr_radio_start_frame, &isr_radio_end_frame, DB_RADIO_BLE_2MBit);
     bl_radio_set_channel(BLINK_FIXED_CHANNEL);
@@ -106,6 +107,7 @@ static void isr_radio_end_frame(uint32_t ts) {
         for (size_t i = 0; i < length; i++) {
             printf("%02x ", packet[i]);
         }
+        puts("");
     } else { // interrupt came from TX
         // handle, if needed
     }
