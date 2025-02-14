@@ -151,21 +151,25 @@ void bl_timer_hf_set_oneshot_us(timer_hf_t timer, uint8_t channel, uint32_t us, 
     _devs[timer].p->CC[channel] += _timer_hf_vars[timer].timer_callback[channel].period_us;
 }
 
+void bl_timer_hf_cancel(timer_hf_t timer, uint8_t channel) {
+    assert(channel >= 0 && channel < _devs[timer].cc_num + 1);
+
+    // clear the variables
+    _timer_hf_vars[timer].timer_callback[channel].period_us = 0;
+    _timer_hf_vars[timer].timer_callback[channel].callback = NULL;
+
+    // disable the interrupt and clear the event flag
+    _devs[timer].p->INTENCLR =              (1 << (TIMER_INTENCLR_COMPARE0_Pos + channel));
+    _devs[timer].p->EVENTS_COMPARE[channel] = 0;
+    _devs[timer].p->CC[channel]             = 0;
+}
+
 void bl_timer_hf_set_oneshot_ms(timer_hf_t timer, uint8_t channel, uint32_t ms, timer_hf_cb_t cb) {
     bl_timer_hf_set_oneshot_us(timer, channel, ms * 1000UL, cb);
 }
 
 void bl_timer_hf_set_oneshot_s(timer_hf_t timer, uint8_t channel, uint32_t s, timer_hf_cb_t cb) {
     bl_timer_hf_set_oneshot_us(timer, channel, s * 1000UL * 1000UL, cb);
-}
-
-void bl_timer_hf_cancel(timer_hf_t timer, uint8_t channel) {
-    assert(channel >= 0 && channel < _devs[timer].cc_num + 1);
-
-    // Disable the interrupt, clear the event flag and clear the callback
-    _devs[timer].p->INTENCLR = (1 << (TIMER_INTENCLR_COMPARE0_Pos + channel));
-    _devs[timer].p->EVENTS_COMPARE[channel] = 0;
-    _timer_hf_vars[timer].timer_callback[channel].callback = NULL;
 }
 
 void bl_timer_hf_delay_us(timer_hf_t timer, uint32_t us) {
