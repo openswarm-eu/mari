@@ -58,7 +58,7 @@ typedef enum {
     STATE_SCAN_LISTEN = 1,
     STATE_SCAN_RX = 2,
     STATE_SCAN_PROCESS_PACKET = 3,
-    STATE_SCAN_SELECT = 4,
+    STATE_SCAN_SYNC = 4,
 
     // sync
     STATE_SYNC_LISTEN = 11,
@@ -135,6 +135,7 @@ static void activity_rie2(void);
 static void activity_scan_new_slot(void);
 static void activity_scan_start_frame(uint32_t ts);
 static void activity_scan_end_frame(uint32_t ts);
+static void activity_scan_end_slot(void);
 static void do_synchronize(void);
 
 static inline void set_timer_and_compensate(uint8_t channel, uint32_t duration, uint32_t start_ts, timer_hf_cb_t callback);
@@ -183,11 +184,16 @@ static void set_state(bl_mac_state_t state) {
 
     if (!mac_vars.is_synced) {
         switch (state) {
+            case STATE_SCAN_LISTEN:
+                DEBUG_GPIO_SET(&pin3);
             case STATE_SCAN_RX:
                 DEBUG_GPIO_SET(&pin1);
                 break;
-            default:
+            case STATE_SLEEP:
                 DEBUG_GPIO_CLEAR(&pin1);
+                DEBUG_GPIO_CLEAR(&pin3);
+                break;
+            default:
                 break;
         }
         return;
@@ -223,7 +229,7 @@ static void new_slot(void) {
     mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
 
     DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0);
-    DEBUG_GPIO_CLEAR(&pin1); DEBUG_GPIO_CLEAR(&pin2); DEBUG_GPIO_CLEAR(&pin3);
+    if (mac_vars.is_synced) { DEBUG_GPIO_CLEAR(&pin1); DEBUG_GPIO_CLEAR(&pin2); DEBUG_GPIO_CLEAR(&pin3); }
 
     // set the timer for the next slot
     set_timer_and_compensate(
@@ -233,8 +239,8 @@ static void new_slot(void) {
         &new_slot
     );
 
+    bl_radio_event_t radio_event = bl_scheduler_tick(mac_vars.asn++);
     // TODO:
-    // - radio_event = bl_scheduler_get_action(mac_vars.asn);
     // - if radio_event.slot_type == SLOT_TYPE_SHARED_UPLINK then run the scan procedure
 
     if (!mac_vars.is_synced) {
@@ -249,8 +255,7 @@ static void new_slot(void) {
     }
 
     // play the tx/rx state machine
-    // TODO: implement if radio_event.radio_action == BLINK_RADIO_ACTION_TX ...
-    if (0) {
+    if (radio_event.radio_action == BLINK_RADIO_ACTION_TX) {
         activity_ti1();
     } else {
         activity_ri1();
@@ -274,12 +279,6 @@ static void activity_ti1(void) {
     // called by: function new_slot
     set_state(STATE_TX_OFFSET);
 
-    // set_timer_and_connect_to_ppi_radio_tx( // TODO: implement this function
-    //     BLINK_TIMER_CHANNEL_1,
-    //     200, // FIXME
-    //     mac_vars.start_slot_ts,
-    //     &new_slot
-    // );
     set_timer_and_compensate( // TODO: use PPI instead
         BLINK_TIMER_CHANNEL_1,
         slot_durations.tx_offset,
@@ -416,18 +415,26 @@ static void activity_rie2(void) {
     end_slot();
 }
 
-// --------------------- sync activities ------------------
+// --------------------- scan activities ------------------
 
 static void activity_scan_new_slot(void) {
-    if (mac_vars.state == STATE_SCAN_RX) {
+    if (mac_vars.state == STATE_SCAN_RX || mac_vars.state == STATE_SCAN_PROCESS_PACKET) {
         // in the middle of receiving a packet
         return;
     }
 
+    // prepare timer for handler of end of this slot, to check if scan timeout has been reached
+    set_timer_and_compensate(
+        BLINK_TIMER_CHANNEL_1,
+        slot_durations.whole_slot - slot_durations.end_guard,
+        mac_vars.start_slot_ts,
+        &activity_scan_end_slot
+    );
+
     if (mac_vars.state != STATE_SCAN_LISTEN) {
         // if not in listen state, go to it
         set_state(STATE_SCAN_LISTEN);
-        mac_vars.scan_started_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
+        mac_vars.scan_started_ts = mac_vars.start_slot_ts;
 #ifdef BLINK_FIXED_CHANNEL
         bl_radio_set_channel(BLINK_FIXED_CHANNEL); // not doing channel hopping for now
 #else
@@ -435,6 +442,61 @@ static void activity_scan_new_slot(void) {
 #endif
         bl_radio_rx();
     }
+}
+
+static void activity_scan_end_slot(void) {
+    uint32_t scan_time = mac_vars.start_slot_ts - mac_vars.scan_started_ts;
+    uint32_t beacon_toa_padded = (sizeof(bl_beacon_packet_header_t) * BLE_2M_US_PER_BYTE) + 50; // also accounting for some radio overhead
+    if (scan_time + beacon_toa_padded > BLINK_SCAN_DEFAULT) {
+        // scan time is over
+        if (mac_vars.is_synced) {
+            end_slot();
+        }
+        return;
+    }
+
+    // called by: timer isr
+    if (mac_vars.state == STATE_SLEEP) {
+        // if already in sleep state, just return
+        return;
+    }
+
+    // scan is done! now it's time to select the best gateway, and then synchronize and try to join it
+
+    // select best channel_info
+    uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
+    mac_vars.selected_channel_info = bl_scan_select(mac_vars.scan_started_ts, now_ts);
+
+    set_state(STATE_SCAN_SYNC);
+
+    if (!bl_scheduler_set_schedule(mac_vars.selected_channel_info.beacon.active_schedule_id)) {
+        // schedule not found
+        // NOTE: what to do in this case? for now, just silently fail (a new scan will begin again via new_slot)
+        set_state(STATE_SLEEP);
+        end_slot();
+        return;
+    }
+
+    // save the gateway address -- will try to join it in the next shared uplink slot
+    mac_vars.synced_gateway = mac_vars.selected_channel_info.beacon.src;
+
+    // the selected gateway may have been scanned a few slot_durations ago, so we need to account for that difference
+    // NOTE: this assumes that the slot duration is the same for gateways and nodes
+    uint64_t asn_diff = (now_ts - mac_vars.selected_channel_info.timestamp) / slot_durations.whole_slot;
+    // advance the asn to match the gateway's
+    mac_vars.asn = mac_vars.selected_channel_info.beacon.asn + asn_diff;
+    // advance the saved timestamp to match the gateway's, and use it as a synchronization reference
+    mac_vars.sync_ts = mac_vars.selected_channel_info.timestamp + (asn_diff * slot_durations.whole_slot);
+    // adjust for tx radio delay
+    mac_vars.sync_ts -= 86; // FIXME: this is arbitrary (should be the tx_offset?)
+
+    // actually synchronize the timers, and set the state
+    do_synchronize();
+    set_sync(true);
+    set_state(STATE_SLEEP);
+
+    // synchronization is done!
+    end_slot();
 }
 
 static void activity_scan_start_frame(uint32_t ts) {
@@ -449,8 +511,11 @@ static void activity_scan_start_frame(uint32_t ts) {
 }
 
 static void activity_scan_end_frame(uint32_t end_frame_ts) {
+    (void)end_frame_ts;
+
     if (mac_vars.state != STATE_SCAN_RX) {
         // this should not happen!
+        end_slot();
         return;
     }
 
@@ -485,54 +550,11 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
         // save this scan info
         bl_scan_add(*beacon, bl_radio_rssi(), BLINK_FIXED_CHANNEL, mac_vars.current_scan_item_ts);
 
-        // check if there is still time to scan more
-        uint32_t beacon_toa_padded = sizeof(bl_beacon_packet_header_t) * BLE_2M_US_PER_BYTE + 500; // also accounting for some radio overhead
-        if (end_frame_ts - mac_vars.scan_started_ts + beacon_toa_padded < BLINK_SCAN_DEFAULT) {
-            // still time to scan more
-            break;
-        }
-
-        // scan is done! now it's time to select the best gateway, and then synchronize and try to join it
-        set_state(STATE_SCAN_SELECT);
-
-        // select best channel_info
-        mac_vars.selected_channel_info = bl_scan_select(mac_vars.scan_started_ts, end_frame_ts);
-
-        if (!bl_scheduler_set_schedule(mac_vars.selected_channel_info.beacon.active_schedule_id)) {
-            // schedule not found
-            // NOTE: what to do in this case? for now, just silently fail (a new scan will begin again via new_slot)
-            set_state(STATE_SLEEP);
-            end_slot();
-            return;
-        }
-
-        // save the gateway address -- will try to join it in the next shared uplink slot
-        mac_vars.synced_gateway = mac_vars.selected_channel_info.beacon.src;
-
-        // the selected gateway may have been scanned a few slot_durations ago, so we need to account for that difference
-        // NOTE: this assumes that the slot duration is the same for gateways and nodes
-        uint64_t asn_diff = (end_frame_ts - mac_vars.selected_channel_info.timestamp) / slot_durations.whole_slot;
-        // advance the asn to match the gateway's
-        mac_vars.asn = mac_vars.selected_channel_info.beacon.asn + asn_diff;
-        // advance the saved timestamp to match the gateway's, and use it as a synchronization reference
-        mac_vars.sync_ts = mac_vars.selected_channel_info.timestamp + (asn_diff * slot_durations.whole_slot);
-        // adjust for tx radio delay
-        mac_vars.sync_ts -= 86; // FIXME: this should be the tx_offset
-
-        // actually synchronize the timers, and set the state
-        do_synchronize();
-        set_sync(true);
-        set_state(STATE_SLEEP);
-
-        // synchronization is done!
-        end_slot();
-
-        return;
+        return; // success
     } while (0);
 
-    // go back to listen
+    // some error processing the packet, go back to listen (radio was and continues to be in rx mode)
     set_state(STATE_SCAN_LISTEN);
-    // NOTE: assuming the radio is already in rx state
 }
 
 // adjust timers based on mac_vars.sync_ts

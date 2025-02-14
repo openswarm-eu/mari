@@ -53,9 +53,9 @@ static void print_slot_timing(void);
 int main(void) {
     // initialize schedule
     schedule_t schedule = schedule_only_beacons;
-    bl_node_type_t node_type = BLINK_GATEWAY;
-    //schedule_t schedule = schedule_huge;
-    //bl_node_type_t node_type = BLINK_NODE;
+
+    //bl_node_type_t node_type = BLINK_GATEWAY;
+    bl_node_type_t node_type = BLINK_NODE;
 
     print_slot_timing();
 
