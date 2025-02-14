@@ -180,7 +180,6 @@ static void set_state(bl_mac_state_t state) {
         return;
     }
 
-    DEBUG_GPIO_SET(&pin2); DEBUG_GPIO_CLEAR(&pin2);
     switch (state) {
         case STATE_TX_DATA:
         case STATE_RX_DATA:
@@ -239,12 +238,14 @@ static void new_slot(void) {
 
 static void end_slot(void) {
     // do any needed cleanup
+    bl_radio_disable();
 }
 
 // --------------------- tx/rx activities -----------
 
 static void activity_ti1(void) {
     // ti1: arm tx timers and prepare the radio for tx
+    // called by: function new_slot
     set_state(STATE_TX_OFFSET);
 
     // set_timer_and_connect_to_ppi_radio_tx( // TODO: implement this function
@@ -282,29 +283,29 @@ static void activity_ti1(void) {
 
 static void activity_ti2(void) {
     // ti2: tx actually begins
+    // called by: timer isr
     set_state(STATE_TX_DATA);
 
     // FIXME: replace this call with a direct PPI connection, i.e., TsTxOffset expires -> radio tx
-    bl_radio_disable();
     bl_radio_tx_dispatch();
 }
 
 static void activity_tte1(void) {
     // tte1: something went wrong, stayed in tx for too long, abort
+    // called by: timer isr
     set_state(STATE_SLEEP);
 
-    bl_radio_disable();
     end_slot();
 }
 
 static void activity_ti3(void) {
     // ti3: all fine, finished tx, cancel error timers and go to sleep
+    // called by: radio isr
     set_state(STATE_SLEEP);
 
     // cancel tte1 timer
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
 
-    bl_radio_disable();
     end_slot();
 }
 
