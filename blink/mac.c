@@ -185,13 +185,13 @@ static void set_state(bl_mac_state_t state) {
     if (!mac_vars.is_synced) {
         switch (state) {
             case STATE_SCAN_LISTEN:
-                DEBUG_GPIO_SET(&pin3);
+                DEBUG_GPIO_CLEAR(&pin3); DEBUG_GPIO_SET(&pin3);
             case STATE_SCAN_RX:
                 DEBUG_GPIO_SET(&pin1);
                 break;
             case STATE_SLEEP:
                 DEBUG_GPIO_CLEAR(&pin1);
-                DEBUG_GPIO_CLEAR(&pin3);
+                // DEBUG_GPIO_CLEAR(&pin3);
                 break;
             default:
                 break;
@@ -418,6 +418,18 @@ static void activity_rie2(void) {
 // --------------------- scan activities ------------------
 
 static void activity_scan_new_slot(void) {
+    uint32_t scan_time = mac_vars.start_slot_ts - mac_vars.scan_started_ts;
+    uint32_t beacon_toa_padded = (sizeof(bl_beacon_packet_header_t) * BLE_2M_US_PER_BYTE) + 50; // also accounting for some radio overhead
+    if (scan_time + beacon_toa_padded > BLINK_SCAN_DEFAULT) {
+        // scan timeout reached
+        set_state(STATE_SLEEP);
+        if (mac_vars.is_synced) {
+            // if already synced, just go to sleep
+            end_slot();
+        }
+        return;
+    }
+
     if (mac_vars.state == STATE_SCAN_RX || mac_vars.state == STATE_SCAN_PROCESS_PACKET) {
         // in the middle of receiving a packet
         return;
@@ -445,19 +457,12 @@ static void activity_scan_new_slot(void) {
 }
 
 static void activity_scan_end_slot(void) {
+    // called by: timer isr
+
     uint32_t scan_time = mac_vars.start_slot_ts - mac_vars.scan_started_ts;
     uint32_t beacon_toa_padded = (sizeof(bl_beacon_packet_header_t) * BLE_2M_US_PER_BYTE) + 50; // also accounting for some radio overhead
-    if (scan_time + beacon_toa_padded > BLINK_SCAN_DEFAULT) {
-        // scan time is over
-        if (mac_vars.is_synced) {
-            end_slot();
-        }
-        return;
-    }
-
-    // called by: timer isr
-    if (mac_vars.state == STATE_SLEEP) {
-        // if already in sleep state, just return
+    if (scan_time + beacon_toa_padded < BLINK_SCAN_DEFAULT) {
+        // still time to scan more
         return;
     }
 
@@ -466,6 +471,13 @@ static void activity_scan_end_slot(void) {
     // select best channel_info
     uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
     mac_vars.selected_channel_info = bl_scan_select(mac_vars.scan_started_ts, now_ts);
+
+    if (mac_vars.selected_channel_info.timestamp == 0) {
+        // no gateway found
+        set_state(STATE_SLEEP);
+        end_slot();
+        return;
+    }
 
     set_state(STATE_SCAN_SYNC);
 
@@ -550,11 +562,13 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
         // save this scan info
         bl_scan_add(*beacon, bl_radio_rssi(), BLINK_FIXED_CHANNEL, mac_vars.current_scan_item_ts);
 
-        return; // success
+        // success
     } while (0);
 
     // some error processing the packet, go back to listen (radio was and continues to be in rx mode)
     set_state(STATE_SCAN_LISTEN);
+    // enable radio again on rx
+    bl_radio_rx();
 }
 
 // adjust timers based on mac_vars.sync_ts
