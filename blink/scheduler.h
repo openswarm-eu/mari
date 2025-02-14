@@ -46,7 +46,7 @@ typedef struct {
 
 typedef struct {
     uint8_t id; // unique identifier for the schedule
-    uint8_t max_nodes; // maximum number of nodes that can be scheduled, equivalent to the number of uplink slots
+    uint8_t max_nodes; // maximum number of nodes that can be scheduled, equivalent to the number of uplink slot_durations
     uint8_t backoff_n_min; // minimum exponent for the backoff algorithm
     uint8_t backoff_n_max; // maximum exponent for the backoff algorithm
     size_t n_cells; // number of cells in this schedule

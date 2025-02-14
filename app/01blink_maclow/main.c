@@ -45,7 +45,7 @@ schedule_t schedule_test = {
 };
 
 extern schedule_t schedule_minuscule, schedule_small, schedule_huge, schedule_only_beacons, schedule_only_beacons_optimized_scan;
-extern bl_slot_timing_t slot_timing;
+extern bl_slot_durations_t slot_durations;
 
 static void radio_callback(uint8_t *packet, uint8_t length);
 static void print_slot_timing(void);
@@ -67,7 +67,7 @@ int main(void) {
     // initialize the TSCH driver
     //bl_default_slot_timing.end_guard = 1000 * 1000; // add an extra second of delay.
     bl_mac_init(node_type, radio_callback);
-    //printf("Slot total duration: %d us\n", bl_default_slot_timing.total_duration);
+    //printf("Slot duration: %d us\n", bl_default_slot_timing.whole_slot);
 
     while (1) {
         __WFE();
@@ -76,13 +76,13 @@ int main(void) {
 
 static void print_slot_timing(void) {
     printf("Slot timing:\n");
-    printf("  tx_offset: %d\n", slot_timing.ts_tx_offset);
-    printf("  tx_max: %d\n", slot_timing.ts_tx_max);
-    printf("  rx_guard: %d\n", slot_timing.ts_rx_guard);
-    printf("  rx_offset: %d\n", slot_timing.ts_rx_offset);
-    printf("  rx_max: %d\n", slot_timing.ts_rx_max);
-    printf("  ts_end_guard: %d\n", slot_timing.ts_end_guard);
-    printf("  total_duration: %d\n", slot_timing.total_duration);
+    printf("  tx_offset: %d\n", slot_durations.tx_offset);
+    printf("  tx_max: %d\n", slot_durations.tx_max);
+    printf("  rx_guard: %d\n", slot_durations.rx_guard);
+    printf("  rx_offset: %d\n", slot_durations.rx_offset);
+    printf("  rx_max: %d\n", slot_durations.rx_max);
+    printf("  end_guard: %d\n", slot_durations.end_guard);
+    printf("  whole_slot: %d\n", slot_durations.whole_slot);
 }
 
 static void radio_callback(uint8_t *packet, uint8_t length) {

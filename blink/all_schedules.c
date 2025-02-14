@@ -39,7 +39,7 @@ schedule_t schedule_only_beacons_optimized_scan = {
     }
 };
 
-/* Schedule with 11 slots, supporting up to 5 nodes */
+/* Schedule with 11 slot_durations, supporting up to 5 nodes */
 schedule_t schedule_minuscule = {
     .id = 6,
     .max_nodes = 5,
@@ -63,7 +63,7 @@ schedule_t schedule_minuscule = {
     }
 };
 
-/* Schedule with 17 slots, supporting up to 11 nodes */
+/* Schedule with 17 slot_durations, supporting up to 11 nodes */
 schedule_t schedule_tiny = {
     .id = 5,
     .max_nodes = 11,
@@ -93,7 +93,7 @@ schedule_t schedule_tiny = {
     }
 };
 
-/* Schedule with 41 slots, supporting up to 29 nodes */
+/* Schedule with 41 slot_durations, supporting up to 29 nodes */
 schedule_t schedule_small = {
     .id = 4,
     .max_nodes = 29,
@@ -145,7 +145,7 @@ schedule_t schedule_small = {
     }
 };
 
-/* Schedule with 101 slots, supporting up to 74 nodes */
+/* Schedule with 101 slot_durations, supporting up to 74 nodes */
 schedule_t schedule_big = {
     .id = 2,
     .max_nodes = 74,
@@ -258,7 +258,7 @@ schedule_t schedule_big = {
 };
 
 
-/* Schedule with 137 slots, supporting up to 101 nodes */
+/* Schedule with 137 slot_durations, supporting up to 101 nodes */
 schedule_t schedule_huge = {
     .id = 1,
     .max_nodes = 101,

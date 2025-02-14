@@ -39,11 +39,11 @@
 #define BLINK_PACKET_TOA (BLE_2M_US_PER_BYTE * DB_BLE_PAYLOAD_MAX_LENGTH) // Time on air for the maximum payload.
 #define BLINK_PACKET_TOA_WITH_PADDING (BLINK_PACKET_TOA + 50) // Add padding based on experiments. Also, it takes 28 us until event ADDRESS is triggered (when the packet actually starts traveling over the air)
 
-#define BLINK_DEFAULT_SLOT_TOTAL_DURATION (1000) // 1 ms
+#define BLINK_DEFAULT_SLOT_TOTAL (1000) // 1 ms
 
 // default scan duration in us
-// #define BLINK_SCAN_DEFAULT_DURATION (BLINK_DEFAULT_SLOT_TOTAL_DURATION*BLINK_N_CELLS_MAX) // 274 ms
-#define BLINK_SCAN_DEFAULT_DURATION (80000) // 80 ms
+// #define BLINK_SCAN_DEFAULT (BLINK_DEFAULT_SLOT_TOTAL*BLINK_N_CELLS_MAX) // 274 ms
+#define BLINK_SCAN_DEFAULT (80000) // 80 ms
 
 typedef enum {
     BLINK_RADIO_ACTION_SLEEP = 'S',
@@ -58,25 +58,25 @@ typedef enum {
     SLOT_TYPE_UPLINK = 'U',
 } slot_type_t; // FIXME: slot_type or cell_type?
 
-/* Timing of intra-slot sections */
+/* Duration of intra-slot sections */
 typedef struct {
     // transmitter
-    uint32_t ts_tx_offset; ///< Offset for the transmitter to start transmitting.
-    uint32_t ts_tx_max; ///< Maximum time the transmitter can be active.
+    uint32_t tx_offset; ///< Offset for the transmitter to start transmitting.
+    uint32_t tx_max; ///< Maximum time the transmitter can be active.
 
     // receiver
-    uint32_t ts_rx_guard; ///< Time range relative to ts_tx_offset for the receiver to start RXing.
-    uint32_t ts_rx_offset; ///< Offset for the receiver to start receiving.
-    uint32_t ts_rx_max; ///< Maximum time the receiver can be active.
+    uint32_t rx_guard; ///< Time range relative to tx_offset for the receiver to start RXing.
+    uint32_t rx_offset; ///< Offset for the receiver to start receiving.
+    uint32_t rx_max; ///< Maximum time the receiver can be active.
 
     // common
-    uint32_t ts_end_guard; ///< Time to wait after the end of the slot, so that the radio can fully turn off. Can be overriden with a large value to facilitate debugging. Must be at minimum ts_rx_guard.
-    uint32_t total_duration; ///< Total duration of the slot
-} bl_slot_timing_t;
+    uint32_t end_guard; ///< Time to wait after the end of the slot, so that the radio can fully turn off. Can be overriden with a large value to facilitate debugging. Must be at minimum rx_guard.
+    uint32_t whole_slot; ///< Total duration of the slot
+} bl_slot_durations_t;
 
 //=========================== variables ========================================
 
-extern bl_slot_timing_t slot_timing;
+extern bl_slot_durations_t slot_durations;
 
 typedef struct {
     bl_radio_action_t radio_action;

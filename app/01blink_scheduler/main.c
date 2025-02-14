@@ -16,7 +16,7 @@
 #include "timer_hf.h"
 #include "device.h"
 
-#define SLOT_DURATION 1000 * 1000 // 1 s
+#define SLOT 1000 * 1000 // 1 s
 
 // make some schedules available for testing
 #include "test_schedules.c"
@@ -45,7 +45,7 @@ int main(void) {
             printf(">> Event %c:   %c, %d\n", event.slot_type, event.radio_action, event.channel);
 
             // sleep for the duration of the slot
-            bl_timer_hf_delay_us(BLINK_TIMER_DEV, SLOT_DURATION);
+            bl_timer_hf_delay_us(BLINK_TIMER_DEV, SLOT);
         }
         puts(".");
         if (j == 0 && !bl_scheduler_assign_next_available_uplink_cell(db_device_id())) { // try to assign at the end of first slotframe

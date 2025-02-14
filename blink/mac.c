@@ -99,17 +99,17 @@ typedef struct {
 
 mac_vars_t mac_vars = { 0 };
 
-bl_slot_timing_t slot_timing = {
-    .ts_tx_offset = BLINK_TS_TX_OFFSET,
-    .ts_tx_max = BLINK_PACKET_TOA_WITH_PADDING,
+bl_slot_durations_t slot_durations = {
+    .tx_offset = BLINK_TS_TX_OFFSET,
+    .tx_max = BLINK_PACKET_TOA_WITH_PADDING,
 
-    .ts_rx_guard = BLINK_RX_GUARD_TIME,
-    .ts_rx_offset = BLINK_TS_TX_OFFSET - BLINK_RX_GUARD_TIME,
-    .ts_rx_max = BLINK_RX_GUARD_TIME + BLINK_PACKET_TOA_WITH_PADDING,
+    .rx_guard = BLINK_RX_GUARD_TIME,
+    .rx_offset = BLINK_TS_TX_OFFSET - BLINK_RX_GUARD_TIME,
+    .rx_max = BLINK_RX_GUARD_TIME + BLINK_PACKET_TOA_WITH_PADDING,
 
-    .ts_end_guard = BLINK_END_GUARD_TIME,
+    .end_guard = BLINK_END_GUARD_TIME,
 
-    .total_duration = BLINK_TS_TX_OFFSET + BLINK_PACKET_TOA_WITH_PADDING + BLINK_END_GUARD_TIME,
+    .whole_slot = BLINK_TS_TX_OFFSET + BLINK_PACKET_TOA_WITH_PADDING + BLINK_END_GUARD_TIME,
 };
 
 //=========================== prototypes =======================================
@@ -122,8 +122,8 @@ static void end_slot(void);
 
 static void activity_ti1(void);
 static void activity_ti2(void);
-static void activity_tte1(void);
-
+static void activity_tie1(void);
+static void activity_ti3(void);
 
 static void activity_scan_new_slot(void);
 static void activity_scan_start_frame(uint32_t ts);
@@ -220,7 +220,7 @@ static void new_slot(void) {
     // set the timer for the next slot
     set_timer_and_compensate(
         BLINK_TIMER_INTER_SLOT_CHANNEL,
-        slot_timing.total_duration,
+        slot_durations.whole_slot,
         mac_vars.start_slot_ts,
         &new_slot
     );
@@ -250,7 +250,7 @@ static void end_slot(void) {
     bl_radio_disable();
 }
 
-// --------------------- tx/rx activities -----------
+// --------------------- tx activities --------------------
 
 static void activity_ti1(void) {
     // ti1: arm tx timers and prepare the radio for tx
@@ -265,16 +265,16 @@ static void activity_ti1(void) {
     // );
     set_timer_and_compensate( // TODO: use PPI instead
         BLINK_TIMER_CHANNEL_1,
-        slot_timing.ts_tx_offset,
+        slot_durations.tx_offset,
         mac_vars.start_slot_ts,
         &activity_ti2
     );
 
     set_timer_and_compensate(
         BLINK_TIMER_CHANNEL_2,
-        slot_timing.ts_tx_offset + slot_timing.ts_tx_max,
+        slot_durations.tx_offset + slot_durations.tx_max,
         mac_vars.start_slot_ts,
-        &activity_tte1
+        &activity_tie1
     );
 
     // FIXME: send other types of packets, depending on slot type
@@ -299,7 +299,7 @@ static void activity_ti2(void) {
     bl_radio_tx_dispatch();
 }
 
-static void activity_tte1(void) {
+static void activity_tie1(void) {
     // tte1: something went wrong, stayed in tx for too long, abort
     // called by: timer isr
     set_state(STATE_SLEEP);
@@ -318,7 +318,7 @@ static void activity_ti3(void) {
     end_slot();
 }
 
-// --------------------- sync activities ------------
+// --------------------- sync activities ------------------
 
 static void activity_scan_new_slot(void) {
     if (mac_vars.state == STATE_SCAN_RX) {
@@ -389,7 +389,7 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
 
         // check if there is still time to scan more
         uint32_t beacon_toa_padded = sizeof(bl_beacon_packet_header_t) * BLE_2M_US_PER_BYTE + 500; // also accounting for some radio overhead
-        if (end_frame_ts - mac_vars.scan_started_ts + beacon_toa_padded < BLINK_SCAN_DEFAULT_DURATION) {
+        if (end_frame_ts - mac_vars.scan_started_ts + beacon_toa_padded < BLINK_SCAN_DEFAULT) {
             // still time to scan more
             break;
         }
@@ -411,15 +411,15 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
         // save the gateway address -- will try to join it in the next shared uplink slot
         mac_vars.synced_gateway = mac_vars.selected_channel_info.beacon.src;
 
-        // the selected gateway may have been scanned a few slots ago, so we need to account for that difference
-        // NOTE: this assumes that the slot total_duration is the same for gateways and nodes
-        uint64_t asn_diff = (end_frame_ts - mac_vars.selected_channel_info.timestamp) / BLINK_DEFAULT_SLOT_TOTAL_DURATION;
+        // the selected gateway may have been scanned a few slot_durations ago, so we need to account for that difference
+        // NOTE: this assumes that the slot duration is the same for gateways and nodes
+        uint64_t asn_diff = (end_frame_ts - mac_vars.selected_channel_info.timestamp) / slot_durations.whole_slot;
         // advance the asn to match the gateway's
         mac_vars.asn = mac_vars.selected_channel_info.beacon.asn + asn_diff;
         // advance the saved timestamp to match the gateway's, and use it as a synchronization reference
-        mac_vars.sync_ts = mac_vars.selected_channel_info.timestamp + (asn_diff * BLINK_DEFAULT_SLOT_TOTAL_DURATION);
+        mac_vars.sync_ts = mac_vars.selected_channel_info.timestamp + (asn_diff * slot_durations.whole_slot);
         // adjust for tx radio delay
-        mac_vars.sync_ts -= 86; // FIXME: this should be the ts_tx_offset
+        mac_vars.sync_ts -= 86; // FIXME: this should be the tx_offset
 
         // actually synchronize the timers, and set the state
         do_synchronize();
@@ -444,7 +444,7 @@ static void do_synchronize(void) {
     // set new slot ticking reference, overriding the timer set at new_slot
     set_timer_and_compensate(
         BLINK_TIMER_INTER_SLOT_CHANNEL, // overrides the currently set timer, which is non-synchronized
-        slot_timing.total_duration,
+        slot_durations.whole_slot,
         mac_vars.sync_ts, // timestamp of the beacon at start_frame (which matches the start of the slot for synced_gateway), corrected by the asn_diff to account for the scan delay
         &new_slot
     );
