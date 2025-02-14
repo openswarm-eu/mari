@@ -39,8 +39,6 @@
 #define BLINK_PACKET_TOA (BLE_2M_US_PER_BYTE * DB_BLE_PAYLOAD_MAX_LENGTH) // Time on air for the maximum payload.
 #define BLINK_PACKET_TOA_WITH_PADDING (BLINK_PACKET_TOA + 50) // Add padding based on experiments. Also, it takes 28 us until event ADDRESS is triggered (when the packet actually starts traveling over the air)
 
-#define BLINK_DEFAULT_SLOT_TOTAL (1000) // 1 ms
-
 // default scan duration in us
 // #define BLINK_SCAN_DEFAULT (BLINK_DEFAULT_SLOT_TOTAL*BLINK_N_CELLS_MAX) // 274 ms
 #define BLINK_SCAN_DEFAULT (80000) // 80 ms

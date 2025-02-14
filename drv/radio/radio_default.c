@@ -262,6 +262,8 @@ void bl_radio_get_rx_packet(uint8_t *packet, uint8_t *length) {
 
 //--------------------------- send and receive --------------------------------
 
+// TODO: split into bl_radio_rx_prepare and bl_radio_rx_dispatch
+//       includes disabling the RXREADY_START short
 void bl_radio_rx(void) {
     if (radio_vars.state != RADIO_STATE_IDLE) {
         return;

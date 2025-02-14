@@ -105,7 +105,7 @@ bl_slot_durations_t slot_durations = {
 
     .rx_guard = BLINK_RX_GUARD_TIME,
     .rx_offset = BLINK_TS_TX_OFFSET - BLINK_RX_GUARD_TIME,
-    .rx_max = BLINK_RX_GUARD_TIME + BLINK_PACKET_TOA_WITH_PADDING,
+    .rx_max = BLINK_RX_GUARD_TIME + BLINK_PACKET_TOA_WITH_PADDING, // same as rx_guard + tx_max
 
     .end_guard = BLINK_END_GUARD_TIME,
 
@@ -124,6 +124,13 @@ static void activity_ti1(void);
 static void activity_ti2(void);
 static void activity_tie1(void);
 static void activity_ti3(void);
+
+static void activity_ri1(void);
+static void activity_ri2(void);
+static void activity_ri3(uint32_t ts);
+static void activity_rie1(void);
+static void activity_ri4(void);
+static void activity_rie2(void);
 
 static void activity_scan_new_slot(void);
 static void activity_scan_start_frame(uint32_t ts);
@@ -171,9 +178,6 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
 
 //=========================== private ==========================================
 
-// static void bl_state_machine_handler(void) {
-// }
-
 static void set_state(bl_mac_state_t state) {
     mac_vars.state = state;
 
@@ -190,12 +194,15 @@ static void set_state(bl_mac_state_t state) {
     }
 
     switch (state) {
+        case STATE_RX_DATA_LISTEN:
+            DEBUG_GPIO_SET(&pin3);
         case STATE_TX_DATA:
         case STATE_RX_DATA:
             DEBUG_GPIO_SET(&pin1);
             break;
         case STATE_SLEEP:
             DEBUG_GPIO_CLEAR(&pin1);
+            DEBUG_GPIO_CLEAR(&pin3);
             break;
         default:
             break;
@@ -216,6 +223,7 @@ static void new_slot(void) {
     mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
 
     DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0);
+    DEBUG_GPIO_CLEAR(&pin1); DEBUG_GPIO_CLEAR(&pin2); DEBUG_GPIO_CLEAR(&pin3);
 
     // set the timer for the next slot
     set_timer_and_compensate(
@@ -241,13 +249,22 @@ static void new_slot(void) {
     }
 
     // play the tx/rx state machine
-    // TODO: for now only tx, need to implement if radio_event.radio_action == BLINK_RADIO_ACTION_TX ...
-    activity_ti1();
+    // TODO: implement if radio_event.radio_action == BLINK_RADIO_ACTION_TX ...
+    if (0) {
+        activity_ti1();
+    } else {
+        activity_ri1();
+    }
 }
 
 static void end_slot(void) {
     // do any needed cleanup
     bl_radio_disable();
+
+    // NOTE: clean all timers other than BLINK_TIMER_INTER_SLOT_CHANNEL ?
+    bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_1);
+    bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
+    bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_3);
 }
 
 // --------------------- tx activities --------------------
@@ -314,6 +331,87 @@ static void activity_ti3(void) {
 
     // cancel tte1 timer
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
+
+    end_slot();
+}
+
+// --------------------- rx activities --------------
+
+// just write the placeholders for ri1
+
+static void activity_ri1(void) {
+    // ri1: arm rx timers and prepare the radio for rx
+    // called by: function new_slot
+    set_state(STATE_RX_OFFSET);
+
+    set_timer_and_compensate( // TODO: use PPI instead
+        BLINK_TIMER_CHANNEL_1,
+        slot_durations.rx_offset,
+        mac_vars.start_slot_ts,
+        &activity_ri2
+    );
+
+    set_timer_and_compensate(
+        BLINK_TIMER_CHANNEL_2,
+        slot_durations.tx_offset + slot_durations.rx_guard,
+        mac_vars.start_slot_ts,
+        &activity_rie1
+    );
+
+    set_timer_and_compensate(
+        BLINK_TIMER_CHANNEL_3,
+        slot_durations.rx_offset + slot_durations.rx_max,
+        mac_vars.start_slot_ts,
+        &activity_rie2
+    );
+}
+
+static void activity_ri2(void) {
+    // ri2: rx actually begins
+    // called by: timer isr
+    set_state(STATE_RX_DATA_LISTEN);
+
+    bl_radio_rx();
+}
+
+static void activity_ri3(uint32_t ts) {
+    // ri3: a packet started to arrive
+    // called by: radio isr
+    set_state(STATE_RX_DATA);
+
+    // cancel timer for rx_guard
+    bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
+
+    // TODO: re-sync to the network using ts
+    (void)ts;
+}
+
+static void activity_rie1(void) {
+    // rie1: didn't receive start of packet before rx_guard, abort
+    // called by: timer isr
+    set_state(STATE_SLEEP);
+
+    // cancel timer for rx_max (rie2)
+    bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_3);
+
+    end_slot();
+}
+
+static void activity_ri4(void) {
+    // ri4: all fine, finished rx, cancel error timers and go to sleep
+    // called by: radio isr
+    set_state(STATE_SLEEP);
+
+    // cancel timer for rx_max (rie2)
+    bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_3);
+
+    end_slot();
+}
+
+static void activity_rie2(void) {
+    // rie2: something went wrong, stayed in rx for too long, abort
+    // called by: timer isr
+    set_state(STATE_SLEEP);
 
     end_slot();
 }
@@ -471,6 +569,15 @@ static void isr_mac_radio_start_frame(uint32_t ts) {
     DEBUG_GPIO_SET(&pin2);
     if (!mac_vars.is_synced) {
         activity_scan_start_frame(ts);
+        return;
+    }
+
+    switch (mac_vars.state) {
+        case STATE_RX_DATA_LISTEN:
+            activity_ri3(ts);
+            break;
+        default:
+            break;
     }
 }
 
@@ -486,6 +593,9 @@ static void isr_mac_radio_end_frame(uint32_t ts) {
     switch (mac_vars.state) {
         case STATE_TX_DATA:
             activity_ti3();
+            break;
+        case STATE_RX_DATA:
+            activity_ri4();
             break;
         default:
             break;
