@@ -178,11 +178,14 @@ void _compute_gateway_action(cell_t cell, bl_radio_event_t *radio_event) {
 void _compute_dotbot_action(cell_t cell, bl_radio_event_t *radio_event) {
     switch (cell.type) {
         case SLOT_TYPE_BEACON:
+            radio_event->available_for_scan = true;
+            radio_event->radio_action = BLINK_RADIO_ACTION_RX;
         case SLOT_TYPE_DOWNLINK:
             radio_event->radio_action = BLINK_RADIO_ACTION_RX;
             break;
         case SLOT_TYPE_SHARED_UPLINK:
             // TODO: implement backoff algorithm
+            // NOTE: also apply the discovery optimization here, if no join request to be sent in this shared slot?!
             radio_event->radio_action = BLINK_RADIO_ACTION_TX;
             break;
         case SLOT_TYPE_UPLINK:
@@ -192,6 +195,7 @@ void _compute_dotbot_action(cell_t cell, bl_radio_event_t *radio_event) {
 #ifdef BLINK_LISTEN_DURING_UNSCHEDULED_UPLINK
                 // OPTIMIZATION: listen for beacons during unassigned uplink slot
                 // listen to the same beacon channel for a whole slotframe
+                radio_event->available_for_scan = true;
                 radio_event->radio_action = BLINK_RADIO_ACTION_RX;
 #if(BLINK_FIXED_CHANNEL != 0)
                 radio_event->channel = BLINK_FIXED_CHANNEL;

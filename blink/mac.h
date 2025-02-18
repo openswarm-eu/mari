@@ -42,6 +42,7 @@
 // default scan duration in us
 // #define BLINK_SCAN_DEFAULT (BLINK_DEFAULT_SLOT_TOTAL*BLINK_N_CELLS_MAX) // 274 ms
 #define BLINK_SCAN_DEFAULT (80000) // 80 ms
+#define BLINK_SCAN_MAX_SLOTS (5) // five slots
 
 typedef enum {
     BLINK_RADIO_ACTION_SLEEP = 'S',
@@ -80,6 +81,7 @@ typedef struct {
     bl_radio_action_t radio_action;
     uint8_t channel;
     slot_type_t slot_type;
+    bool available_for_scan;
 } bl_radio_event_t;
 
 //=========================== prototypes ==========================================
