@@ -184,9 +184,9 @@ void _compute_dotbot_action(cell_t cell, bl_radio_event_t *radio_event) {
             radio_event->radio_action = BLINK_RADIO_ACTION_RX;
             break;
         case SLOT_TYPE_SHARED_UPLINK:
-            // TODO: implement backoff algorithm
             // NOTE: also apply the discovery optimization here, if no join request to be sent in this shared slot?!
             radio_event->radio_action = BLINK_RADIO_ACTION_TX;
+            radio_event->slot_can_join = true; // TODO: implement backoff algorithm, and have this field be subject to backoff
             break;
         case SLOT_TYPE_UPLINK:
             if (cell.assigned_node_id == db_device_id()) {
@@ -199,7 +199,7 @@ void _compute_dotbot_action(cell_t cell, bl_radio_event_t *radio_event) {
                 radio_event->radio_action = BLINK_RADIO_ACTION_RX;
 #if(BLINK_FIXED_CHANNEL != 0)
                 radio_event->channel = BLINK_FIXED_CHANNEL;
-#else
+#else // BLINK_FIXED_CHANNEL
                 radio_event->channel = BLINK_N_BLE_REGULAR_CHANNELS + (_schedule_vars.slotframe_counter % BLINK_N_BLE_ADVERTISING_CHANNELS);
 #endif // BLINK_FIXED_CHANNEL
 #endif // BLINK_LISTEN_DURING_UNSCHEDULED_UPLINK

@@ -82,6 +82,7 @@ typedef struct {
     uint8_t channel;
     slot_type_t slot_type;
     bool available_for_scan;
+    bool slot_can_join;
 } bl_radio_event_t;
 
 //=========================== prototypes ==========================================

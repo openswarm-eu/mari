@@ -76,26 +76,43 @@ typedef enum {
 
 } bl_mac_state_t;
 
+typedef enum {
+    JOIN_STATE_IDLE,
+    JOIN_STATE_SCANNING,
+    JOIN_STATE_SYNCED,
+    JOIN_STATE_JOINING,
+    JOIN_STATE_JOINED,
+} bl_join_state_t;
+
 typedef struct {
+    // ---- common
     bl_node_type_t node_type; //< whether the node is a gateway or a dotbot
     uint64_t device_id; ///< Device ID
 
     bl_mac_state_t state; ///< State within the slot
     uint32_t start_slot_ts; ///< Timestamp of the start of the slot
+    uint64_t asn; ///< Absolute slot number
 
+    bl_rx_cb_t app_rx_callback; ///< Function pointer, stores the application callback
+
+    bl_join_state_t join_state; ///< State regarding network join, from scan to sync to joined
+
+    // SCANNING state
     uint32_t scan_started_ts; ///< Timestamp of the start of the scan
     uint32_t scan_started_asn; ///< ASN when the scan started
     uint32_t current_scan_item_ts; ///< Timestamp of the current scan item
     bl_channel_info_t selected_channel_info;
 
-    bool is_synced; ///< Whether the node is synchronized with a gateway
-    uint32_t sync_ts; ///< Timestamp of the packet
-    uint64_t asn; ///< Absolute slot number
+    // SYNCED state
+    uint32_t synced_ts; ///< Timestamp of the packet
     uint64_t synced_gateway; ///< ID of the gateway the node is synchronized with
+    int8_t synced_gateway_rssi; ///< RSSI of the gateway the node is synchronized with
 
-    bool is_joined; ///< Whether the node has joined a network
+    // SYNC/JOINING state
+    bool waiting_join_response;
 
-    bl_rx_cb_t app_rx_callback; ///< Function pointer, stores the application callback
+    // JOINED state
+    bool is_background_scanning; ///< Whether the node is scanning in the background
 } mac_vars_t;
 
 //=========================== variables ========================================
@@ -117,11 +134,13 @@ bl_slot_durations_t slot_durations = {
 
 //=========================== prototypes =======================================
 
-static inline void set_state(bl_mac_state_t state);
-static inline void set_sync(bool is_synced);
+static inline void set_slot_state(bl_mac_state_t state);
+static inline void set_join_state(bl_join_state_t join_state);
 
 static void new_slot(void);
 static void end_slot(void);
+
+static void activity_ti1_or_ri1(bl_radio_action_t radio_action);
 
 static void activity_ti1(void);
 static void activity_ti2(void);
@@ -139,7 +158,7 @@ static void activity_scan_new_slot(void);
 static void activity_scan_start_frame(uint32_t ts);
 static void activity_scan_end_frame(uint32_t ts);
 static void activity_scan_end_slot(void);
-//static void do_synchronize(void);
+static bool select_gateway_and_sync(void);
 static void synchronize_timers(void);
 
 static inline void set_timer_and_compensate(uint8_t channel, uint32_t duration, uint32_t start_ts, timer_hf_cb_t callback);
@@ -169,26 +188,26 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
     mac_vars.node_type = node_type;
     mac_vars.device_id = db_device_id();
 
-    // synchronization stuff
-    mac_vars.is_synced = false;
-    mac_vars.asn = 0;
+    // join stuff
+    mac_vars.join_state = JOIN_STATE_IDLE;
 
-    mac_vars.is_joined = false;
+    // synchronization stuff
+    mac_vars.asn = 0;
 
     // application callback
     mac_vars.app_rx_callback = rx_callback;
 
     // begin the slot
-    set_state(STATE_SLEEP);
+    set_slot_state(STATE_SLEEP);
     new_slot();
 }
 
 //=========================== private ==========================================
 
-static void set_state(bl_mac_state_t state) {
+static void set_slot_state(bl_mac_state_t state) {
     mac_vars.state = state;
 
-    if (!mac_vars.is_synced) {
+    if (mac_vars.join_state == JOIN_STATE_SCANNING) {
         switch (state) {
             case STATE_SCAN_LISTEN:
                 DEBUG_GPIO_CLEAR(&pin3); DEBUG_GPIO_SET(&pin3);
@@ -221,10 +240,10 @@ static void set_state(bl_mac_state_t state) {
     }
 }
 
-static inline void set_sync(bool is_synced) {
-    mac_vars.is_synced = is_synced;
+static inline void set_join_state(bl_join_state_t join_state) {
+    mac_vars.join_state = join_state;
 
-    if (is_synced) {
+    if (join_state == JOIN_STATE_SYNCED) {
         // TODO: LED on
     } else {
         // TODO: LED off
@@ -235,7 +254,7 @@ static void new_slot(void) {
     mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
 
     DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0);
-    if (mac_vars.is_synced) { DEBUG_GPIO_CLEAR(&pin1); DEBUG_GPIO_CLEAR(&pin2); DEBUG_GPIO_CLEAR(&pin3); }
+    if (mac_vars.join_state == JOIN_STATE_SYNCED) { DEBUG_GPIO_CLEAR(&pin1); DEBUG_GPIO_CLEAR(&pin2); DEBUG_GPIO_CLEAR(&pin3); }
 
     // set the timer for the next slot
     set_timer_and_compensate(
@@ -245,35 +264,103 @@ static void new_slot(void) {
         &new_slot
     );
 
-    // handle when still not synced
-    if (!mac_vars.is_synced) {
-        if (mac_vars.node_type == BLINK_GATEWAY) {
-            // the gateway is always synced to itself
-            set_sync(true);
-            mac_vars.asn = 0;
-        } else {
-            // play the scan procedure
-            activity_scan_new_slot();
-            return;
-        }
+    bl_radio_event_t radio_event = bl_scheduler_tick(mac_vars.asn);
+
+    switch (mac_vars.join_state) {
+        case JOIN_STATE_IDLE: // NODE or GATEWAY
+            if (mac_vars.node_type == BLINK_GATEWAY) {
+                // the gateway is always joined to itself
+                set_join_state(JOIN_STATE_JOINED);
+                mac_vars.asn = 0;
+            } else {
+                // play the scan procedure
+                set_join_state(JOIN_STATE_SCANNING);
+                mac_vars.scan_started_asn = mac_vars.asn;
+                mac_vars.scan_started_ts = mac_vars.start_slot_ts;
+                activity_scan_new_slot();
+            }
+            break;
+        case JOIN_STATE_SCANNING: // only NODE
+            if (mac_vars.asn - mac_vars.scan_started_asn < BLINK_SCAN_MAX_SLOTS) {
+                // still have time to scan more
+                activity_scan_new_slot();
+            } else {
+                // scan timeout reached
+                set_slot_state(STATE_SLEEP);
+                bl_radio_disable();
+                if (select_gateway_and_sync()) {
+                    // found a gateway and synchronized to it
+                    set_join_state(JOIN_STATE_SYNCED);
+                } else {
+                    // no gateway found, go back to idle
+                    set_join_state(JOIN_STATE_IDLE);
+                }
+                end_slot();
+                return;
+            }
+            break;
+        case JOIN_STATE_SYNCED: // only NODE
+            // FIXME(dbg): doing tx/rx here just for debugging, in reality will jump straight to JOIN_STATE_JOINING
+            activity_ti1_or_ri1(radio_event.radio_action);
+            break;
+        case JOIN_STATE_JOINING: // only NODE
+            if (!mac_vars.waiting_join_response && radio_event.slot_can_join) {
+                // put a JoinRequest at the head of the queue
+                activity_ti1();
+            } else if (mac_vars.waiting_join_response && radio_event.slot_type == SLOT_TYPE_DOWNLINK) {
+                // receive a JoinResponse and change state to JOIN_STATE_JOINED
+                activity_ri1();
+            }
+            break;
+        case JOIN_STATE_JOINED: // NODE or GATEWAY
+            // TODO: handle handover
+            if (mac_vars.node_type == BLINK_GATEWAY) {
+                // just normal tx/rx (normal tx packets from the queue, or join responses (depending on the slot type))
+                activity_ti1_or_ri1(radio_event.radio_action);
+            } else { // BLINK_NODE
+                if (!mac_vars.is_background_scanning && !radio_event.available_for_scan) {
+                    // no scan involved, just a regular slot doing its thing
+                    activity_ti1_or_ri1(radio_event.radio_action);
+                    break;
+                }
+                if (!mac_vars.is_background_scanning && radio_event.available_for_scan) {
+                    // time to start a background scan
+                    mac_vars.is_background_scanning = true;
+                    mac_vars.scan_started_asn = mac_vars.asn;
+                    mac_vars.scan_started_ts = mac_vars.start_slot_ts;
+                    activity_scan_new_slot();
+                    break;
+                }
+                if (mac_vars.is_background_scanning) {
+                    // background scan in progress
+                    if (mac_vars.asn - mac_vars.scan_started_asn < BLINK_SCAN_MAX_SLOTS) {
+                        // still have time to scan more
+                        if (radio_event.available_for_scan) {
+                            activity_scan_new_slot();
+                        }
+                        break;
+                    } else {
+                        // scan timeout reached, may perform handover
+                        mac_vars.is_background_scanning = false;
+                        set_slot_state(STATE_SLEEP);
+                        bl_radio_disable();
+                        if (select_gateway_and_sync()) { // if possible/needed, will sync to a better gateway (begin of handover process)
+                            // there is a better gateway to join, node is now synced to it
+                            set_join_state(JOIN_STATE_SYNCED);
+                        } else {
+                            // no gateway found, nothing to do (will start a scan again in the next available slot)
+                        }
+                        end_slot();
+                        break;
+                    }
+                }
+            }
+            break;
+        default:
+            break;
     }
 
-    // from now on is synced
-
-    bl_radio_event_t radio_event = bl_scheduler_tick(mac_vars.asn++);
-
-    if (mac_vars.node_type == BLINK_NODE && (mac_vars.is_joined && radio_event.available_for_scan)) {
-        // play the scan procedure
-        activity_scan_new_slot();
-        return;
-    }
-
-    // play the tx/rx state machine
-    if (radio_event.radio_action == BLINK_RADIO_ACTION_TX) {
-        activity_ti1();
-    } else {
-        activity_ri1();
-    }
+    mac_vars.asn++;
 }
 
 static void end_slot(void) {
@@ -287,7 +374,6 @@ static void end_slot(void) {
 }
 
 static void disable_radio_and_intra_slot_timers(void) {
-    // do any needed cleanup
     bl_radio_disable();
 
     // NOTE: clean all timers other than BLINK_TIMER_INTER_SLOT_CHANNEL ?
@@ -298,10 +384,19 @@ static void disable_radio_and_intra_slot_timers(void) {
 
 // --------------------- tx activities --------------------
 
+inline static void activity_ti1_or_ri1(bl_radio_action_t radio_action) {
+    if (radio_action == BLINK_RADIO_ACTION_TX) {
+        activity_ti1();
+    } else if (radio_action == BLINK_RADIO_ACTION_RX) {
+        activity_ri1();
+    }
+    // else: SLEEP (do nothing)
+}
+
 static void activity_ti1(void) {
     // ti1: arm tx timers and prepare the radio for tx
     // called by: function new_slot
-    set_state(STATE_TX_OFFSET);
+    set_slot_state(STATE_TX_OFFSET);
 
     set_timer_and_compensate( // TODO: use PPI instead
         BLINK_TIMER_CHANNEL_1,
@@ -333,7 +428,7 @@ static void activity_ti1(void) {
 static void activity_ti2(void) {
     // ti2: tx actually begins
     // called by: timer isr
-    set_state(STATE_TX_DATA);
+    set_slot_state(STATE_TX_DATA);
 
     // FIXME: replace this call with a direct PPI connection, i.e., TsTxOffset expires -> radio tx
     bl_radio_tx_dispatch();
@@ -342,7 +437,7 @@ static void activity_ti2(void) {
 static void activity_tie1(void) {
     // tte1: something went wrong, stayed in tx for too long, abort
     // called by: timer isr
-    set_state(STATE_SLEEP);
+    set_slot_state(STATE_SLEEP);
 
     end_slot();
 }
@@ -350,7 +445,7 @@ static void activity_tie1(void) {
 static void activity_ti3(void) {
     // ti3: all fine, finished tx, cancel error timers and go to sleep
     // called by: radio isr
-    set_state(STATE_SLEEP);
+    set_slot_state(STATE_SLEEP);
 
     // cancel tte1 timer
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
@@ -365,7 +460,7 @@ static void activity_ti3(void) {
 static void activity_ri1(void) {
     // ri1: arm rx timers and prepare the radio for rx
     // called by: function new_slot
-    set_state(STATE_RX_OFFSET);
+    set_slot_state(STATE_RX_OFFSET);
 
     set_timer_and_compensate( // TODO: use PPI instead
         BLINK_TIMER_CHANNEL_1,
@@ -392,7 +487,7 @@ static void activity_ri1(void) {
 static void activity_ri2(void) {
     // ri2: rx actually begins
     // called by: timer isr
-    set_state(STATE_RX_DATA_LISTEN);
+    set_slot_state(STATE_RX_DATA_LISTEN);
 
     bl_radio_rx();
 }
@@ -400,7 +495,7 @@ static void activity_ri2(void) {
 static void activity_ri3(uint32_t ts) {
     // ri3: a packet started to arrive
     // called by: radio isr
-    set_state(STATE_RX_DATA);
+    set_slot_state(STATE_RX_DATA);
 
     // cancel timer for rx_guard
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
@@ -412,7 +507,7 @@ static void activity_ri3(uint32_t ts) {
 static void activity_rie1(void) {
     // rie1: didn't receive start of packet before rx_guard, abort
     // called by: timer isr
-    set_state(STATE_SLEEP);
+    set_slot_state(STATE_SLEEP);
 
     // cancel timer for rx_max (rie2)
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_3);
@@ -423,7 +518,7 @@ static void activity_rie1(void) {
 static void activity_ri4(void) {
     // ri4: all fine, finished rx, cancel error timers and go to sleep
     // called by: radio isr
-    set_state(STATE_SLEEP);
+    set_slot_state(STATE_SLEEP);
 
     // cancel timer for rx_max (rie2)
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_3);
@@ -434,20 +529,14 @@ static void activity_ri4(void) {
 static void activity_rie2(void) {
     // rie2: something went wrong, stayed in rx for too long, abort
     // called by: timer isr
-    set_state(STATE_SLEEP);
+    set_slot_state(STATE_SLEEP);
 
     end_slot();
 }
 
 // --------------------- scan activities ------------------
 
-static bool maybe_handover(void) {
-    // Select the best gateway among the scanned ones, and compare with the current one
-    // if selected.rssi > current.rssi + hysteresis, then handover
-    return false;
-}
-
-static void end_scan(void) {
+static bool select_gateway_and_sync(void) {
     disable_radio_and_intra_slot_timers();
 
     // select best channel_info
@@ -455,19 +544,28 @@ static void end_scan(void) {
     mac_vars.selected_channel_info = bl_scan_select(mac_vars.scan_started_ts, now_ts);
     if (mac_vars.selected_channel_info.timestamp == 0) {
         // no gateway found
-        set_state(STATE_SLEEP);
+        set_slot_state(STATE_SLEEP);
         end_slot();
-        return;
+        return false;
     }
 
-    set_state(STATE_SCAN_SYNC);
+    if (mac_vars.join_state == JOIN_STATE_JOINED) { // this is a handover attempt
+        if (mac_vars.selected_channel_info.rssi < mac_vars.synced_gateway_rssi + BLINK_SCAN_HANDOVER_HYSTERESIS) {
+            // rssi difference is not enough to justify handover
+            set_slot_state(STATE_SLEEP);
+            end_slot();
+            return false;
+        }
+    }
+
+    set_slot_state(STATE_SCAN_SYNC);
 
     if (!bl_scheduler_set_schedule(mac_vars.selected_channel_info.beacon.active_schedule_id)) {
         // schedule not found
         // NOTE: what to do in this case? for now, just silently fail (a new scan will begin again via new_slot)
-        set_state(STATE_SLEEP);
+        set_slot_state(STATE_SLEEP);
         end_slot();
-        return;
+        return false;
     }
 
     // save the gateway address -- will try to join it in the next shared uplink slot
@@ -480,37 +578,21 @@ static void end_scan(void) {
     // advance the asn to match the gateway's
     mac_vars.asn = mac_vars.selected_channel_info.beacon.asn + asn_diff;
     // advance the saved timestamp to match the gateway's, and use it as a synchronization reference
-    mac_vars.sync_ts = mac_vars.selected_channel_info.timestamp + (asn_diff * slot_durations.whole_slot);
+    mac_vars.synced_ts = mac_vars.selected_channel_info.timestamp + (asn_diff * slot_durations.whole_slot);
     // adjust for tx radio delay
-    mac_vars.sync_ts -= 86; // FIXME: this is arbitrary (should be the tx_offset?)
+    mac_vars.synced_ts -= 86; // FIXME: this is arbitrary (should be the tx_offset?)
 
     // actually synchronize the timers, and set the state
     synchronize_timers();
-    set_sync(true);
-    set_state(STATE_SLEEP);
+    set_slot_state(STATE_SLEEP);
 
     // synchronization is done!
     end_slot();
 
-    set_state(STATE_SCAN_SYNC);
+    return true;
 }
 
 static void activity_scan_new_slot(void) {
-    if (mac_vars.scan_started_asn > 0 && mac_vars.asn - mac_vars.scan_started_asn > BLINK_SCAN_MAX_SLOTS) {
-        // scan timeout reached
-        set_state(STATE_SLEEP);
-        bl_radio_disable();
-        if (mac_vars.is_synced) {
-            bool did_handover = maybe_handover();
-            if (!did_handover) {
-                end_slot();
-            }
-        } else {
-            end_scan();
-        }
-        return;
-    }
-
     if (mac_vars.state == STATE_SCAN_RX || mac_vars.state == STATE_SCAN_PROCESS_PACKET) {
         // in the middle of receiving a packet
         return;
@@ -526,7 +608,7 @@ static void activity_scan_new_slot(void) {
 
     if (mac_vars.state != STATE_SCAN_LISTEN) {
         // if not in listen state, go to it
-        set_state(STATE_SCAN_LISTEN);
+        set_slot_state(STATE_SCAN_LISTEN);
         mac_vars.scan_started_ts = mac_vars.start_slot_ts;
 #ifdef BLINK_FIXED_CHANNEL
         bl_radio_set_channel(BLINK_FIXED_CHANNEL); // not doing channel hopping for now
@@ -557,7 +639,7 @@ static void activity_scan_start_frame(uint32_t ts) {
         return;
     }
 
-    set_state(STATE_SCAN_RX);
+    set_slot_state(STATE_SCAN_RX);
     mac_vars.current_scan_item_ts = ts;
     // save this here because there is a chance that activity_scan_end_frame happens in the next slot
 }
@@ -571,7 +653,7 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
         return;
     }
 
-    set_state(STATE_SCAN_PROCESS_PACKET);
+    set_slot_state(STATE_SCAN_PROCESS_PACKET);
 
     uint8_t packet[BLINK_PACKET_MAX_SIZE];
     uint8_t packet_len;
@@ -606,12 +688,12 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
     } while (0);
 
     // some error processing the packet, go back to listen (radio was and continues to be in rx mode)
-    set_state(STATE_SCAN_LISTEN);
+    set_slot_state(STATE_SCAN_LISTEN);
     // enable radio again on rx
     bl_radio_rx();
 }
 
-// adjust timers based on mac_vars.sync_ts
+// adjust timers based on mac_vars.synced_ts
 static void synchronize_timers(void) {
     // TODO: handle case when too close to end of slot
 
@@ -619,7 +701,7 @@ static void synchronize_timers(void) {
     set_timer_and_compensate(
         BLINK_TIMER_INTER_SLOT_CHANNEL, // overrides the currently set timer, which is non-synchronized
         slot_durations.whole_slot,
-        mac_vars.sync_ts, // timestamp of the beacon at start_frame (which matches the start of the slot for synced_gateway), corrected by the asn_diff to account for the scan delay
+        mac_vars.synced_ts, // timestamp of the beacon at start_frame (which matches the start of the slot for synced_gateway), corrected by the asn_diff to account for the scan delay
         &new_slot
     );
 }
@@ -640,10 +722,14 @@ static inline void set_timer_and_compensate(uint8_t channel, uint32_t duration, 
 }
 
 // --------------------- radio ---------------------
+inline static bool is_scanning(void) {
+    return mac_vars.join_state == JOIN_STATE_SCANNING || (mac_vars.join_state == JOIN_STATE_JOINED && mac_vars.is_background_scanning);
+}
+
 static void isr_mac_radio_start_frame(uint32_t ts) {
     (void)ts;
     DEBUG_GPIO_SET(&pin2);
-    if (!mac_vars.is_synced) {
+    if (is_scanning()) {
         activity_scan_start_frame(ts);
         return;
     }
@@ -661,7 +747,7 @@ static void isr_mac_radio_end_frame(uint32_t ts) {
     (void)ts;
     DEBUG_GPIO_CLEAR(&pin2);
 
-    if (!mac_vars.is_synced) { // NOTE: should probably check for if (is_scanning) instead, since it may scan while joined
+    if (is_scanning()) {
         activity_scan_end_frame(ts);
         return;
     }

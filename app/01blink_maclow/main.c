@@ -60,7 +60,7 @@ int main(void) {
     print_slot_timing();
 
     bl_scheduler_init(node_type, &schedule);
-    printf("\n==== Device of type %c and id %llx is using schedule %d ====\n\n", node_type, db_device_id(), schedule.id);
+    printf("\n==== Device of type %c and id %llx is using schedule 0x%0X ====\n\n", node_type, db_device_id(), schedule.id);
 
     printf("BLINK_FIXED_CHANNEL = %d\n", BLINK_FIXED_CHANNEL);
 
