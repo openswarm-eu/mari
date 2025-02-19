@@ -221,13 +221,13 @@ static void set_slot_state(bl_mac_state_t state) {
     if (mac_vars.join_state == JOIN_STATE_SCANNING) {
         switch (state) {
             case STATE_SCAN_LISTEN:
-                DEBUG_GPIO_CLEAR(&pin3); DEBUG_GPIO_SET(&pin3);
+                DEBUG_GPIO_SET(&pin3);
             case STATE_SCAN_RX:
                 DEBUG_GPIO_SET(&pin1);
                 break;
             case STATE_SLEEP:
                 DEBUG_GPIO_CLEAR(&pin1);
-                // DEBUG_GPIO_CLEAR(&pin3);
+                DEBUG_GPIO_CLEAR(&pin3);
                 break;
             default:
                 break;
@@ -255,10 +255,10 @@ static inline void set_join_state(bl_join_state_t join_state) {
     mac_vars.join_state = join_state;
 
 #ifdef DEBUG
+    // remember: the LEDs are active low
+    DEBUG_GPIO_SET(&led0); DEBUG_GPIO_SET(&led1); DEBUG_GPIO_SET(&led2); DEBUG_GPIO_SET(&led3);
     switch (join_state) {
         case JOIN_STATE_IDLE:
-            // remember: the LEDs are active low
-            DEBUG_GPIO_SET(&led0); DEBUG_GPIO_SET(&led1); DEBUG_GPIO_SET(&led2); DEBUG_GPIO_SET(&led3);
             break;
         case JOIN_STATE_SCANNING:
             DEBUG_GPIO_CLEAR(&led0);
@@ -614,7 +614,18 @@ static bool select_gateway_and_sync(void) {
     // advance the saved timestamp to match the gateway's, and use it as a synchronization reference
     mac_vars.synced_ts = mac_vars.selected_channel_info.timestamp + (asn_diff * slot_durations.whole_slot);
     // adjust for tx radio delay
-    mac_vars.synced_ts -= 86; // FIXME: this is arbitrary (should be the tx_offset?)
+    mac_vars.synced_ts -= 200; // FIXME: this is arbitrary (should be the tx_offset?)
+
+    if (mac_vars.synced_ts < now_ts) {
+        // if the calculated ts is in the past, skip a slot
+        mac_vars.synced_ts += slot_durations.whole_slot;
+    }
+
+    // if the next slot starts too soon, skip yet another slot
+    uint32_t next_slot_ts = mac_vars.start_slot_ts + slot_durations.whole_slot;
+    if (next_slot_ts - mac_vars.synced_ts < BLINK_END_GUARD_TIME*2) {
+        mac_vars.synced_ts += slot_durations.whole_slot;
+    }
 
     // actually synchronize the timers, and set the state
     synchronize_timers();
@@ -656,15 +667,7 @@ static void activity_scan_new_slot(void) {
 static void activity_scan_end_slot(void) {
     // called by: timer isr
 
-    uint32_t scan_time = mac_vars.start_slot_ts - mac_vars.scan_started_ts;
-    uint32_t beacon_toa_padded = (sizeof(bl_beacon_packet_header_t) * BLE_2M_US_PER_BYTE) + 50; // also accounting for some radio overhead
-    if (scan_time + beacon_toa_padded < BLINK_SCAN_DEFAULT) {
-        // still time to scan more
-        return;
-    }
-
-    // scan is done! now it's time to select the best gateway, and then synchronize and try to join it
-
+    // do something here I guess?
 }
 
 static void activity_scan_start_frame(uint32_t ts) {
@@ -723,8 +726,18 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
 
     // some error processing the packet, go back to listen (radio was and continues to be in rx mode)
     set_slot_state(STATE_SCAN_LISTEN);
-    // enable radio again on rx
-    bl_radio_rx();
+
+    // if there is still time, schedule rx to be turned on again
+    // (do not do it immediately, because this runs in isr context and might interfere with `if (NRF_RADIO->EVENTS_DISABLED)` in RADIO_IRQHandler)
+    uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
+    if (now_ts + BLINK_BEACON_TOA_WITH_PADDING < mac_vars.start_slot_ts + slot_durations.whole_slot) {
+        set_timer_and_compensate(
+            BLINK_TIMER_CHANNEL_2,
+            10, // arbitrary value, just to give some time for the radio to turn off
+            now_ts,
+            &bl_radio_rx
+        );
+    }
 }
 
 // adjust timers based on mac_vars.synced_ts

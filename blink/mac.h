@@ -39,10 +39,14 @@
 #define BLINK_PACKET_TOA (BLE_2M_US_PER_BYTE * DB_BLE_PAYLOAD_MAX_LENGTH) // Time on air for the maximum payload.
 #define BLINK_PACKET_TOA_WITH_PADDING (BLINK_PACKET_TOA + 50) // Add padding based on experiments. Also, it takes 28 us until event ADDRESS is triggered (when the packet actually starts traveling over the air)
 
+// Duration of some packets
+#define BLINK_BEACON_TOA (BLE_2M_US_PER_BYTE * sizeof(bl_beacon_packet_header_t)) // Time on air for the beacon packet
+#define BLINK_BEACON_TOA_WITH_PADDING (BLINK_BEACON_TOA + 60) // Add padding based on experiments.
+
 // default scan duration in us
 // #define BLINK_SCAN_DEFAULT (BLINK_DEFAULT_SLOT_TOTAL*BLINK_N_CELLS_MAX) // 274 ms
 #define BLINK_SCAN_DEFAULT (80000) // 80 ms
-#define BLINK_SCAN_MAX_SLOTS (5) // five slots
+#define BLINK_SCAN_MAX_SLOTS (5) // how many slots to scan for
 
 typedef enum {
     BLINK_RADIO_ACTION_SLEEP = 'S',
