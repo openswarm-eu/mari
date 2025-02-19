@@ -32,7 +32,6 @@ typedef struct {
     bl_node_type_t node_type; // whether the node is a gateway or a dotbot
 
     // counters and indexes
-    uint64_t asn; // absolute slot number
     schedule_t *active_schedule_ptr; // pointer to the currently active schedule
     uint32_t slotframe_counter; // used to cycle beacon channels through slotframes (when listening for beacons at uplink slot_durations)
 

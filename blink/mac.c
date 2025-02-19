@@ -34,10 +34,16 @@
 
 #ifdef DEBUG
 #include "gpio.h" // for debugging
-gpio_t pin0 = { .port = 1, .pin = 2 }; // variable names reflect the logic analyzer channels
+// pins connected to logic analyzer, variable names reflect the channel number
+gpio_t pin0 = { .port = 1, .pin = 2 };
 gpio_t pin1 = { .port = 1, .pin = 3 };
 gpio_t pin2 = { .port = 1, .pin = 4 };
 gpio_t pin3 = { .port = 1, .pin = 5 };
+// the 4 LEDs of the DK are on port 0, pins 13, 14, 15, 16
+gpio_t led0 = { .port = 0, .pin = 13 };
+gpio_t led1 = { .port = 0, .pin = 14 };
+gpio_t led2 = { .port = 0, .pin = 15 };
+gpio_t led3 = { .port = 0, .pin = 16 };
 #define DEBUG_GPIO_TOGGLE(pin) db_gpio_toggle(pin)
 #define DEBUG_GPIO_SET(pin) db_gpio_set(pin)
 #define DEBUG_GPIO_CLEAR(pin) db_gpio_clear(pin)
@@ -176,6 +182,10 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
     db_gpio_init(&pin1, DB_GPIO_OUT);
     db_gpio_init(&pin2, DB_GPIO_OUT);
     db_gpio_init(&pin3, DB_GPIO_OUT);
+    db_gpio_init(&led0, DB_GPIO_OUT);
+    db_gpio_init(&led1, DB_GPIO_OUT);
+    db_gpio_init(&led2, DB_GPIO_OUT);
+    db_gpio_init(&led3, DB_GPIO_OUT);
 #endif
 
     // initialize the high frequency timer
@@ -189,7 +199,7 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
     mac_vars.device_id = db_device_id();
 
     // join stuff
-    mac_vars.join_state = JOIN_STATE_IDLE;
+    set_join_state(JOIN_STATE_IDLE);
 
     // synchronization stuff
     mac_vars.asn = 0;
@@ -243,11 +253,31 @@ static void set_slot_state(bl_mac_state_t state) {
 static inline void set_join_state(bl_join_state_t join_state) {
     mac_vars.join_state = join_state;
 
-    if (join_state == JOIN_STATE_SYNCED) {
-        // TODO: LED on
-    } else {
-        // TODO: LED off
+#ifdef DEBUG
+    switch (join_state) {
+        case JOIN_STATE_IDLE:
+            // remember: the LEDs are active low
+            DEBUG_GPIO_SET(&led0); DEBUG_GPIO_SET(&led1); DEBUG_GPIO_SET(&led2); DEBUG_GPIO_SET(&led3);
+            break;
+        case JOIN_STATE_SCANNING:
+            DEBUG_GPIO_CLEAR(&led0);
+            break;
+        case JOIN_STATE_SYNCED:
+            DEBUG_GPIO_CLEAR(&led1);
+            break;
+        case JOIN_STATE_JOINING:
+            DEBUG_GPIO_CLEAR(&led2);
+            break;
+        case JOIN_STATE_JOINED:
+            DEBUG_GPIO_CLEAR(&led3);
+            if (mac_vars.is_background_scanning) {
+                DEBUG_GPIO_CLEAR(&led0);
+            }
+            break;
+        default:
+            break;
     }
+#endif
 }
 
 static void new_slot(void) {
@@ -296,7 +326,6 @@ static void new_slot(void) {
                     set_join_state(JOIN_STATE_IDLE);
                 }
                 end_slot();
-                return;
             }
             break;
         case JOIN_STATE_SYNCED: // only NODE
@@ -355,6 +384,9 @@ static void new_slot(void) {
                     }
                 }
             }
+            // should never reach this point
+            set_slot_state(STATE_SLEEP);
+            end_slot();
             break;
         default:
             break;
