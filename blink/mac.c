@@ -104,6 +104,7 @@ typedef struct {
     bl_join_state_t join_state; ///< State regarding network join, from scan to sync to joined
 
     // SCANNING state
+    uint8_t scan_max_slots; ///< Maximum number of slots to scan
     uint32_t scan_started_ts; ///< Timestamp of the start of the scan
     uint32_t scan_started_asn; ///< ASN when the scan started
     uint32_t current_scan_item_ts; ///< Timestamp of the current scan item
@@ -197,6 +198,9 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
     // node stuff
     mac_vars.node_type = node_type;
     mac_vars.device_id = db_device_id();
+
+    // scan stuff
+    mac_vars.scan_max_slots = BLINK_SCAN_MAX_SLOTS;
 
     // synchronization stuff
     mac_vars.asn = 0;
@@ -312,7 +316,7 @@ static void new_slot(void) {
             }
             break;
         case JOIN_STATE_SCANNING: // only NODE
-            if (mac_vars.asn - mac_vars.scan_started_asn < BLINK_SCAN_MAX_SLOTS) {
+            if (mac_vars.asn - mac_vars.scan_started_asn < mac_vars.scan_max_slots) {
                 // still have time to scan more
                 activity_scan_new_slot();
             } else {
@@ -364,7 +368,7 @@ static void new_slot(void) {
                 }
                 if (mac_vars.is_background_scanning) {
                     // background scan in progress
-                    if (mac_vars.asn - mac_vars.scan_started_asn < BLINK_SCAN_MAX_SLOTS) {
+                    if (mac_vars.asn - mac_vars.scan_started_asn < mac_vars.scan_max_slots) {
                         // still have time to scan more
                         if (slot_info.available_for_scan) {
                             activity_scan_new_slot();
@@ -614,7 +618,7 @@ static bool select_gateway_and_sync(void) {
     // advance the saved timestamp to match the gateway's, and use it as a synchronization reference
     mac_vars.synced_ts = mac_vars.selected_channel_info.timestamp + (asn_diff * slot_durations.whole_slot);
     // adjust for tx radio delay
-    mac_vars.synced_ts -= 200; // FIXME: this is arbitrary (should be the tx_offset?)
+    mac_vars.synced_ts -= BLINK_TS_TX_OFFSET + BLINK_RX_GUARD_TIME; // FIXME: this is arbitrary (should be the tx_offset?)
 
     if (mac_vars.synced_ts < now_ts) {
         // if the calculated ts is in the past, skip a slot
@@ -724,19 +728,32 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
         // success
     } while (0);
 
-    // some error processing the packet, go back to listen (radio was and continues to be in rx mode)
-    set_slot_state(STATE_SCAN_LISTEN);
-
-    // if there is still time, schedule rx to be turned on again
-    // (do not do it immediately, because this runs in isr context and might interfere with `if (NRF_RADIO->EVENTS_DISABLED)` in RADIO_IRQHandler)
+    bool can_continue = true;
     uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
-    if (now_ts + BLINK_BEACON_TOA_WITH_PADDING < mac_vars.start_slot_ts + slot_durations.whole_slot) {
+
+    // background scanning is limited in that we can't scan across slots
+    // - NOTE: can we improve this by adding a bl_scheduler_peek_next_slot(asn+1) function?
+    if (mac_vars.is_background_scanning) {
+        // if there is still time within this slot, we can continue scanning
+        if (now_ts + BLINK_BEACON_TOA_WITH_PADDING > mac_vars.start_slot_ts + slot_durations.whole_slot) {
+            can_continue = false;
+        }
+    }
+
+    if (can_continue) {
+        set_slot_state(STATE_SCAN_LISTEN);
+        // 6we cannot call rx immediately, because this runs in isr context
+        // and it might interfere with `if (NRF_RADIO->EVENTS_DISABLED)` in RADIO_IRQHandler
         set_timer_and_compensate(
             BLINK_TIMER_CHANNEL_2,
-            10, // arbitrary value, just to give some time for the radio to turn off
+            20, // arbitrary value, just to give some time for the radio to turn off
             now_ts,
             &bl_radio_rx
         );
+    } else {
+        // no more time to scan, end the slot
+        set_slot_state(STATE_SLEEP);
+        end_slot();
     }
 }
 
