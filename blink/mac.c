@@ -198,11 +198,12 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
     mac_vars.node_type = node_type;
     mac_vars.device_id = db_device_id();
 
-    // join stuff
-    set_join_state(JOIN_STATE_IDLE);
-
     // synchronization stuff
     mac_vars.asn = 0;
+
+    // join stuff
+    set_join_state(JOIN_STATE_IDLE);
+    mac_vars.is_background_scanning = false;
 
     // application callback
     mac_vars.app_rx_callback = rx_callback;
@@ -346,6 +347,7 @@ static void new_slot(void) {
             if (mac_vars.node_type == BLINK_GATEWAY) {
                 // just normal tx/rx (normal tx packets from the queue, or join responses (depending on the slot type))
                 activity_ti1_or_ri1(slot_info.radio_action);
+                break;
             } else { // BLINK_NODE
                 if (!mac_vars.is_background_scanning && !slot_info.available_for_scan) {
                     // no scan involved, just a regular slot doing its thing
