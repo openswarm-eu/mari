@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 #include "scheduler.h"
-#include "maclow.h"
+#include "mac.h"
 #include "timer_hf.h"
 #include "device.h"
 
@@ -40,9 +40,9 @@ int main(void) {
     for (size_t j = 0; j < n_slotframes; j++) {
         for (size_t i = 0; i < schedule.n_cells; i++) {
             uint32_t start_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
-            bl_radio_event_t event = bl_scheduler_tick(asn++);
+            bl_slot_info_t slot_info = bl_scheduler_tick(asn++);
             printf("Scheduler tick took %d us\n", bl_timer_hf_now(BLINK_TIMER_DEV) - start_ts);
-            printf(">> Event %c:   %c, %d\n", event.slot_type, event.radio_action, event.channel);
+            printf(">> Event %c:   %c, %d\n", slot_info.type, slot_info.radio_action, slot_info.channel);
 
             // sleep for the duration of the slot
             bl_timer_hf_delay_us(BLINK_TIMER_DEV, SLOT);

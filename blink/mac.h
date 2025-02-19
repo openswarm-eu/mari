@@ -55,7 +55,7 @@ typedef enum {
     SLOT_TYPE_SHARED_UPLINK = 'S',
     SLOT_TYPE_DOWNLINK = 'D',
     SLOT_TYPE_UPLINK = 'U',
-} slot_type_t; // FIXME: slot_type or cell_type?
+} slot_type_t;
 
 /* Duration of intra-slot sections */
 typedef struct {
@@ -80,10 +80,10 @@ extern bl_slot_durations_t slot_durations;
 typedef struct {
     bl_radio_action_t radio_action;
     uint8_t channel;
-    slot_type_t slot_type;
+    slot_type_t type;
     bool available_for_scan;
     bool slot_can_join;
-} bl_radio_event_t;
+} bl_slot_info_t;
 
 //=========================== prototypes ==========================================
 

@@ -69,8 +69,7 @@ void bl_scheduler_init(bl_node_type_t node_type, schedule_t *application_schedul
  *
  * @return A configuration for the TSCH radio driver to follow in the next slot.
  */
-// bl_radio_event_t bl_scheduler_tick(void);
-bl_radio_event_t bl_scheduler_tick(uint64_t asn);
+bl_slot_info_t bl_scheduler_tick(uint64_t asn);
 
 /**
  * @brief Activates a given schedule.

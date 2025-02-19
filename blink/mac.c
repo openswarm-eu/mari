@@ -264,7 +264,7 @@ static void new_slot(void) {
         &new_slot
     );
 
-    bl_radio_event_t radio_event = bl_scheduler_tick(mac_vars.asn);
+    bl_slot_info_t slot_info = bl_scheduler_tick(mac_vars.asn);
 
     switch (mac_vars.join_state) {
         case JOIN_STATE_IDLE: // NODE or GATEWAY
@@ -301,13 +301,13 @@ static void new_slot(void) {
             break;
         case JOIN_STATE_SYNCED: // only NODE
             // FIXME(dbg): doing tx/rx here just for debugging, in reality will jump straight to JOIN_STATE_JOINING
-            activity_ti1_or_ri1(radio_event.radio_action);
+            activity_ti1_or_ri1(slot_info.radio_action);
             break;
         case JOIN_STATE_JOINING: // only NODE
-            if (!mac_vars.waiting_join_response && radio_event.slot_can_join) {
+            if (!mac_vars.waiting_join_response && slot_info.slot_can_join) {
                 // put a JoinRequest at the head of the queue
                 activity_ti1();
-            } else if (mac_vars.waiting_join_response && radio_event.slot_type == SLOT_TYPE_DOWNLINK) {
+            } else if (mac_vars.waiting_join_response && slot_info.type == SLOT_TYPE_DOWNLINK) {
                 // receive a JoinResponse and change state to JOIN_STATE_JOINED
                 activity_ri1();
             }
@@ -316,14 +316,14 @@ static void new_slot(void) {
             // TODO: handle handover
             if (mac_vars.node_type == BLINK_GATEWAY) {
                 // just normal tx/rx (normal tx packets from the queue, or join responses (depending on the slot type))
-                activity_ti1_or_ri1(radio_event.radio_action);
+                activity_ti1_or_ri1(slot_info.radio_action);
             } else { // BLINK_NODE
-                if (!mac_vars.is_background_scanning && !radio_event.available_for_scan) {
+                if (!mac_vars.is_background_scanning && !slot_info.available_for_scan) {
                     // no scan involved, just a regular slot doing its thing
-                    activity_ti1_or_ri1(radio_event.radio_action);
+                    activity_ti1_or_ri1(slot_info.radio_action);
                     break;
                 }
-                if (!mac_vars.is_background_scanning && radio_event.available_for_scan) {
+                if (!mac_vars.is_background_scanning && slot_info.available_for_scan) {
                     // time to start a background scan
                     mac_vars.is_background_scanning = true;
                     mac_vars.scan_started_asn = mac_vars.asn;
@@ -335,7 +335,7 @@ static void new_slot(void) {
                     // background scan in progress
                     if (mac_vars.asn - mac_vars.scan_started_asn < BLINK_SCAN_MAX_SLOTS) {
                         // still have time to scan more
-                        if (radio_event.available_for_scan) {
+                        if (slot_info.available_for_scan) {
                             activity_scan_new_slot();
                         }
                         break;
