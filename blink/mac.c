@@ -166,7 +166,6 @@ static void activity_scan_start_frame(uint32_t ts);
 static void activity_scan_end_frame(uint32_t ts);
 static void activity_scan_end_slot(void);
 static bool select_gateway_and_sync(void);
-static void synchronize_timers(void);
 
 static void isr_mac_radio_start_frame(uint32_t ts);
 static void isr_mac_radio_end_frame(uint32_t ts);
@@ -223,13 +222,13 @@ static void set_slot_state(bl_mac_state_t state) {
     if (mac_vars.join_state == JOIN_STATE_SCANNING) {
         switch (state) {
             case STATE_SCAN_LISTEN:
-                DEBUG_GPIO_SET(&pin3);
+                // DEBUG_GPIO_SET(&pin3);
             case STATE_SCAN_RX:
                 DEBUG_GPIO_SET(&pin1);
                 break;
             case STATE_SLEEP:
                 DEBUG_GPIO_CLEAR(&pin1);
-                DEBUG_GPIO_CLEAR(&pin3);
+                // DEBUG_GPIO_CLEAR(&pin3);
                 break;
             default:
                 break;
@@ -239,14 +238,14 @@ static void set_slot_state(bl_mac_state_t state) {
 
     switch (state) {
         case STATE_RX_DATA_LISTEN:
-            DEBUG_GPIO_SET(&pin3);
+            // DEBUG_GPIO_SET(&pin3);
         case STATE_TX_DATA:
         case STATE_RX_DATA:
             DEBUG_GPIO_SET(&pin1);
             break;
         case STATE_SLEEP:
             DEBUG_GPIO_CLEAR(&pin1);
-            DEBUG_GPIO_CLEAR(&pin3);
+            // DEBUG_GPIO_CLEAR(&pin3);
             break;
         default:
             break;
@@ -286,17 +285,17 @@ static inline void set_join_state(bl_join_state_t join_state) {
 static void new_slot(void) {
     mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
 
-    DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0);
-    if (mac_vars.join_state == JOIN_STATE_SYNCED) { DEBUG_GPIO_CLEAR(&pin1); DEBUG_GPIO_CLEAR(&pin2); DEBUG_GPIO_CLEAR(&pin3); }
-
     // set the timer for the next slot
     bl_timer_hf_set_oneshot_with_ref_us(
         BLINK_TIMER_DEV,
         BLINK_TIMER_INTER_SLOT_CHANNEL,
-        slot_durations.whole_slot,
         mac_vars.start_slot_ts,
+        slot_durations.whole_slot,
         &new_slot
     );
+
+    DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0);
+    if (mac_vars.join_state == JOIN_STATE_SYNCED) { DEBUG_GPIO_CLEAR(&pin1); DEBUG_GPIO_CLEAR(&pin2); DEBUG_GPIO_CLEAR(&pin3); }
 
     bl_slot_info_t slot_info = bl_scheduler_tick(mac_vars.asn);
 
@@ -438,16 +437,16 @@ static void activity_ti1(void) {
     bl_timer_hf_set_oneshot_with_ref_us( // TODO: use PPI instead
         BLINK_TIMER_DEV,
         BLINK_TIMER_CHANNEL_1,
-        slot_durations.tx_offset,
         mac_vars.start_slot_ts,
+        slot_durations.tx_offset,
         &activity_ti2
     );
 
     bl_timer_hf_set_oneshot_with_ref_us(
         BLINK_TIMER_DEV,
         BLINK_TIMER_CHANNEL_2,
-        slot_durations.tx_offset + slot_durations.tx_max,
         mac_vars.start_slot_ts,
+        slot_durations.tx_offset + slot_durations.tx_max,
         &activity_tie1
     );
 
@@ -504,24 +503,24 @@ static void activity_ri1(void) {
     bl_timer_hf_set_oneshot_with_ref_us( // TODO: use PPI instead
         BLINK_TIMER_DEV,
         BLINK_TIMER_CHANNEL_1,
-        slot_durations.rx_offset,
         mac_vars.start_slot_ts,
+        slot_durations.rx_offset,
         &activity_ri2
     );
 
     bl_timer_hf_set_oneshot_with_ref_us(
         BLINK_TIMER_DEV,
         BLINK_TIMER_CHANNEL_2,
-        slot_durations.tx_offset + slot_durations.rx_guard,
         mac_vars.start_slot_ts,
+        slot_durations.tx_offset + slot_durations.rx_guard,
         &activity_rie1
     );
 
     bl_timer_hf_set_oneshot_with_ref_us(
         BLINK_TIMER_DEV,
         BLINK_TIMER_CHANNEL_3,
-        slot_durations.rx_offset + slot_durations.rx_max,
         mac_vars.start_slot_ts,
+        slot_durations.rx_offset + slot_durations.rx_max,
         &activity_rie2
     );
 }
@@ -582,8 +581,8 @@ static bool select_gateway_and_sync(void) {
     disable_radio_and_intra_slot_timers();
 
     // select best channel_info
-    uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
-    mac_vars.selected_channel_info = bl_scan_select(mac_vars.scan_started_ts, now_ts);
+    // uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
+    mac_vars.selected_channel_info = bl_scan_select(mac_vars.scan_started_ts, mac_vars.start_slot_ts);
     if (mac_vars.selected_channel_info.timestamp == 0) {
         // no gateway found
         set_slot_state(STATE_SLEEP);
@@ -616,7 +615,9 @@ static bool select_gateway_and_sync(void) {
 
     // the selected gateway may have been scanned a few slot_durations ago, so we need to account for that difference
     // NOTE: this assumes that the slot duration is the same for gateways and nodes
-    uint64_t asn_diff = (now_ts - mac_vars.selected_channel_info.timestamp) / slot_durations.whole_slot;
+    // uint64_t asn_diff = (mac_vars.start_slot_ts - mac_vars.selected_channel_info.timestamp) / slot_durations.whole_slot;
+    uint64_t asn_diff = mac_vars.asn - mac_vars.scan_started_asn;
+
     // advance the asn to match the gateway's
     mac_vars.asn = mac_vars.selected_channel_info.beacon.asn + asn_diff;
     // advance the saved timestamp to match the gateway's, and use it as a synchronization reference
@@ -624,7 +625,7 @@ static bool select_gateway_and_sync(void) {
     // adjust for tx radio delay
     mac_vars.synced_ts -= BLINK_TS_TX_OFFSET + BLINK_RX_GUARD_TIME; // FIXME: this is arbitrary (should be the tx_offset?)
 
-    if (mac_vars.synced_ts < now_ts) {
+    if (mac_vars.synced_ts < mac_vars.start_slot_ts) {
         // if the calculated ts is in the past, skip a slot
         mac_vars.synced_ts += slot_durations.whole_slot;
     }
@@ -635,8 +636,15 @@ static bool select_gateway_and_sync(void) {
         mac_vars.synced_ts += slot_durations.whole_slot;
     }
 
-    // actually synchronize the timers, and set the state
-    synchronize_timers();
+    // set new slot ticking reference, overriding the timer set at new_slot
+    bl_timer_hf_set_oneshot_with_ref_us(
+        BLINK_TIMER_DEV,
+        BLINK_TIMER_INTER_SLOT_CHANNEL, // overrides the currently set timer, which is non-synchronized
+        mac_vars.synced_ts, // timestamp of the beacon at start_frame (which matches the start of the slot for synced_gateway), corrected by the asn_diff to account for the scan delay
+        slot_durations.whole_slot - 10,
+        &new_slot
+    );
+
     set_slot_state(STATE_SLEEP);
 
     // synchronization is done!
@@ -655,8 +663,8 @@ static void activity_scan_new_slot(void) {
     bl_timer_hf_set_oneshot_with_ref_us(
         BLINK_TIMER_DEV,
         BLINK_TIMER_CHANNEL_1,
-        slot_durations.whole_slot - slot_durations.end_guard,
         mac_vars.start_slot_ts,
+        slot_durations.whole_slot - slot_durations.end_guard,
         &activity_scan_end_slot
     );
 
@@ -761,20 +769,6 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
         set_slot_state(STATE_SLEEP);
         end_slot();
     }
-}
-
-// adjust timers based on mac_vars.synced_ts
-static void synchronize_timers(void) {
-    // TODO: handle case when too close to end of slot
-
-    // set new slot ticking reference, overriding the timer set at new_slot
-    bl_timer_hf_set_oneshot_with_ref_us(
-        BLINK_TIMER_DEV,
-        BLINK_TIMER_INTER_SLOT_CHANNEL, // overrides the currently set timer, which is non-synchronized
-        slot_durations.whole_slot,
-        mac_vars.synced_ts, // timestamp of the beacon at start_frame (which matches the start of the slot for synced_gateway), corrected by the asn_diff to account for the scan delay
-        &new_slot
-    );
 }
 
 // --------------------- tx/rx activities ------------
