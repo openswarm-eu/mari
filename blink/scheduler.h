@@ -46,7 +46,7 @@ typedef struct {
 
 typedef struct {
     uint8_t id; // unique identifier for the schedule
-    uint8_t max_nodes; // maximum number of nodes that can be scheduled, equivalent to the number of uplink slots
+    uint8_t max_nodes; // maximum number of nodes that can be scheduled, equivalent to the number of uplink slot_durations
     uint8_t backoff_n_min; // minimum exponent for the backoff algorithm
     uint8_t backoff_n_max; // maximum exponent for the backoff algorithm
     size_t n_cells; // number of cells in this schedule
@@ -69,8 +69,7 @@ void bl_scheduler_init(bl_node_type_t node_type, schedule_t *application_schedul
  *
  * @return A configuration for the TSCH radio driver to follow in the next slot.
  */
-// bl_radio_event_t bl_scheduler_tick(void);
-bl_radio_event_t bl_scheduler_tick(uint64_t asn);
+bl_slot_info_t bl_scheduler_tick(uint64_t asn);
 
 /**
  * @brief Activates a given schedule.
@@ -114,5 +113,7 @@ bool bl_scheduler_deassign_uplink_cell(uint64_t node_id);
  *
  */
 uint8_t bl_scheduler_get_channel(slot_type_t slot_type, uint64_t asn, uint8_t channel_offset);
+
+uint8_t bl_scheduler_get_active_schedule_id(void);
 
 #endif

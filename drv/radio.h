@@ -20,6 +20,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <nrf.h>
 
 //=========================== defines ==========================================
@@ -55,7 +56,7 @@ typedef void (*radio_ts_packet_t)(uint32_t ts);  ///< capture timestamp for star
  * @param[in] mode     Mode used by the radio BLE (1MBit, 2MBit, LR125KBit, LR500Kbit) or IEEE 802.15.4 (250Kbit)
  *
  */
-void bl_radio_init(radio_cb_t rx_cb, radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb, bl_radio_mode_t mode);
+void bl_radio_init(radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb, bl_radio_mode_t mode);
 
 /**
  * @brief Set the tx-rx frequency of the radio, by the following formula
@@ -122,6 +123,7 @@ int8_t bl_radio_rssi(void);
  */
 void bl_radio_disable(void);
 
+bool bl_radio_pending_rx_read(void);
 void bl_radio_get_rx_packet(uint8_t *packet, uint8_t *length);
 
 void bl_radio_tx_prepare(const uint8_t *tx_buffer, uint8_t length);

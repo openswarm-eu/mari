@@ -33,12 +33,15 @@
 #endif
 
 #define RADIO_TIFS          0U  ///< Inter frame spacing in us. zero means IFS is enforced by software, not the hardware
-#define RADIO_SHORTS_COMMON (RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos) |                 \
-                                (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos) |             \
-                                (RADIO_SHORTS_ADDRESS_RSSISTART_Enabled << RADIO_SHORTS_ADDRESS_RSSISTART_Pos) | \
-                                (RADIO_SHORTS_DISABLED_RSSISTOP_Enabled << RADIO_SHORTS_DISABLED_RSSISTOP_Pos)
-#define RADIO_INTERRUPTS (RADIO_INTENSET_DISABLED_Enabled << RADIO_INTENSET_DISABLED_Pos) | \
-                             (RADIO_INTENSET_ADDRESS_Enabled << RADIO_INTENSET_ADDRESS_Pos)
+
+#define RADIO_SHORTS_COMMON (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos) | \
+                            (RADIO_SHORTS_ADDRESS_RSSISTART_Enabled << RADIO_SHORTS_ADDRESS_RSSISTART_Pos) | \
+                            (RADIO_SHORTS_DISABLED_RSSISTOP_Enabled << RADIO_SHORTS_DISABLED_RSSISTOP_Pos)
+
+#define RADIO_INTERRUPTS    (RADIO_INTENSET_ADDRESS_Enabled << RADIO_INTENSET_ADDRESS_Pos) | \
+                            (RADIO_INTENSET_END_Enabled << RADIO_INTENSET_END_Pos) | \
+                            (RADIO_INTENSET_DISABLED_Enabled << RADIO_INTENSET_DISABLED_Pos)
+
 #define RADIO_STATE_IDLE 0x00
 #define RADIO_STATE_RX   0x01
 #define RADIO_STATE_TX   0x02
@@ -52,7 +55,7 @@ typedef struct __attribute__((packed)) {
 
 typedef struct {
     radio_pdu_t     pdu;       ///< Variable that stores the radio PDU (protocol data unit) that arrives and the radio packets that are about to be sent.
-    radio_cb_t      rx_cb;     ///< Function pointer, stores the callback to use in the RADIO_Irq handler.
+    bool            pending_rx_read; ///< Flag to indicate that a PDU has been received, but not yet read by the application.
     radio_ts_packet_t start_pac_cb;  ///< Function pointer, stores the callback to capture the start of the packet.
     radio_ts_packet_t end_pac_cb;      ///< Function pointer, stores the callback to capture the end of the packet.
     uint8_t         state;     ///< Internal state of the radio
@@ -81,7 +84,7 @@ static void _radio_enable(void);
 
 //=========================== public ===========================================
 
-void bl_radio_init(radio_cb_t rx_cb, radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb, bl_radio_mode_t mode) {
+void bl_radio_init(radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb, bl_radio_mode_t mode) {
 
 #if defined(NRF5340_XXAA)
     // On nrf53 configure constant latency mode for better performances
@@ -203,8 +206,7 @@ void bl_radio_init(radio_cb_t rx_cb, radio_ts_packet_t start_pac_cb, radio_ts_pa
         NRF_RADIO->PACKETPTR = (uint32_t)&radio_vars.pdu;
     }
 
-    // Assign the rx_cb function that will be called when a radio packet is received.
-    radio_vars.rx_cb = rx_cb;
+    // Assign the callbacks that will be called in the RADIO_IRQHandler
     radio_vars.start_pac_cb = start_pac_cb;
     radio_vars.end_pac_cb = end_pac_cb;
     radio_vars.state    = RADIO_STATE_IDLE;
@@ -235,44 +237,6 @@ void bl_radio_set_channel(uint8_t channel) {
     bl_radio_set_frequency(freq);
 }
 
-void bl_radio_set_network_address(uint32_t addr) {
-    NRF_RADIO->BASE0 = addr;
-}
-
-void bl_radio_tx(const uint8_t *tx_buffer, uint8_t length) {
-    radio_vars.pdu.length = length;
-    memcpy(radio_vars.pdu.payload, tx_buffer, length);
-
-    NRF_RADIO->SHORTS = RADIO_SHORTS_COMMON | (RADIO_SHORTS_DISABLED_RXEN_Enabled << RADIO_SHORTS_DISABLED_RXEN_Pos);
-
-    if (radio_vars.state == RADIO_STATE_IDLE) {
-
-        // Enable the Radio to send the packet
-        NRF_RADIO->EVENTS_DISABLED = 0;  // We must use EVENT_DISABLED, if we use EVENT_END. the interrupts will be enabled in the time between the END event and the Disable event, triggering an undesired interrupt
-        NRF_RADIO->TASKS_TXEN      = RADIO_TASKS_TXEN_TASKS_TXEN_Trigger << RADIO_TASKS_TXEN_TASKS_TXEN_Pos;
-        // Wait for transmission to end and the radio to be disabled
-        while (NRF_RADIO->EVENTS_DISABLED == 0) {}
-
-        // We re-enable interrupts AFTER the packet is sent, to avoid triggering an EVENT_ADDRESS and EVENT_DISABLED interrupt with the outgoing packet
-        // We also clear both flags to avoid insta-triggering an interrupt as soon as we assert INTENSET
-        NRF_RADIO->EVENTS_ADDRESS  = 0;
-        NRF_RADIO->EVENTS_DISABLED = 0;
-        _radio_enable();
-    }
-    radio_vars.state = RADIO_STATE_RX;
-}
-
-void bl_radio_rx(void) {
-    NRF_RADIO->SHORTS   = RADIO_SHORTS_COMMON | (RADIO_SHORTS_DISABLED_RXEN_Enabled << RADIO_SHORTS_DISABLED_RXEN_Pos);
-    NRF_RADIO->INTENSET = RADIO_INTERRUPTS;
-
-    if (radio_vars.state == RADIO_STATE_IDLE) {
-        _radio_enable();
-        NRF_RADIO->TASKS_RXEN = RADIO_TASKS_RXEN_TASKS_RXEN_Trigger;
-    }
-    radio_vars.state = RADIO_STATE_RX;
-}
-
 void bl_radio_disable(void) {
     NRF_RADIO->INTENCLR        = RADIO_INTERRUPTS;
     NRF_RADIO->SHORTS          = 0;
@@ -286,41 +250,62 @@ int8_t bl_radio_rssi(void) {
     return (uint8_t)NRF_RADIO->RSSISAMPLE * -1;
 }
 
+bool bl_radio_pending_rx_read(void) {
+    return radio_vars.pending_rx_read;
+}
+
 void bl_radio_get_rx_packet(uint8_t *packet, uint8_t *length) {
     *length = radio_vars.pdu.length;
     memcpy(packet, radio_vars.pdu.payload, radio_vars.pdu.length);
+    radio_vars.pending_rx_read = false;
+}
+
+//--------------------------- send and receive --------------------------------
+
+// TODO: split into bl_radio_rx_prepare and bl_radio_rx_dispatch
+//       includes disabling the RXREADY_START short
+void bl_radio_rx(void) {
+    if (radio_vars.state != RADIO_STATE_IDLE) {
+        return;
+    }
+
+    // enable the radio shorts and interrupts
+    NRF_RADIO->SHORTS = RADIO_SHORTS_COMMON | (RADIO_SHORTS_RXREADY_START_Enabled << RADIO_SHORTS_RXREADY_START_Pos);
+    _radio_enable();
+
+    NRF_RADIO->TASKS_RXEN = RADIO_TASKS_RXEN_TASKS_RXEN_Trigger;
+    radio_vars.state = RADIO_STATE_RX;
 }
 
 void bl_radio_tx_prepare(const uint8_t *tx_buffer, uint8_t length) {
     radio_vars.pdu.length = length;
     memcpy(radio_vars.pdu.payload, tx_buffer, length);
+
+    // ramp up the radio for tx (packet will not be sent yet)
+    NRF_RADIO->TASKS_TXEN = RADIO_TASKS_TXEN_TASKS_TXEN_Trigger << RADIO_TASKS_TXEN_TASKS_TXEN_Pos;
 }
 
 void bl_radio_tx_dispatch(void) {
-    NRF_RADIO->SHORTS = RADIO_SHORTS_COMMON | (RADIO_SHORTS_DISABLED_RXEN_Enabled << RADIO_SHORTS_DISABLED_RXEN_Pos);
-    if (radio_vars.state == RADIO_STATE_IDLE) {
-
-        // Enable the Radio to send the packet
-        NRF_RADIO->EVENTS_DISABLED = 0;  // We must use EVENT_DISABLED, if we use EVENT_END. the interrupts will be enabled in the time between the END event and the Disable event, triggering an undesired interrupt
-        NRF_RADIO->TASKS_TXEN      = RADIO_TASKS_TXEN_TASKS_TXEN_Trigger << RADIO_TASKS_TXEN_TASKS_TXEN_Pos;
-        // Wait for transmission to end and the radio to be disabled
-        while (NRF_RADIO->EVENTS_DISABLED == 0) {}
-
-        // We re-enable interrupts AFTER the packet is sent, to avoid triggering an EVENT_ADDRESS and EVENT_DISABLED interrupt with the outgoing packet
-        // We also clear both flags to avoid insta-triggering an interrupt as soon as we assert INTENSET
-        NRF_RADIO->EVENTS_ADDRESS  = 0;
-        NRF_RADIO->EVENTS_DISABLED = 0;
-        _radio_enable();
+    if (radio_vars.state != RADIO_STATE_IDLE) {
+        return;
     }
-    radio_vars.state = RADIO_STATE_RX;
-}
 
+    // enable the radio shorts and interrupts
+    NRF_RADIO->SHORTS = RADIO_SHORTS_COMMON;
+    _radio_enable();
+
+    // tell radio to start transmission
+    NRF_RADIO->TASKS_START      = RADIO_TASKS_START_TASKS_START_Trigger << RADIO_TASKS_START_TASKS_START_Pos;
+    radio_vars.state = RADIO_STATE_TX;
+}
 
 //=========================== private ==========================================
 
 static void _radio_enable(void) {
+    NRF_RADIO->EVENTS_ADDRESS  = 0;
+    NRF_RADIO->EVENTS_END      = 0;
     NRF_RADIO->EVENTS_DISABLED = 0;
-    NRF_RADIO->INTENSET        = RADIO_INTERRUPTS;
+    NRF_RADIO->INTENSET = RADIO_INTERRUPTS;
 }
 
 //=========================== interrupt handlers ===============================
@@ -330,39 +315,56 @@ static void _radio_enable(void) {
  *
  * This function will be called each time a radio packet is received.
  * it will clear the interrupt, copy the last received packet
- * and called the user-defined rx_cb to process the package.
+ * and called the user-defined callbacks to process the packet.
  *
  */
 void RADIO_IRQHandler(void) {
     uint8_t timer_dev = 2; // FIXME: pass by parameter, or have radio report it somehow
-    uint32_t now = bl_timer_hf_now(timer_dev);
+    uint32_t now_ts = bl_timer_hf_now(timer_dev);
+    uint8_t dbg = 0;
 
+    // just started sending or receiving: clear interrupt flag, set radio as busy, and report packet start time
     if (NRF_RADIO->EVENTS_ADDRESS) {
         NRF_RADIO->EVENTS_ADDRESS = 0;
+        dbg |= 1;
         radio_vars.state |= RADIO_STATE_BUSY;
         if (radio_vars.start_pac_cb) {
-            radio_vars.start_pac_cb(now);
+            radio_vars.start_pac_cb(now_ts);
         }
     }
 
-    if (NRF_RADIO->EVENTS_DISABLED) {
-        // Clear the Interrupt flag
-        NRF_RADIO->EVENTS_DISABLED = 0;
-
+    // just finished sending or receiving: clear interrupt flag and report packet end time
+    if (NRF_RADIO->EVENTS_END) {
+        NRF_RADIO->EVENTS_END = 0;
+        dbg |= 2;
         if (radio_vars.state == (RADIO_STATE_BUSY | RADIO_STATE_RX)) {
+            // if rx, check the CRC
             if (NRF_RADIO->CRCSTATUS != RADIO_CRCSTATUS_CRCSTATUS_CRCOk) {
                 puts("Invalid CRC");
             } else {
                 if (radio_vars.end_pac_cb) {
-                    radio_vars.end_pac_cb(now);
-                }
-                if (radio_vars.rx_cb) {
-                    radio_vars.rx_cb(radio_vars.pdu.payload, radio_vars.pdu.length);
+                    radio_vars.pending_rx_read = true;
+                    radio_vars.end_pac_cb(now_ts);
                 }
             }
-            radio_vars.state = RADIO_STATE_RX;
-        } else {  // TX
-            radio_vars.state = RADIO_STATE_RX;
+        } else if (radio_vars.state == (RADIO_STATE_BUSY | RADIO_STATE_TX)) {
+            if (radio_vars.end_pac_cb) {
+                radio_vars.end_pac_cb(now_ts);
+            }
         }
     }
+
+    // radio has been disabled: clear interrupt flag, disable interrupts, and stay idle (off)
+    if (NRF_RADIO->EVENTS_DISABLED) {
+        NRF_RADIO->EVENTS_DISABLED = 0;
+        dbg |= 4;
+
+        // disable interrupts and shorts
+        NRF_RADIO->INTENCLR        = RADIO_INTERRUPTS;
+        NRF_RADIO->SHORTS          = 0;
+
+        // udpate state
+        radio_vars.state = RADIO_STATE_IDLE;
+    }
+    if (dbg) radio_vars.state = radio_vars.state;
 }

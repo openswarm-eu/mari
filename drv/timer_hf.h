@@ -59,6 +59,8 @@ void bl_timer_hf_set_periodic_us(timer_hf_t timer, uint8_t channel, uint32_t us,
  */
 void bl_timer_hf_set_oneshot_us(timer_hf_t timer, uint8_t channel, uint32_t us, timer_hf_cb_t cb);
 
+void bl_timer_hf_set_oneshot_with_ref_us(timer_hf_t timer, uint8_t channel, uint32_t base_us, uint32_t us, timer_hf_cb_t cb);
+
 /**
  * @brief Set a callback to be called once after an amount of milliseconds
  *
@@ -94,6 +96,8 @@ void bl_timer_hf_delay_us(timer_hf_t timer, uint32_t us);
  * @param[in] ms        delay in milliseconds
  */
 void bl_timer_hf_delay_ms(timer_hf_t timer, uint32_t ms);
+
+void bl_timer_hf_cancel(timer_hf_t timer, uint8_t channel);
 
 /**
  * @brief Add a delay in seconds using the high frequency timer
