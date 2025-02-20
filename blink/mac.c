@@ -168,8 +168,6 @@ static void activity_scan_end_slot(void);
 static bool select_gateway_and_sync(void);
 static void synchronize_timers(void);
 
-static inline void set_timer_and_compensate(uint8_t channel, uint32_t duration, uint32_t start_ts, timer_hf_cb_t callback);
-
 static void isr_mac_radio_start_frame(uint32_t ts);
 static void isr_mac_radio_end_frame(uint32_t ts);
 
@@ -292,7 +290,8 @@ static void new_slot(void) {
     if (mac_vars.join_state == JOIN_STATE_SYNCED) { DEBUG_GPIO_CLEAR(&pin1); DEBUG_GPIO_CLEAR(&pin2); DEBUG_GPIO_CLEAR(&pin3); }
 
     // set the timer for the next slot
-    set_timer_and_compensate(
+    bl_timer_hf_set_oneshot_with_ref_us(
+        BLINK_TIMER_DEV,
         BLINK_TIMER_INTER_SLOT_CHANNEL,
         slot_durations.whole_slot,
         mac_vars.start_slot_ts,
@@ -436,14 +435,16 @@ static void activity_ti1(void) {
     // called by: function new_slot
     set_slot_state(STATE_TX_OFFSET);
 
-    set_timer_and_compensate( // TODO: use PPI instead
+    bl_timer_hf_set_oneshot_with_ref_us( // TODO: use PPI instead
+        BLINK_TIMER_DEV,
         BLINK_TIMER_CHANNEL_1,
         slot_durations.tx_offset,
         mac_vars.start_slot_ts,
         &activity_ti2
     );
 
-    set_timer_and_compensate(
+    bl_timer_hf_set_oneshot_with_ref_us(
+        BLINK_TIMER_DEV,
         BLINK_TIMER_CHANNEL_2,
         slot_durations.tx_offset + slot_durations.tx_max,
         mac_vars.start_slot_ts,
@@ -500,21 +501,24 @@ static void activity_ri1(void) {
     // called by: function new_slot
     set_slot_state(STATE_RX_OFFSET);
 
-    set_timer_and_compensate( // TODO: use PPI instead
+    bl_timer_hf_set_oneshot_with_ref_us( // TODO: use PPI instead
+        BLINK_TIMER_DEV,
         BLINK_TIMER_CHANNEL_1,
         slot_durations.rx_offset,
         mac_vars.start_slot_ts,
         &activity_ri2
     );
 
-    set_timer_and_compensate(
+    bl_timer_hf_set_oneshot_with_ref_us(
+        BLINK_TIMER_DEV,
         BLINK_TIMER_CHANNEL_2,
         slot_durations.tx_offset + slot_durations.rx_guard,
         mac_vars.start_slot_ts,
         &activity_rie1
     );
 
-    set_timer_and_compensate(
+    bl_timer_hf_set_oneshot_with_ref_us(
+        BLINK_TIMER_DEV,
         BLINK_TIMER_CHANNEL_3,
         slot_durations.rx_offset + slot_durations.rx_max,
         mac_vars.start_slot_ts,
@@ -648,7 +652,8 @@ static void activity_scan_new_slot(void) {
     }
 
     // prepare timer for handler of end of this slot, to check if scan timeout has been reached
-    set_timer_and_compensate(
+    bl_timer_hf_set_oneshot_with_ref_us(
+        BLINK_TIMER_DEV,
         BLINK_TIMER_CHANNEL_1,
         slot_durations.whole_slot - slot_durations.end_guard,
         mac_vars.start_slot_ts,
@@ -744,7 +749,8 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
         set_slot_state(STATE_SCAN_LISTEN);
         // 6we cannot call rx immediately, because this runs in isr context
         // and it might interfere with `if (NRF_RADIO->EVENTS_DISABLED)` in RADIO_IRQHandler
-        set_timer_and_compensate(
+        bl_timer_hf_set_oneshot_with_ref_us(
+            BLINK_TIMER_DEV,
             BLINK_TIMER_CHANNEL_2,
             20, // arbitrary value, just to give some time for the radio to turn off
             now_ts,
@@ -762,7 +768,8 @@ static void synchronize_timers(void) {
     // TODO: handle case when too close to end of slot
 
     // set new slot ticking reference, overriding the timer set at new_slot
-    set_timer_and_compensate(
+    bl_timer_hf_set_oneshot_with_ref_us(
+        BLINK_TIMER_DEV,
         BLINK_TIMER_INTER_SLOT_CHANNEL, // overrides the currently set timer, which is non-synchronized
         slot_durations.whole_slot,
         mac_vars.synced_ts, // timestamp of the beacon at start_frame (which matches the start of the slot for synced_gateway), corrected by the asn_diff to account for the scan delay
@@ -771,19 +778,6 @@ static void synchronize_timers(void) {
 }
 
 // --------------------- tx/rx activities ------------
-
-// --------------------- timers ----------------------
-
-static inline void set_timer_and_compensate(uint8_t channel, uint32_t duration, uint32_t start_ts, timer_hf_cb_t callback) {
-    uint32_t elapsed_ts = bl_timer_hf_now(BLINK_TIMER_DEV) - start_ts;
-    // printf("Setting timer for duration %d, compensating for elapsed %d gives: %d\n", duration, elapsed_ts, duration - elapsed_ts);
-    bl_timer_hf_set_oneshot_us(
-        BLINK_TIMER_DEV,
-        channel,
-        duration - elapsed_ts,
-        callback
-    );
-}
 
 // --------------------- radio ---------------------
 inline static bool is_scanning(void) {
