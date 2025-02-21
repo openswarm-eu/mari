@@ -152,12 +152,12 @@ void bl_timer_hf_set_oneshot_us(timer_hf_t timer, uint8_t channel, uint32_t us, 
 }
 
 void bl_timer_hf_set_oneshot_with_ref_us(timer_hf_t timer, uint8_t channel, uint32_t base_us, uint32_t us, timer_hf_cb_t cb) {
-    assert(channel >= 0 && channel < _devs[timer].cc_num + 1);  // Make sure the required channel is correct
-    assert(cb);                                                 // Make sure the callback function is valid
+    // assert(channel >= 0 && channel < _devs[timer].cc_num + 1);  // Make sure the required channel is correct
+    // assert(cb);                                                 // Make sure the callback function is valid
 
     uint32_t now = bl_timer_hf_now(timer);
     uint32_t period_us = (now - base_us) + us;
-    _timer_hf_vars[timer].timer_callback[channel].period_us = period_us;// us - (bl_timer_hf_now(timer) - base_us);
+    _timer_hf_vars[timer].timer_callback[channel].period_us = period_us;
     _timer_hf_vars[timer].timer_callback[channel].one_shot  = true;
     _timer_hf_vars[timer].timer_callback[channel].callback  = cb;
     _devs[timer].p->INTENSET                                = (1 << (TIMER_INTENSET_COMPARE0_Pos + channel));

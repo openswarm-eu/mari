@@ -22,6 +22,7 @@
 typedef struct {
     int8_t                      rssi;
     uint32_t                    timestamp;
+    uint64_t                    captured_asn;
     bl_beacon_packet_header_t   beacon;
 } bl_channel_info_t;
 
@@ -32,7 +33,7 @@ typedef struct {
 
 //=========================== prototypes ======================================
 
-void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts_scan);
+void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts_scan, uint64_t asn_scan);
 
 bl_channel_info_t bl_scan_select(uint32_t ts_scan_started, uint32_t ts_scan_ended);
 

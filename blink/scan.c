@@ -17,7 +17,7 @@ scan_vars_t scan_vars = { 0 };
 
 //=========================== prototypes ======================================
 
-void _save_rssi(size_t idx, bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts_scan);
+void _save_rssi(size_t idx, bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts_scan, uint64_t asn_scan);
 uint32_t _get_ts_latest(bl_gateway_scan_t scan);
 bl_channel_info_t _get_channel_info_latest(bl_gateway_scan_t scan);
 bool _scan_is_too_old(bl_gateway_scan_t scan, uint32_t ts_scan);
@@ -33,7 +33,7 @@ bool _scan_is_too_old(bl_gateway_scan_t scan, uint32_t ts_scan);
 //   - and also, in most cases it will have to cycle through the whole list anyway, to find old readings to replace.
 // 3. Look for empty spots, in case the gateway_id is not yet in the list.
 // 4. Save the oldest reading, to be overwritten, in case there are no empty spots.
-void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts_scan) {
+void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts_scan, uint64_t asn_scan) {
     uint64_t gateway_id = beacon.src;
     bool found = false;
     int16_t empty_spot_idx = -1;
@@ -42,7 +42,7 @@ void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel,
     for (size_t i = 0; i < BLINK_MAX_SCAN_LIST_SIZE; i++) {
         // if found this gateway_id, update its respective rssi entry and mark as found.
         if (scan_vars.scans[i].gateway_id == gateway_id) {
-            _save_rssi(i, beacon, rssi, channel, ts_scan);
+            _save_rssi(i, beacon, rssi, channel, ts_scan, asn_scan);
             found = true;
             continue;
         }
@@ -73,13 +73,13 @@ void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel,
         //   either save it onto an empty spot, or override the oldest one
         if (empty_spot_idx >= 0) { // there is an empty spot
             scan_vars.scans[empty_spot_idx].gateway_id = gateway_id;
-            _save_rssi(empty_spot_idx, beacon, rssi, channel, ts_scan);
+            _save_rssi(empty_spot_idx, beacon, rssi, channel, ts_scan, asn_scan);
         } else {
             // last case: didn't match the gateeway_id, and didn't find an empty slot,
             // so overwrite the oldest reading
             memset(&scan_vars.scans[ts_oldest_all_idx], 0, sizeof(bl_gateway_scan_t));
             scan_vars.scans[ts_oldest_all_idx].gateway_id = gateway_id;
-            _save_rssi(ts_oldest_all_idx, beacon, rssi, channel, ts_scan);
+            _save_rssi(ts_oldest_all_idx, beacon, rssi, channel, ts_scan, asn_scan);
         }
     }
 }
@@ -127,10 +127,11 @@ bl_channel_info_t bl_scan_select(uint32_t ts_scan_started, uint32_t ts_scan_ende
 
 //=========================== private ==========================================
 
-inline void _save_rssi(size_t idx, bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts_scan) {
+inline void _save_rssi(size_t idx, bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts_scan, uint64_t asn_scan) {
     size_t channel_idx = channel % BLINK_N_BLE_REGULAR_CHANNELS;
     scan_vars.scans[idx].channel_info[channel_idx].rssi = rssi;
     scan_vars.scans[idx].channel_info[channel_idx].timestamp = ts_scan;
+    scan_vars.scans[idx].channel_info[channel_idx].captured_asn = asn_scan;
     scan_vars.scans[idx].channel_info[channel_idx].beacon = beacon;
 }
 

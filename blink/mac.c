@@ -106,7 +106,7 @@ typedef struct {
     // SCANNING state
     uint8_t scan_max_slots; ///< Maximum number of slots to scan
     uint32_t scan_started_ts; ///< Timestamp of the start of the scan
-    uint32_t scan_started_asn; ///< ASN when the scan started
+    uint64_t scan_started_asn; ///< ASN when the scan started
     uint32_t current_scan_item_ts; ///< Timestamp of the current scan item
     bl_channel_info_t selected_channel_info;
 
@@ -403,7 +403,7 @@ static void end_slot(void) {
     // do any needed cleanup
     bl_radio_disable();
 
-    // NOTE: clean all timers other than BLINK_TIMER_INTER_SLOT_CHANNEL ?
+    // NOTE: clean all numbered timers
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_1);
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_3);
@@ -412,7 +412,7 @@ static void end_slot(void) {
 static void disable_radio_and_intra_slot_timers(void) {
     bl_radio_disable();
 
-    // NOTE: clean all timers other than BLINK_TIMER_INTER_SLOT_CHANNEL ?
+    // NOTE: clean all timers
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_1);
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_3);
@@ -611,39 +611,39 @@ static bool select_gateway_and_sync(void) {
 
     // save the gateway address -- will try to join it in the next shared uplink slot
     mac_vars.synced_gateway = mac_vars.selected_channel_info.beacon.src;
-    // TODO: add JoinRequest to the front of the packet queue
 
     // the selected gateway may have been scanned a few slot_durations ago, so we need to account for that difference
     // NOTE: this assumes that the slot duration is the same for gateways and nodes
     // uint64_t asn_diff = (mac_vars.start_slot_ts - mac_vars.selected_channel_info.timestamp) / slot_durations.whole_slot;
-    uint64_t asn_diff = mac_vars.asn - mac_vars.scan_started_asn;
+    uint64_t asn_count_since_beacon = mac_vars.asn - mac_vars.selected_channel_info.captured_asn;
+    asn_count_since_beacon += 2; // make sure we sync to a ts in the future
 
     // advance the asn to match the gateway's
-    mac_vars.asn = mac_vars.selected_channel_info.beacon.asn + asn_diff;
-    // advance the saved timestamp to match the gateway's, and use it as a synchronization reference
-    mac_vars.synced_ts = mac_vars.selected_channel_info.timestamp + (asn_diff * slot_durations.whole_slot);
-    // adjust for tx radio delay
-    mac_vars.synced_ts -= BLINK_TS_TX_OFFSET + BLINK_RX_GUARD_TIME; // FIXME: this is arbitrary (should be the tx_offset?)
+    mac_vars.asn = mac_vars.selected_channel_info.beacon.asn + asn_count_since_beacon;
 
-    if (mac_vars.synced_ts < mac_vars.start_slot_ts) {
-        // if the calculated ts is in the past, skip a slot
-        mac_vars.synced_ts += slot_durations.whole_slot;
-    }
+    // ---- calculate how much time we should adjust to match the gateway's slot ticking time
 
-    // if the next slot starts too soon, skip yet another slot
-    uint32_t next_slot_ts = mac_vars.start_slot_ts + slot_durations.whole_slot;
-    if (next_slot_ts - mac_vars.synced_ts < BLINK_END_GUARD_TIME*2) {
-        mac_vars.synced_ts += slot_durations.whole_slot;
-    }
+    // the time when the gateway started this beacon slot, accounting for TsTxOffset
+    uint32_t gateway_ts = mac_vars.selected_channel_info.timestamp - BLINK_TS_TX_OFFSET;
+    // advance it by the number of slots we have been scanning
+    gateway_ts += (asn_count_since_beacon * slot_durations.whole_slot);
+
+    uint32_t sync_diff = gateway_ts - mac_vars.start_slot_ts;
+
+    sync_diff -= 144; // NOTE: ad-hoc correction based on experiments. to be adjusted as the code or parameters change.
 
     // set new slot ticking reference, overriding the timer set at new_slot
     bl_timer_hf_set_oneshot_with_ref_us(
         BLINK_TIMER_DEV,
         BLINK_TIMER_INTER_SLOT_CHANNEL, // overrides the currently set timer, which is non-synchronized
-        mac_vars.synced_ts, // timestamp of the beacon at start_frame (which matches the start of the slot for synced_gateway), corrected by the asn_diff to account for the scan delay
-        slot_durations.whole_slot - 10,
+        mac_vars.start_slot_ts, // timestamp of the beacon at start_frame (which matches the start of the slot for synced_gateway), corrected by the asn_diff to account for the scan delay
+        sync_diff,
         &new_slot
     );
+
+    // update start_slot and sync ts
+    mac_vars.start_slot_ts = mac_vars.start_slot_ts + sync_diff;
+    mac_vars.synced_ts = mac_vars.start_slot_ts;
 
     set_slot_state(STATE_SLEEP);
 
@@ -736,7 +736,7 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
         }
 
         // save this scan info
-        bl_scan_add(*beacon, bl_radio_rssi(), BLINK_FIXED_CHANNEL, mac_vars.current_scan_item_ts);
+        bl_scan_add(*beacon, bl_radio_rssi(), BLINK_FIXED_CHANNEL, mac_vars.current_scan_item_ts, mac_vars.asn);
 
         // success
     } while (0);
