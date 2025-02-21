@@ -60,7 +60,7 @@ void bl_timer_hf_set_periodic_us(timer_hf_t timer, uint8_t channel, uint32_t us,
 void bl_timer_hf_set_oneshot_us(timer_hf_t timer, uint8_t channel, uint32_t us, timer_hf_cb_t cb);
 
 void bl_timer_hf_set_oneshot_with_ref_us(timer_hf_t timer, uint8_t channel, uint32_t base_us, uint32_t us, timer_hf_cb_t cb);
-// void bl_timer_hf_set_oneshot_with_ref_us2(timer_hf_t timer, uint8_t channel, uint32_t base_us, uint32_t us, timer_hf_cb_t cb);
+void bl_timer_hf_set_oneshot_with_ref_diff_us(timer_hf_t timer, uint8_t channel, uint32_t base_us, uint32_t us, timer_hf_cb_t cb);
 
 /**
  * @brief Set a callback to be called once after an amount of milliseconds

@@ -541,8 +541,34 @@ static void activity_ri3(uint32_t ts) {
     // cancel timer for rx_guard
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
 
-    // TODO: re-sync to the network using ts
-    (void)ts;
+    // NOTE: got these parameters by looking at the logic analyzer
+    uint32_t tx_delay_radio = 28;
+    uint32_t propagation_time = 6;
+    uint32_t rx_delay_radio = 27;
+
+    uint32_t expected_ts = mac_vars.start_slot_ts + slot_durations.tx_offset + (tx_delay_radio+propagation_time+rx_delay_radio);
+    int32_t clock_drift = ts - expected_ts;
+    uint32_t abs_clock_drift = abs(clock_drift);
+
+    if (abs_clock_drift < 20) {
+        // drift is fine
+    } else if (abs_clock_drift < 100) {
+        // drift is acceptable
+        // adjust the slot reference
+        bl_timer_hf_set_oneshot_with_ref_diff_us(
+            BLINK_TIMER_DEV,
+            BLINK_TIMER_INTER_SLOT_CHANNEL,
+            mac_vars.start_slot_ts,
+            slot_durations.whole_slot + clock_drift,
+            &new_slot
+        );
+        DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3);
+    } else {
+        // drift is too high, need to re-sync
+        set_join_state(JOIN_STATE_IDLE);
+        set_slot_state(STATE_SLEEP);
+        end_slot();
+    }
 }
 
 static void activity_rie1(void) {
