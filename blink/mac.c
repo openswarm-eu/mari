@@ -235,6 +235,7 @@ static void set_slot_state(bl_mac_state_t state) {
         switch (state) {
             case STATE_SCAN_LISTEN:
                 DEBUG_GPIO_SET(&pin3);
+                break;
             case STATE_SCAN_RX:
                 DEBUG_GPIO_SET(&pin1);
                 break;
@@ -813,8 +814,8 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
         bl_timer_hf_set_oneshot_with_ref_us(
             BLINK_TIMER_DEV,
             BLINK_TIMER_CHANNEL_2,
-            30, // arbitrary value, just to give some time for the radio to turn off
-            now_ts,
+            now_ts, // arbitrary value, just to give some time for the radio to turn off
+            20,
             &bl_radio_rx
         );
     } else {
