@@ -83,12 +83,21 @@ typedef enum {
 } bl_mac_state_t;
 
 typedef enum {
-    JOIN_STATE_IDLE,
-    JOIN_STATE_SCANNING,
-    JOIN_STATE_SYNCED,
-    JOIN_STATE_JOINING,
-    JOIN_STATE_JOINED,
+    JOIN_STATE_IDLE = 1,
+    JOIN_STATE_SCANNING = 2,
+    JOIN_STATE_SYNCED = 4,
+    JOIN_STATE_JOINING = 8,
+    JOIN_STATE_JOINED = 16,
 } bl_join_state_t;
+
+typedef struct {
+    uint8_t channel;
+    int8_t rssi;
+    uint32_t finished_ts;
+    uint64_t captured_asn;
+    uint8_t packet[BLINK_PACKET_MAX_SIZE];
+    uint8_t packet_len;
+} bl_received_packet_t;
 
 typedef struct {
     // ---- common
@@ -102,6 +111,8 @@ typedef struct {
     bl_rx_cb_t app_rx_callback; ///< Function pointer, stores the application callback
 
     bl_join_state_t join_state; ///< State regarding network join, from scan to sync to joined
+
+    bl_received_packet_t received_packet; ///< Last received packet
 
     // SCANNING state
     uint8_t scan_max_slots; ///< Maximum number of slots to scan
@@ -136,7 +147,7 @@ bl_slot_durations_t slot_durations = {
 
     .end_guard = BLINK_END_GUARD_TIME,
 
-    .whole_slot = BLINK_TS_TX_OFFSET + BLINK_PACKET_TOA_WITH_PADDING + BLINK_END_GUARD_TIME,
+    .whole_slot = BLINK_WHOLE_SLOT_DURATION,
 };
 
 //=========================== prototypes =======================================
@@ -146,6 +157,7 @@ static inline void set_join_state(bl_join_state_t join_state);
 
 static void new_slot(void);
 static void end_slot(void);
+static void disable_radio_and_intra_slot_timers(void);
 
 static void activity_ti1_or_ri1(bl_radio_action_t radio_action);
 
@@ -158,7 +170,7 @@ static void activity_ri1(void);
 static void activity_ri2(void);
 static void activity_ri3(uint32_t ts);
 static void activity_rie1(void);
-static void activity_ri4(void);
+static void activity_ri4(uint32_t ts);
 static void activity_rie2(void);
 
 static void activity_scan_new_slot(void);
@@ -298,6 +310,16 @@ static void new_slot(void) {
     if (mac_vars.join_state == JOIN_STATE_SYNCED) { DEBUG_GPIO_CLEAR(&pin1); DEBUG_GPIO_CLEAR(&pin2); DEBUG_GPIO_CLEAR(&pin3); }
 
     bl_slot_info_t slot_info = bl_scheduler_tick(mac_vars.asn);
+
+    // if (mac_vars.node_type == BLINK_NODE && (mac_vars.join_state & (JOIN_STATE_SYNCED | JOIN_STATE_JOINING | JOIN_STATE_JOINED))) {
+    //     if (mac_vars.start_slot_ts - mac_vars.received_packet.finished_ts > BLINK_MAX_TIME_NO_RX_DESYNC) {
+    //         // too long without receiving a packet = desync
+    //         set_join_state(JOIN_STATE_IDLE);
+    //         set_slot_state(STATE_SLEEP);
+    //         disable_radio_and_intra_slot_timers();
+    //         // return;
+    //     }
+    // }
 
     switch (mac_vars.join_state) {
         case JOIN_STATE_IDLE: // NODE or GATEWAY
@@ -542,7 +564,7 @@ static void activity_ri3(uint32_t ts) {
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
 
     // NOTE: got these parameters by looking at the logic analyzer
-    uint32_t tx_delay_radio = 28;
+    uint32_t tx_delay_radio = 28; // time between START task and ADDRESS event
     uint32_t propagation_time = 6;
     uint32_t rx_delay_radio = 27;
 
@@ -551,8 +573,8 @@ static void activity_ri3(uint32_t ts) {
     uint32_t abs_clock_drift = abs(clock_drift);
 
     if (abs_clock_drift < 20) {
-        // drift is fine
-    } else if (abs_clock_drift < 100) {
+        // very small corrections can safely be ignored
+    } else if (abs_clock_drift < 150) {
         // drift is acceptable
         // adjust the slot reference
         bl_timer_hf_set_oneshot_with_ref_diff_us(
@@ -582,13 +604,18 @@ static void activity_rie1(void) {
     end_slot();
 }
 
-static void activity_ri4(void) {
+static void activity_ri4(uint32_t ts) {
     // ri4: all fine, finished rx, cancel error timers and go to sleep
     // called by: radio isr
     set_slot_state(STATE_SLEEP);
 
     // cancel timer for rx_max (rie2)
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_3);
+
+    if (bl_radio_pending_rx_read()) {
+        bl_radio_get_rx_packet(mac_vars.received_packet.packet, &mac_vars.received_packet.packet_len);
+        mac_vars.received_packet.finished_ts = ts;
+    }
 
     end_slot();
 }
@@ -725,8 +752,6 @@ static void activity_scan_start_frame(uint32_t ts) {
 }
 
 static void activity_scan_end_frame(uint32_t end_frame_ts) {
-    (void)end_frame_ts;
-
     if (mac_vars.state != STATE_SCAN_RX) {
         // this should not happen!
         end_slot();
@@ -763,6 +788,8 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
 
         // save this scan info
         bl_scan_add(*beacon, bl_radio_rssi(), BLINK_FIXED_CHANNEL, mac_vars.current_scan_item_ts, mac_vars.asn);
+
+        mac_vars.received_packet.finished_ts = end_frame_ts;
 
         // success
     } while (0);
@@ -835,7 +862,7 @@ static void isr_mac_radio_end_frame(uint32_t ts) {
             activity_ti3();
             break;
         case STATE_RX_DATA:
-            activity_ri4();
+            activity_ri4(ts);
             break;
         default:
             break;
