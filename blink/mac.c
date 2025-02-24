@@ -234,13 +234,13 @@ static void set_slot_state(bl_mac_state_t state) {
     if (mac_vars.join_state == JOIN_STATE_SCANNING) {
         switch (state) {
             case STATE_SCAN_LISTEN:
-                // DEBUG_GPIO_SET(&pin3);
+                DEBUG_GPIO_SET(&pin3);
             case STATE_SCAN_RX:
                 DEBUG_GPIO_SET(&pin1);
                 break;
             case STATE_SLEEP:
                 DEBUG_GPIO_CLEAR(&pin1);
-                // DEBUG_GPIO_CLEAR(&pin3);
+                DEBUG_GPIO_CLEAR(&pin3);
                 break;
             default:
                 break;
@@ -307,7 +307,7 @@ static void new_slot(void) {
     );
 
     DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0);
-    if (mac_vars.join_state == JOIN_STATE_SYNCED) { DEBUG_GPIO_CLEAR(&pin1); DEBUG_GPIO_CLEAR(&pin2); DEBUG_GPIO_CLEAR(&pin3); }
+    if (mac_vars.join_state > JOIN_STATE_IDLE) { DEBUG_GPIO_CLEAR(&pin1); DEBUG_GPIO_CLEAR(&pin2); DEBUG_GPIO_CLEAR(&pin3); }
 
     bl_slot_info_t slot_info = bl_scheduler_tick(mac_vars.asn);
 
@@ -808,12 +808,12 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
 
     if (can_continue) {
         set_slot_state(STATE_SCAN_LISTEN);
-        // 6we cannot call rx immediately, because this runs in isr context
+        // we cannot call rx immediately, because this runs in isr context
         // and it might interfere with `if (NRF_RADIO->EVENTS_DISABLED)` in RADIO_IRQHandler
         bl_timer_hf_set_oneshot_with_ref_us(
             BLINK_TIMER_DEV,
             BLINK_TIMER_CHANNEL_2,
-            20, // arbitrary value, just to give some time for the radio to turn off
+            30, // arbitrary value, just to give some time for the radio to turn off
             now_ts,
             &bl_radio_rx
         );
@@ -832,7 +832,6 @@ inline static bool is_scanning(void) {
 }
 
 static void isr_mac_radio_start_frame(uint32_t ts) {
-    (void)ts;
     DEBUG_GPIO_SET(&pin2);
     if (is_scanning()) {
         activity_scan_start_frame(ts);
@@ -849,7 +848,6 @@ static void isr_mac_radio_start_frame(uint32_t ts) {
 }
 
 static void isr_mac_radio_end_frame(uint32_t ts) {
-    (void)ts;
     DEBUG_GPIO_CLEAR(&pin2);
 
     if (is_scanning()) {
