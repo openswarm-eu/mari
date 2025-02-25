@@ -298,7 +298,10 @@ static inline void set_join_state(bl_join_state_t join_state) {
 
 static void new_slot(void) {
     mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
-     int32_t node_correction = mac_vars.node_type == BLINK_GATEWAY ? 0 : -10; // NOTE: value obtained experimentally with logic analyzer
+
+    // NOTE: for some reason, the node slot tick is either perfetcly synced with the gateway, or 10 us off
+    //       and it depends on whether the devices are being debugged or not
+    int32_t node_correction = mac_vars.node_type == BLINK_GATEWAY ? 0 : -10;
 
     // set the timer for the next slot
     bl_timer_hf_set_oneshot_with_ref_us(

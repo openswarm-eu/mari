@@ -26,7 +26,7 @@ schedule_t schedule_only_beacons = {
     }
 };
 
-/* Schedule only for beacons, used for network scanning, specifically when the BLINK_LISTEN_DURING_UNSCHEDULED_UPLINK optimization is enabled. */
+/* Schedule only for beacons, used for network scanning, specifically when the BLINK_ENABLE_BACKGROUND_SCAN optimization is enabled. */
 schedule_t schedule_only_beacons_optimized_scan = {
     .id = 0xBF,
     .max_nodes = 0,
