@@ -238,10 +238,8 @@ static void set_slot_state(bl_mac_state_t state) {
                 DEBUG_GPIO_SET(&pin3);
                 break;
             case STATE_SCAN_RX:
-                DEBUG_GPIO_SET(&pin1);
                 break;
             case STATE_SLEEP:
-                DEBUG_GPIO_CLEAR(&pin1);
                 DEBUG_GPIO_CLEAR(&pin3);
                 break;
             default:
@@ -274,11 +272,14 @@ static inline void set_join_state(bl_join_state_t join_state) {
     DEBUG_GPIO_SET(&led0); DEBUG_GPIO_SET(&led1); DEBUG_GPIO_SET(&led2); DEBUG_GPIO_SET(&led3);
     switch (join_state) {
         case JOIN_STATE_IDLE:
+            DEBUG_GPIO_CLEAR(&pin1);
             break;
         case JOIN_STATE_SCANNING:
+            DEBUG_GPIO_SET(&pin1);
             DEBUG_GPIO_CLEAR(&led0);
             break;
         case JOIN_STATE_SYNCED:
+            DEBUG_GPIO_CLEAR(&pin1);
             DEBUG_GPIO_CLEAR(&led1);
             break;
         case JOIN_STATE_JOINING:
@@ -301,7 +302,7 @@ static void new_slot(void) {
 
     // NOTE: for some reason, the node slot tick is either perfetcly synced with the gateway, or 10 us off
     //       and it depends on whether the devices are being debugged or not
-    int32_t node_correction = mac_vars.node_type == BLINK_GATEWAY ? 0 : -10;
+    int32_t node_correction = 0;//mac_vars.node_type == BLINK_GATEWAY ? 0 : -10;
 
     // set the timer for the next slot
     bl_timer_hf_set_oneshot_with_ref_us(
@@ -313,7 +314,7 @@ static void new_slot(void) {
     );
 
     DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0);
-    if (mac_vars.join_state > JOIN_STATE_IDLE) { DEBUG_GPIO_CLEAR(&pin1); DEBUG_GPIO_CLEAR(&pin2); DEBUG_GPIO_CLEAR(&pin3); }
+    if (mac_vars.join_state > JOIN_STATE_SCANNING) { DEBUG_GPIO_CLEAR(&pin1); DEBUG_GPIO_CLEAR(&pin2); DEBUG_GPIO_CLEAR(&pin3); }
 
     mac_vars.current_slot_info = bl_scheduler_tick(mac_vars.asn);
 
