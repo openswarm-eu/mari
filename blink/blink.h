@@ -3,10 +3,13 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "protocol.h"
 
 //=========================== defines ==========================================
 
 #define BLINK_MAX_NODES 10 // TODO: find a way to sync with the pre-stored schedules
+
+#define BLINK_BROADCAST_ADDRESS 0xFFFFFFFFFFFFFFFF
 
 //=========================== variables ========================================
 
@@ -34,6 +37,10 @@ void bl_tx(uint8_t *packet, uint8_t length);
 void bl_queue_add(uint8_t *packet, uint8_t length);
 bool bl_queue_peek(uint8_t *packet, uint8_t *length);
 bool bl_queue_pop(void);
+
+void bl_queue_set_join_packet(uint64_t node_id, bl_packet_type_t packet_type);
+bool bl_queue_has_join_packet(void);
+void bl_queue_get_join_packet(uint8_t *packet, uint8_t *length);
 
 void bl_get_joined_nodes(uint64_t *nodes, uint8_t *num_nodes);
 

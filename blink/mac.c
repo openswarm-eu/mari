@@ -361,12 +361,15 @@ static void new_slot(void) {
             }
             break;
         case JOIN_STATE_SYNCED: // only NODE
-            // FIXME(dbg): doing tx/rx here just for debugging, in reality will jump straight to JOIN_STATE_JOINING
-            activity_ti1_or_ri1();
+            // // FIXME(dbg): doing tx/rx here just for debugging, in reality will jump straight to JOIN_STATE_JOINING
+            // activity_ti1_or_ri1();
+            set_join_state(JOIN_STATE_JOINING);
             break;
         case JOIN_STATE_JOINING: // only NODE
             if (!mac_vars.waiting_join_response && mac_vars.current_slot_info.slot_can_join) {
                 // put a JoinRequest at the head of the queue
+                bl_queue_set_join_packet(mac_vars.synced_gateway, BLINK_PACKET_JOIN_REQUEST);
+                mac_vars.waiting_join_response = true;
                 activity_ti1();
             } else if (mac_vars.waiting_join_response && mac_vars.current_slot_info.type == SLOT_TYPE_DOWNLINK) {
                 // receive a JoinResponse and change state to JOIN_STATE_JOINED
@@ -496,14 +499,24 @@ static void activity_ti1(void) {
                     bl_scheduler_get_active_schedule_id()
                 );
                 bl_radio_tx_prepare(packet, packet_len);
+                return; // STOP here
+            }
+            break;
+        case SLOT_TYPE_SHARED_UPLINK:
+            if (mac_vars.node_type == BLINK_NODE && bl_queue_has_join_packet()) {
+                // send a join request
+                bl_queue_get_join_packet(packet, &packet_len);
+                bl_radio_tx_prepare(packet, packet_len);
+                return; // STOP here
             }
             break;
         default:
-            set_slot_state(STATE_SLEEP);
-            end_slot();
             break;
     }
 
+    // if arrived here, there's nothing to tx
+    set_slot_state(STATE_SLEEP);
+    end_slot();
 }
 
 static void activity_ti2(void) {
@@ -634,9 +647,55 @@ static void activity_ri4(uint32_t ts) {
     // cancel timer for rx_max (rie2)
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_3);
 
-    if (bl_radio_pending_rx_read()) {
-        bl_radio_get_rx_packet(mac_vars.received_packet.packet, &mac_vars.received_packet.packet_len);
-        mac_vars.received_packet.finished_ts = ts;
+    if (!bl_radio_pending_rx_read()) {
+        // no packet received
+        end_slot();
+        return;
+    }
+
+    bl_radio_get_rx_packet(mac_vars.received_packet.packet, &mac_vars.received_packet.packet_len);
+
+    mac_vars.received_packet.finished_ts = ts; // NOTE: save ts now, or only if packet is valid?
+
+    bl_packet_header_t *header = (bl_packet_header_t *)mac_vars.received_packet.packet;
+
+    if (header->version != BLINK_PROTOCOL_VERSION) {
+        end_slot();
+        return;
+    }
+
+    if (header->dst != mac_vars.device_id && header->dst != BLINK_BROADCAST_ADDRESS) {
+        end_slot();
+        return;
+    }
+
+    switch (header->type) {
+        case BLINK_PACKET_BEACON:
+            // just ignore: beacons are handled by the scan activities
+            break;
+        case BLINK_PACKET_JOIN_REQUEST:
+            if (mac_vars.node_type == BLINK_GATEWAY && header->dst == mac_vars.device_id) {
+                // accept any node that wants to join
+                bl_queue_set_join_packet(header->src, BLINK_PACKET_JOIN_RESPONSE);
+                break;
+            }
+            break;
+        case BLINK_PACKET_JOIN_RESPONSE:
+            if (mac_vars.node_type == BLINK_NODE && header->dst == mac_vars.device_id) {
+                // handle the join response
+                mac_vars.waiting_join_response = false;
+                set_join_state(JOIN_STATE_JOINED);
+                break;
+            }
+            break;
+        case BLINK_PACKET_DATA:
+            // send the packet to the application
+            if (mac_vars.app_rx_callback) {
+                mac_vars.app_rx_callback(mac_vars.received_packet.packet, mac_vars.received_packet.packet_len);
+            }
+            break;
+        default:
+            break;
     }
 
     end_slot();

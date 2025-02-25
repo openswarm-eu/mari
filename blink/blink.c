@@ -26,9 +26,12 @@ typedef struct {
 
 typedef struct {
     bl_node_type_t          node_type;
-    blink_packet_queue_t    packet_queue;
     bl_rx_cb_t              app_rx_callback;
     bl_event_cb_t           app_event_callback;
+
+    // TODO: move queue stuff to own file
+    blink_packet_queue_t    packet_queue;
+    blink_packet_t          join_packet;
 
     // node data
     bool                    is_connected;
@@ -111,6 +114,30 @@ bool bl_queue_pop(void) {
         _blink_vars.packet_queue.current = (_blink_vars.packet_queue.current + 1) % BLINK_PACKET_QUEUE_SIZE;
         return true;
     }
+}
+
+void bl_queue_set_join_packet(uint64_t node_id, bl_packet_type_t packet_type) {
+    uint8_t len = 0;
+    if (packet_type == BLINK_PACKET_JOIN_REQUEST) {
+        len = bl_build_packet_join_request(_blink_vars.join_packet.buffer, node_id);
+    } else if (packet_type == BLINK_PACKET_JOIN_RESPONSE) {
+        len = bl_build_packet_join_response(_blink_vars.join_packet.buffer, node_id);
+    } else {
+        return;
+    }
+    _blink_vars.join_packet.length = len;
+}
+
+bool bl_queue_has_join_packet(void) {
+    return _blink_vars.join_packet.length > 0;
+}
+
+void bl_queue_get_join_packet(uint8_t *packet, uint8_t *length) {
+    memcpy(packet, _blink_vars.join_packet.buffer, _blink_vars.join_packet.length);
+    *length = _blink_vars.join_packet.length;
+
+    // clear the join request
+    _blink_vars.join_packet.length = 0;
 }
 
 //=========================== callbacks ===========================================
