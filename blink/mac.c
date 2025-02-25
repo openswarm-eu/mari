@@ -107,6 +107,7 @@ typedef struct {
     bl_mac_state_t state; ///< State within the slot
     uint32_t start_slot_ts; ///< Timestamp of the start of the slot
     uint64_t asn; ///< Absolute slot number
+    bl_slot_info_t current_slot_info; ///< Information about the current slot
 
     bl_rx_cb_t app_rx_callback; ///< Function pointer, stores the application callback
 
@@ -159,7 +160,7 @@ static void new_slot(void);
 static void end_slot(void);
 static void disable_radio_and_intra_slot_timers(void);
 
-static void activity_ti1_or_ri1(bl_radio_action_t radio_action);
+static void activity_ti1_or_ri1(void);
 
 static void activity_ti1(void);
 static void activity_ti2(void);
@@ -297,20 +298,21 @@ static inline void set_join_state(bl_join_state_t join_state) {
 
 static void new_slot(void) {
     mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
+     int32_t node_correction = mac_vars.node_type == BLINK_GATEWAY ? 0 : -10; // NOTE: value obtained experimentally with logic analyzer
 
     // set the timer for the next slot
     bl_timer_hf_set_oneshot_with_ref_us(
         BLINK_TIMER_DEV,
         BLINK_TIMER_INTER_SLOT_CHANNEL,
         mac_vars.start_slot_ts,
-        slot_durations.whole_slot,
+        slot_durations.whole_slot + node_correction,
         &new_slot
     );
 
     DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0);
     if (mac_vars.join_state > JOIN_STATE_IDLE) { DEBUG_GPIO_CLEAR(&pin1); DEBUG_GPIO_CLEAR(&pin2); DEBUG_GPIO_CLEAR(&pin3); }
 
-    bl_slot_info_t slot_info = bl_scheduler_tick(mac_vars.asn);
+    mac_vars.current_slot_info = bl_scheduler_tick(mac_vars.asn);
 
     // if (mac_vars.node_type == BLINK_NODE && (mac_vars.join_state & (JOIN_STATE_SYNCED | JOIN_STATE_JOINING | JOIN_STATE_JOINED))) {
     //     if (mac_vars.start_slot_ts - mac_vars.received_packet.finished_ts > BLINK_MAX_TIME_NO_RX_DESYNC) {
@@ -356,13 +358,13 @@ static void new_slot(void) {
             break;
         case JOIN_STATE_SYNCED: // only NODE
             // FIXME(dbg): doing tx/rx here just for debugging, in reality will jump straight to JOIN_STATE_JOINING
-            activity_ti1_or_ri1(slot_info.radio_action);
+            activity_ti1_or_ri1();
             break;
         case JOIN_STATE_JOINING: // only NODE
-            if (!mac_vars.waiting_join_response && slot_info.slot_can_join) {
+            if (!mac_vars.waiting_join_response && mac_vars.current_slot_info.slot_can_join) {
                 // put a JoinRequest at the head of the queue
                 activity_ti1();
-            } else if (mac_vars.waiting_join_response && slot_info.type == SLOT_TYPE_DOWNLINK) {
+            } else if (mac_vars.waiting_join_response && mac_vars.current_slot_info.type == SLOT_TYPE_DOWNLINK) {
                 // receive a JoinResponse and change state to JOIN_STATE_JOINED
                 activity_ri1();
             }
@@ -371,15 +373,15 @@ static void new_slot(void) {
             // TODO: handle handover
             if (mac_vars.node_type == BLINK_GATEWAY) {
                 // just normal tx/rx (normal tx packets from the queue, or join responses (depending on the slot type))
-                activity_ti1_or_ri1(slot_info.radio_action);
+                activity_ti1_or_ri1();
                 break;
             } else { // BLINK_NODE
-                if (!mac_vars.is_background_scanning && !slot_info.available_for_scan) {
+                if (!mac_vars.is_background_scanning && !mac_vars.current_slot_info.available_for_scan) {
                     // no scan involved, just a regular slot doing its thing
-                    activity_ti1_or_ri1(slot_info.radio_action);
+                    activity_ti1_or_ri1();
                     break;
                 }
-                if (!mac_vars.is_background_scanning && slot_info.available_for_scan) {
+                if (!mac_vars.is_background_scanning && mac_vars.current_slot_info.available_for_scan) {
                     // time to start a background scan
                     mac_vars.is_background_scanning = true;
                     mac_vars.scan_started_asn = mac_vars.asn;
@@ -391,7 +393,7 @@ static void new_slot(void) {
                     // background scan in progress
                     if (mac_vars.asn - mac_vars.scan_started_asn < mac_vars.scan_max_slots) {
                         // still have time to scan more
-                        if (slot_info.available_for_scan) {
+                        if (mac_vars.current_slot_info.available_for_scan) {
                             activity_scan_new_slot();
                         }
                         break;
@@ -443,10 +445,10 @@ static void disable_radio_and_intra_slot_timers(void) {
 
 // --------------------- tx activities --------------------
 
-inline static void activity_ti1_or_ri1(bl_radio_action_t radio_action) {
-    if (radio_action == BLINK_RADIO_ACTION_TX) {
+inline static void activity_ti1_or_ri1(void) {
+    if (mac_vars.current_slot_info.radio_action == BLINK_RADIO_ACTION_TX) {
         activity_ti1();
-    } else if (radio_action == BLINK_RADIO_ACTION_RX) {
+    } else if (mac_vars.current_slot_info.radio_action == BLINK_RADIO_ACTION_RX) {
         activity_ri1();
     }
     // else: SLEEP (do nothing)
@@ -473,17 +475,31 @@ static void activity_ti1(void) {
         &activity_tie1
     );
 
-    // FIXME: send other types of packets, depending on slot type
-    uint8_t packet[BLINK_PACKET_MAX_SIZE];
-    uint8_t dummy_remainig_capacity = 10; // FIXME
-    uint8_t packet_len = bl_build_packet_beacon(
-        packet,
-        mac_vars.asn,
-        dummy_remainig_capacity,
-        bl_scheduler_get_active_schedule_id()
-    );
+    // FIXME: get packets from a queue
 
-    bl_radio_tx_prepare(packet, packet_len);
+    uint8_t packet[BLINK_PACKET_MAX_SIZE];
+    uint8_t packet_len = 0;
+
+    switch (mac_vars.current_slot_info.type) {
+        case SLOT_TYPE_BEACON:
+            if (mac_vars.node_type == BLINK_GATEWAY) {
+                // send a beacon packet
+                uint8_t dummy_remainig_capacity = 10; // FIXME
+                packet_len = bl_build_packet_beacon(
+                    packet,
+                    mac_vars.asn,
+                    dummy_remainig_capacity,
+                    bl_scheduler_get_active_schedule_id()
+                );
+                bl_radio_tx_prepare(packet, packet_len);
+            }
+            break;
+        default:
+            set_slot_state(STATE_SLEEP);
+            end_slot();
+            break;
+    }
+
 }
 
 static void activity_ti2(void) {
@@ -568,12 +584,13 @@ static void activity_ri3(uint32_t ts) {
     uint32_t tx_delay_radio = 28; // time between START task and ADDRESS event
     uint32_t propagation_time = 6;
     uint32_t rx_delay_radio = 27;
+    uint32_t ad_hoc_fix = 21;
 
-    uint32_t expected_ts = mac_vars.start_slot_ts + slot_durations.tx_offset + (tx_delay_radio+propagation_time+rx_delay_radio);
+    uint32_t expected_ts = mac_vars.start_slot_ts + slot_durations.tx_offset + (tx_delay_radio+propagation_time+rx_delay_radio+ad_hoc_fix);
     int32_t clock_drift = ts - expected_ts;
     uint32_t abs_clock_drift = abs(clock_drift);
 
-    if (abs_clock_drift < 20) {
+    if (abs_clock_drift < 40) {
         // very small corrections can safely be ignored
     } else if (abs_clock_drift < 150) {
         // drift is acceptable
@@ -674,6 +691,7 @@ static bool select_gateway_and_sync(void) {
 
     // advance the asn to match the gateway's
     mac_vars.asn = mac_vars.selected_channel_info.beacon.asn + asn_count_since_beacon;
+    mac_vars.asn -= 1; // adjust off by one
 
     // ---- calculate how much time we should adjust to match the gateway's slot ticking time
 
