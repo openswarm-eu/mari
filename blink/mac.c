@@ -457,8 +457,10 @@ inline static void activity_ti1_or_ri1(void) {
         activity_ti1();
     } else if (mac_vars.current_slot_info.radio_action == BLINK_RADIO_ACTION_RX) {
         activity_ri1();
+    } else if (mac_vars.current_slot_info.radio_action == BLINK_RADIO_ACTION_SLEEP) {
+        set_slot_state(STATE_SLEEP);
+        end_slot();
     }
-    // else: SLEEP (do nothing)
 }
 
 static void activity_ti1(void) {
@@ -508,6 +510,23 @@ static void activity_ti1(void) {
                 bl_queue_get_join_packet(packet, &packet_len);
                 bl_radio_tx_prepare(packet, packet_len);
                 return; // STOP here
+            }
+            break;
+        case SLOT_TYPE_DOWNLINK:
+            if (mac_vars.node_type == BLINK_GATEWAY) {
+                if (bl_queue_has_join_packet()) {
+                    // send a join response, admitting the node
+                    bl_queue_get_join_packet(packet, &packet_len);
+                    bl_radio_tx_prepare(packet, packet_len);
+                    return; // STOP here
+                } else if (bl_queue_peek(packet, &packet_len)) {
+                    // free this spot in the queue
+                    bl_queue_pop();
+                    // send a regular packet
+                    bl_radio_tx_prepare(packet, packet_len);
+                    return; // STOP here
+                }
+                break;
             }
             break;
         default:
@@ -619,7 +638,7 @@ static void activity_ri3(uint32_t ts) {
             slot_durations.whole_slot + clock_drift,
             &new_slot
         );
-        DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3);
+        // DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3); // show that the slot was adjusted for clock drift
     } else {
         // drift is too high, need to re-sync
         set_join_state(JOIN_STATE_IDLE);
