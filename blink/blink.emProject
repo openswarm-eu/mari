@@ -23,6 +23,9 @@
     <file file_name="all_schedules.c" />
     <file file_name="scheduler.h" />
 
+    <file file_name="association.c" />
+    <file file_name="association.h" />
+
     <file file_name="mac.c" />
     <file file_name="mac.h" />
 
