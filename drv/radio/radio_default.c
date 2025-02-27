@@ -278,6 +278,7 @@ void bl_radio_rx(void) {
 }
 
 void bl_radio_tx_prepare(const uint8_t *tx_buffer, uint8_t length) {
+    // TODO: check for IDLE?
     radio_vars.pdu.length = length;
     memcpy(radio_vars.pdu.payload, tx_buffer, length);
 
