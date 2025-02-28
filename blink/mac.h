@@ -18,6 +18,7 @@
 #include <nrf.h>
 
 #include "blink.h"
+#include "association.h"
 
 //=========================== defines ==========================================
 
@@ -44,9 +45,6 @@
 #define BLINK_BEACON_TOA_WITH_PADDING (BLINK_BEACON_TOA + 60) // Add padding based on experiments.
 
 #define BLINK_WHOLE_SLOT_DURATION (BLINK_TS_TX_OFFSET + BLINK_PACKET_TOA_WITH_PADDING + BLINK_END_GUARD_TIME) // Complete slot duration
-
-// default scan duration in us
-#define BLINK_SCAN_MAX_SLOTS (7) // how many slots to scan for. should probably be the size of the largest schedule
 
 #define BLINK_MAX_TIME_NO_RX_DESYNC (BLINK_WHOLE_SLOT_DURATION * BLINK_SCAN_MAX_SLOTS) // us, arbitrary value for now
 

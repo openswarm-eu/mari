@@ -297,6 +297,51 @@ static inline void set_join_state(bl_join_state_t join_state) {
 #endif
 }
 
+static void new_slot2(void) {
+    mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
+
+    if (mac_vars.is_synced) {
+        new_slot_synced();
+    } else {
+        new_scan();
+    }
+
+}
+
+static void new_scan(void) {
+    mac_vars.assoc_info = bl_assoc_get_info();
+
+    // set the timer for the scan procedure
+    // FIXME: use a recurring timer instead of setting a new one every time
+    bl_timer_hf_set_oneshot_with_ref_us(
+        BLINK_TIMER_DEV,
+        BLINK_TIMER_INTER_SLOT_CHANNEL,
+        mac_vars.start_slot_ts,
+        mac_vars.assoc_info.scan_duration,
+        &new_slot
+    );
+    DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0); // debug: show that a new slot started
+
+    activity_rx_scan();
+}
+
+static void new_slot_synced(void) {
+    // set the timer for the next slot
+    // FIXME: use a recurring timer instead of setting a new one every time
+    bl_timer_hf_set_oneshot_with_ref_us(
+        BLINK_TIMER_DEV,
+        BLINK_TIMER_INTER_SLOT_CHANNEL,
+        mac_vars.start_slot_ts,
+        slot_durations.whole_slot,
+        &new_slot
+    );
+    DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0); // debug: show that a new slot started
+
+    mac_vars.current_slot_info = bl_scheduler_tick(mac_vars.asn);
+    activity_ti1_or_ri1();
+    mac_vars.asn++;
+}
+
 static void new_slot(void) {
     mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
 

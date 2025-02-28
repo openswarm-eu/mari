@@ -18,6 +18,9 @@
 
 //=========================== defines ==========================================
 
+// default scan duration in us
+#define BLINK_SCAN_MAX_SLOTS (7) // how many slots to scan for. should probably be the size of the largest schedule
+
 //=========================== variables ========================================
 
 //=========================== prototypes =======================================
