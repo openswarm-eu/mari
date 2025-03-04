@@ -92,5 +92,7 @@ typedef struct {
 //=========================== prototypes ==========================================
 
 void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback);
+uint64_t bl_mac_get_asn(void);
+uint8_t bl_mac_get_remaining_capacity(void);
 
 #endif // __MAC_H

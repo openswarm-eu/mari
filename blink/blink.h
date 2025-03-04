@@ -35,6 +35,7 @@ void bl_init(bl_node_type_t node_type, bl_rx_cb_t rx_app_callback, bl_event_cb_t
 void bl_tx(uint8_t *packet, uint8_t length);
 
 void bl_queue_add(uint8_t *packet, uint8_t length);
+uint8_t bl_queue_next_packet(slot_type_t slot_type, uint8_t *packet);
 bool bl_queue_peek(uint8_t *packet, uint8_t *length);
 bool bl_queue_pop(void);
 

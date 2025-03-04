@@ -48,6 +48,11 @@ void bl_assoc_init(void) {
     assoc_vars.state = JOIN_STATE_IDLE;
 }
 
+bool bl_assoc_pending_join_packet(void) {
+    // return assoc_vars.state == JOIN_STATE_JOINING;
+    return false; // FIXME
+}
+
 //=========================== callbacks =======================================
 
 //=========================== private =========================================

@@ -26,5 +26,6 @@
 //=========================== prototypes =======================================
 
 void bl_assoc_init(void);
+bool bl_assoc_pending_join_packet(void);
 
 #endif // __ASSOCIATION_H
