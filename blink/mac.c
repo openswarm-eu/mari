@@ -82,14 +82,6 @@ typedef enum {
 
 } bl_mac_state_t;
 
-typedef enum {
-    JOIN_STATE_IDLE = 1,
-    JOIN_STATE_SCANNING = 2,
-    JOIN_STATE_SYNCED = 4,
-    JOIN_STATE_JOINING = 8,
-    JOIN_STATE_JOINED = 16,
-} bl_join_state_t;
-
 typedef struct {
     uint8_t channel;
     int8_t rssi;
@@ -100,7 +92,6 @@ typedef struct {
 } bl_received_packet_t;
 
 typedef struct {
-    // ---- common
     bl_node_type_t node_type; //< whether the node is a gateway or a dotbot
     uint64_t device_id; ///< Device ID
 
@@ -111,27 +102,12 @@ typedef struct {
 
     bl_rx_cb_t app_rx_callback; ///< Function pointer, stores the application callback
 
-    bl_join_state_t join_state; ///< State regarding network join, from scan to sync to joined
-
     bl_received_packet_t received_packet; ///< Last received packet
 
-    // SCANNING state
-    uint8_t scan_max_slots; ///< Maximum number of slots to scan
-    uint32_t scan_started_ts; ///< Timestamp of the start of the scan
-    uint64_t scan_started_asn; ///< ASN when the scan started
-    uint32_t current_scan_item_ts; ///< Timestamp of the current scan item
-    bl_channel_info_t selected_channel_info;
-
-    // SYNCED state
+    bool is_synced; ///< Whether the node is synchronized with a gateway
     uint32_t synced_ts; ///< Timestamp of the packet
     uint64_t synced_gateway; ///< ID of the gateway the node is synchronized with
     int8_t synced_gateway_rssi; ///< RSSI of the gateway the node is synchronized with
-
-    // SYNC/JOINING state
-    bool waiting_join_response;
-
-    // JOINED state
-    bool is_background_scanning; ///< Whether the node is scanning in the background
 } mac_vars_t;
 
 //=========================== variables ========================================
@@ -154,7 +130,6 @@ bl_slot_durations_t slot_durations = {
 //=========================== prototypes =======================================
 
 static inline void set_slot_state(bl_mac_state_t state);
-static inline void set_join_state(bl_join_state_t join_state);
 
 static void new_slot(void);
 static void end_slot(void);
@@ -214,10 +189,6 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
 
     // synchronization stuff
     mac_vars.asn = 0;
-
-    // join stuff
-    set_join_state(JOIN_STATE_IDLE);
-    mac_vars.is_background_scanning = false;
 
     // application callback
     mac_vars.app_rx_callback = rx_callback;
@@ -284,39 +255,6 @@ static void set_slot_state(bl_mac_state_t state) {
     }
 }
 
-static inline void set_join_state(bl_join_state_t join_state) {
-    mac_vars.join_state = join_state;
-
-#ifdef DEBUG
-    // remember: the LEDs are active low
-    DEBUG_GPIO_SET(&led0); DEBUG_GPIO_SET(&led1); DEBUG_GPIO_SET(&led2); DEBUG_GPIO_SET(&led3);
-    switch (join_state) {
-        case JOIN_STATE_IDLE:
-            DEBUG_GPIO_CLEAR(&pin1);
-            break;
-        case JOIN_STATE_SCANNING:
-            DEBUG_GPIO_SET(&pin1);
-            DEBUG_GPIO_CLEAR(&led0);
-            break;
-        case JOIN_STATE_SYNCED:
-            DEBUG_GPIO_CLEAR(&pin1);
-            DEBUG_GPIO_CLEAR(&led1);
-            break;
-        case JOIN_STATE_JOINING:
-            DEBUG_GPIO_CLEAR(&led2);
-            break;
-        case JOIN_STATE_JOINED:
-            DEBUG_GPIO_CLEAR(&led3);
-            if (mac_vars.is_background_scanning) {
-                DEBUG_GPIO_CLEAR(&led0);
-            }
-            break;
-        default:
-            break;
-    }
-#endif
-}
-
 static void start_scan(void) {
     mac_vars.scan_started_ts = mac_vars.start_slot_ts;
     DEBUG_GPIO_SET(&pin0); // debug: show that a new scan started
@@ -349,7 +287,7 @@ static void end_scan(void) {
     // if (select_gateway_and_sync()) {
     if (false) { // WIP: just keep scanning
         // found a gateway and synchronized to it
-        set_join_state(JOIN_STATE_SYNCED);
+        bl_assoc_set_state(JOIN_STATE_SYNCED);
         end_slot();
     } else {
         // no gateway found, back to scanning
@@ -529,7 +467,7 @@ static void activity_ri3(uint32_t ts) {
         // DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3); // show that the slot was adjusted for clock drift
     } else {
         // drift is too high, need to re-sync
-        set_join_state(JOIN_STATE_IDLE);
+        bl_assoc_set_state(JOIN_STATE_IDLE);
         set_slot_state(STATE_SLEEP);
         end_slot();
     }
@@ -578,30 +516,15 @@ static void activity_ri4(uint32_t ts) {
 
     switch (header->type) {
         case BLINK_PACKET_BEACON:
-            // just ignore: beacons are handled by the scan activities
-            break;
         case BLINK_PACKET_JOIN_REQUEST:
-            if (mac_vars.node_type == BLINK_GATEWAY && header->dst == mac_vars.device_id) {
-                // accept any node that wants to join
-                bl_queue_set_join_packet(header->src, BLINK_PACKET_JOIN_RESPONSE);
-                break;
-            }
-            break;
         case BLINK_PACKET_JOIN_RESPONSE:
-            if (mac_vars.node_type == BLINK_NODE && header->dst == mac_vars.device_id) {
-                // handle the join response
-                mac_vars.waiting_join_response = false;
-                set_join_state(JOIN_STATE_JOINED);
-                break;
-            }
+            bl_assoc_handle_packet(mac_vars.received_packet.packet, mac_vars.received_packet.packet_len);
             break;
         case BLINK_PACKET_DATA:
             // send the packet to the application
             if (mac_vars.app_rx_callback) {
                 mac_vars.app_rx_callback(mac_vars.received_packet.packet, mac_vars.received_packet.packet_len);
             }
-            break;
-        default:
             break;
     }
 

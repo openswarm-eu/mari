@@ -21,11 +21,21 @@
 // default scan duration in us
 #define BLINK_SCAN_MAX_SLOTS (7) // how many slots to scan for. should probably be the size of the largest schedule
 
+typedef enum {
+    JOIN_STATE_IDLE = 1,
+    JOIN_STATE_SCANNING = 2,
+    JOIN_STATE_SYNCED = 4,
+    JOIN_STATE_JOINING = 8,
+    JOIN_STATE_JOINED = 16,
+} bl_assoc_state_t;
+
 //=========================== variables ========================================
 
 //=========================== prototypes =======================================
 
 void bl_assoc_init(void);
+void bl_assoc_set_state(bl_assoc_state_t join_state);
 bool bl_assoc_pending_join_packet(void);
+void bl_assoc_handle_packet(uint8_t *packet, uint8_t length);
 
 #endif // __ASSOCIATION_H
