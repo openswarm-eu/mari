@@ -103,12 +103,14 @@ typedef struct {
 
     bl_received_packet_t received_packet; ///< Last received packet
 
+    bool is_scanning; ///< Whether the node is scanning for gateways
+    uint32_t scan_started_ts; ///< Timestamp of the start of the scan
+
     bool is_synced; ///< Whether the node is synchronized with a gateway
     uint32_t synced_ts; ///< Timestamp of the packet
     uint64_t synced_gateway; ///< ID of the gateway the node is synchronized with
     int8_t synced_gateway_rssi; ///< RSSI of the gateway the node is synchronized with
 
-    uint32_t scan_started_ts; ///< Timestamp of the start of the scan
 } mac_vars_t;
 
 //=========================== variables ========================================
@@ -253,45 +255,7 @@ static void set_slot_state(bl_mac_state_t state) {
     }
 }
 
-static void start_scan(void) {
-    mac_vars.scan_started_ts = mac_vars.start_slot_ts;
-    DEBUG_GPIO_SET(&pin0); // debug: show that a new scan started
-
-    // end_scan will be called when the scan is over
-    bl_timer_hf_fix_periodic_with_ref_us(
-        BLINK_TIMER_DEV,
-        BLINK_TIMER_INTER_SLOT_CHANNEL,
-        mac_vars.start_slot_ts,
-        slot_durations.whole_slot * BLINK_SCAN_MAX_SLOTS, // scan during a certain amount of slots
-        &end_scan
-    );
-
-    // mac_vars.assoc_info = bl_assoc_get_info(); // NOTE: why this again?
-
-    set_slot_state(STATE_RX_DATA_LISTEN);
-    mac_vars.scan_started_ts = mac_vars.start_slot_ts;
-#ifdef BLINK_FIXED_CHANNEL
-    bl_radio_set_channel(BLINK_FIXED_CHANNEL); // not doing channel hopping for now
-#else
-    puts("Channel hopping not implemented yet");
-#endif
-    bl_radio_rx();
-}
-
-static void end_scan(void) {
-    DEBUG_GPIO_CLEAR(&pin0); // debug: show that the scan is over
-    set_slot_state(STATE_SLEEP);
-    disable_radio_and_intra_slot_timers();
-    // if (select_gateway_and_sync()) {
-    if (false) { // WIP: just keep scanning
-        // found a gateway and synchronized to it
-        bl_assoc_set_state(JOIN_STATE_SYNCED);
-        end_slot();
-    } else {
-        // no gateway found, back to scanning
-        start_scan();
-    }
-}
+// --------------------- start/end synced slots -----------
 
 static void new_slot_synced(void) {
     mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
@@ -304,19 +268,14 @@ static void new_slot_synced(void) {
     } else if (mac_vars.current_slot_info.radio_action == BLINK_RADIO_ACTION_RX) {
         activity_ri1();
     } else if (mac_vars.current_slot_info.radio_action == BLINK_RADIO_ACTION_SLEEP) {
+        // TODO: check with association module if we should use this slot and do "background scan"
         set_slot_state(STATE_SLEEP);
         end_slot();
     }
 }
 
 static void end_slot(void) {
-    // do any needed cleanup
-    bl_radio_disable();
-
-    // NOTE: clean all numbered timers
-    bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_1);
-    bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
-    bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_3);
+    disable_radio_and_intra_slot_timers();
 }
 
 static void disable_radio_and_intra_slot_timers(void) {
@@ -326,6 +285,49 @@ static void disable_radio_and_intra_slot_timers(void) {
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_1);
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_3);
+}
+
+// --------------------- start/end scan -------------------
+
+static void start_scan(void) {
+    mac_vars.scan_started_ts = mac_vars.start_slot_ts;
+    DEBUG_GPIO_SET(&pin0); // debug: show that a new scan started
+    mac_vars.is_scanning = true;
+
+    // end_scan will be called when the scan is over
+    bl_timer_hf_fix_periodic_with_ref_us(
+        BLINK_TIMER_DEV,
+        BLINK_TIMER_INTER_SLOT_CHANNEL,
+        mac_vars.start_slot_ts,
+        BLINK_SCAN_MAX_DURATION, // scan during a certain amount of slots
+        &end_scan
+    );
+
+    // mac_vars.assoc_info = bl_assoc_get_info(); // NOTE: why this?
+
+    set_slot_state(STATE_RX_DATA_LISTEN);
+#ifdef BLINK_FIXED_CHANNEL
+    bl_radio_set_channel(BLINK_FIXED_CHANNEL); // not doing channel hopping for now
+#else
+    puts("Channel hopping not implemented yet");
+#endif
+    bl_radio_rx();
+}
+
+static void end_scan(void) {
+    mac_vars.is_scanning = fals;
+    DEBUG_GPIO_CLEAR(&pin0); // debug: show that the scan is over
+    set_slot_state(STATE_SLEEP);
+    disable_radio_and_intra_slot_timers();
+
+    // if (select_gateway_and_sync()) {
+    if (false) { // WIP: just keep scanning
+        // found a gateway and synchronized to it
+        bl_assoc_set_state(JOIN_STATE_SYNCED);
+    } else {
+        // no gateway found, back to scanning
+        start_scan();
+    }
 }
 
 // --------------------- tx activities --------------------
@@ -429,7 +431,13 @@ static void activity_ri2(void) {
     // called by: timer isr
     set_slot_state(STATE_RX_DATA_LISTEN);
 
-    bl_radio_rx();
+#ifdef BLINK_FIXED_CHANNEL
+    bl_radio_set_channel(BLINK_FIXED_CHANNEL); // not doing channel hopping for now
+#else
+    puts("Channel hopping not implemented yet");
+#endif
+
+bl_radio_rx();
 }
 
 static void activity_ri3(uint32_t ts) {
@@ -649,13 +657,9 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
 // --------------------- tx/rx activities ------------
 
 // --------------------- radio ---------------------
-inline static bool is_scanning(void) {
-    return !mac_vars.is_synced;
-}
-
 static void isr_mac_radio_start_frame(uint32_t ts) {
     DEBUG_GPIO_SET(&pin2);
-    if (is_scanning()) {
+    if (mac_vars.is_scanning) {
         activity_scan_start_frame(ts);
         return;
     }
@@ -672,7 +676,7 @@ static void isr_mac_radio_start_frame(uint32_t ts) {
 static void isr_mac_radio_end_frame(uint32_t ts) {
     DEBUG_GPIO_CLEAR(&pin2);
 
-    if (is_scanning()) {
+    if (mac_vars.is_scanning) {
         activity_scan_end_frame(ts);
         return;
     }

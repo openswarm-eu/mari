@@ -36,7 +36,12 @@
 
 #define BLINK_ENABLE_BACKGROUND_SCAN 0
 
-//=========================== variables ========================================
+typedef enum {
+    SLOT_TYPE_BEACON = 'B',
+    SLOT_TYPE_SHARED_UPLINK = 'S',
+    SLOT_TYPE_DOWNLINK = 'D',
+    SLOT_TYPE_UPLINK = 'U',
+} slot_type_t;
 
 typedef struct {
     slot_type_t type;

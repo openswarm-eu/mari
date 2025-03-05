@@ -18,6 +18,7 @@
 #include <nrf.h>
 
 #include "blink.h"
+#include "scheduler.h"
 #include "association.h"
 
 //=========================== defines ==========================================
@@ -57,13 +58,6 @@ typedef enum {
     BLINK_RADIO_ACTION_RX = 'R',
     BLINK_RADIO_ACTION_TX = 'T',
 } bl_radio_action_t;
-
-typedef enum {
-    SLOT_TYPE_BEACON = 'B',
-    SLOT_TYPE_SHARED_UPLINK = 'S',
-    SLOT_TYPE_DOWNLINK = 'D',
-    SLOT_TYPE_UPLINK = 'U',
-} slot_type_t;
 
 /* Duration of intra-slot sections */
 typedef struct {

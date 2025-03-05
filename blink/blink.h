@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "scheduler.h"
 #include "protocol.h"
 
 //=========================== defines ==========================================
