@@ -19,6 +19,7 @@
 #include <nrf.h>
 
 #include "mac.h"
+#include "blink.h"
 
 //=========================== defines ==========================================
 
@@ -57,6 +58,20 @@ typedef struct {
     size_t n_cells; // number of cells in this schedule
     cell_t cells[BLINK_N_CELLS_MAX]; // cells in this schedule. NOTE(FIXME?): the first 3 cells must be beacons
 } schedule_t;
+
+typedef enum {
+    BLINK_RADIO_ACTION_SLEEP = 'S',
+    BLINK_RADIO_ACTION_RX = 'R',
+    BLINK_RADIO_ACTION_TX = 'T',
+} bl_radio_action_t;
+
+typedef struct {
+    bl_radio_action_t radio_action;
+    uint8_t channel;
+    slot_type_t type;
+    bool available_for_scan;
+    bool slot_can_join;
+} bl_slot_info_t;
 
 //=========================== prototypes ==========================================
 

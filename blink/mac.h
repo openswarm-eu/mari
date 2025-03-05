@@ -53,12 +53,6 @@
 #define BLINK_SCAN_MAX_SLOTS (7) // how many slots to scan for. should probably be the size of the largest schedule
 #define BLINK_SCAN_MAX_DURATION (BLINK_SCAN_MAX_SLOTS * BLINK_WHOLE_SLOT_DURATION) // how many slots to scan for. should probably be the size of the largest schedule
 
-typedef enum {
-    BLINK_RADIO_ACTION_SLEEP = 'S',
-    BLINK_RADIO_ACTION_RX = 'R',
-    BLINK_RADIO_ACTION_TX = 'T',
-} bl_radio_action_t;
-
 /* Duration of intra-slot sections */
 typedef struct {
     // transmitter
@@ -78,14 +72,6 @@ typedef struct {
 //=========================== variables ========================================
 
 extern bl_slot_durations_t slot_durations;
-
-typedef struct {
-    bl_radio_action_t radio_action;
-    uint8_t channel;
-    slot_type_t type;
-    bool available_for_scan;
-    bool slot_can_join;
-} bl_slot_info_t;
 
 //=========================== prototypes ==========================================
 
