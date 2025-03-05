@@ -92,10 +92,55 @@ inline void bl_assoc_set_state(bl_assoc_state_t join_state) {
 #endif
 }
 
+void bl_assoc_handle_beacon(uint8_t *packet, uint8_t length, uint8_t channel, uint32_t ts) {
+    (void)length;
+
+    if (packet[1] != BLINK_PACKET_BEACON) {
+        return;
+    }
+
+    // now that we know it's a beacon packet, parse and process it
+    bl_beacon_packet_header_t *header = (bl_beacon_packet_header_t *)packet;
+
+    if (beacon->version != BLINK_PROTOCOL_VERSION) {
+        // ignore packet with different protocol version
+        return;
+    }
+
+    if (beacon->remaining_capacity == 0) {
+        // this gateway is full, ignore it
+        return;
+    }
+
+    // save this scan info
+    bl_scan_add(*beacon, bl_radio_rssi(), channel, ts, 0); // asn not used anymore during scan
+
+    return;
+}
+
 void bl_assoc_handle_packet(uint8_t *packet, uint8_t length) {
     (void)packet;
     (void)length;
     // bl_packet_header_t *header = (bl_packet_header_t *)packet;
+
+
+    // if (beacon->remaining_capacity == 0) {
+    //     // this gateway is full, ignore it
+    //     break;
+    //
+
+    // // now that we know it's a beacon packet, parse and process it
+    // bl_beacon_packet_header_t *beacon = (bl_beacon_packet_header_t *)packet;
+
+    // if (beacon->version != BLINK_PROTOCOL_VERSION) {
+    //     // ignore packet with different protocol version
+    //     break;
+    // }
+
+    // // save this scan info
+    // bl_scan_add(*beacon, bl_radio_rssi(), BLINK_FIXED_CHANNEL, mac_vars.current_scan_item_ts, mac_vars.asn);
+
+
 }
 
 //=========================== callbacks =======================================
