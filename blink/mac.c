@@ -61,17 +61,6 @@ typedef enum {
     // common
     STATE_SLEEP,
 
-    // // scan
-    // STATE_SCAN_LISTEN = 1,
-    // STATE_SCAN_RX = 2,
-    // STATE_SCAN_PROCESS_PACKET = 3,
-    // STATE_SCAN_SYNC = 4,
-
-    // sync
-    STATE_SYNC_LISTEN = 11,
-    STATE_SYNC_RX = 12,
-    STATE_SYNC_PROCESS = 13,
-
     // transmitter
     STATE_TX_OFFSET = 21,
     STATE_TX_DATA = 22,
@@ -243,7 +232,7 @@ static void set_slot_state(bl_mac_state_t state) {
 
 static void new_slot_synced(void) {
     mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
-    DEBUG_GPIO_CLEAR(&pin0); DEBUG_GPIO_SET(&pin0); // debug: show that a new slot started
+    DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0); // debug: show that a new slot started
 
     mac_vars.current_slot_info = bl_scheduler_tick(mac_vars.asn++);
 
@@ -274,7 +263,7 @@ static void disable_radio_and_intra_slot_timers(void) {
 // --------------------- start/end scan -------------------
 
 static void start_scan(void) {
-    mac_vars.scan_started_ts = mac_vars.start_slot_ts;
+    mac_vars.scan_started_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
     DEBUG_GPIO_SET(&pin0); // debug: show that a new scan started
     mac_vars.is_scanning = true;
 

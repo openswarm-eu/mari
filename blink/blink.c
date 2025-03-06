@@ -72,6 +72,10 @@ bl_node_type_t bl_get_node_type(void) {
     return _blink_vars.node_type;
 }
 
+void bl_set_node_type(bl_node_type_t node_type) {
+    _blink_vars.node_type = node_type;
+}
+
 //=========================== callbacks ===========================================
 
 static void isr_radio_start_frame(uint32_t ts) {
