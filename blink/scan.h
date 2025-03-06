@@ -9,6 +9,7 @@
 
 #include "device.h"
 #include "protocol.h"
+#include "models.h"
 #include "scheduler.h"
 
 //=========================== defines =========================================

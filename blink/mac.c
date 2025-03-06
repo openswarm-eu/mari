@@ -16,6 +16,7 @@
 
 #include "blink.h"
 #include "mac.h"
+#include "queue.h"
 #include "scan.h"
 #include "scheduler.h"
 #include "radio.h"
@@ -105,6 +106,7 @@ typedef struct {
 
     bool is_scanning; ///< Whether the node is scanning for gateways
     uint32_t scan_started_ts; ///< Timestamp of the start of the scan
+    uint32_t current_scan_item_ts; ///< Timestamp of the current scan item
 
     bool is_synced; ///< Whether the node is synchronized with a gateway
     uint32_t synced_ts; ///< Timestamp of the packet
@@ -134,6 +136,7 @@ bl_slot_durations_t slot_durations = {
 
 static inline void set_slot_state(bl_mac_state_t state);
 
+static void new_slot_synced(void);
 static void end_slot(void);
 static void disable_radio_and_intra_slot_timers(void);
 
@@ -184,9 +187,6 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
     mac_vars.node_type = node_type;
     mac_vars.device_id = db_device_id();
 
-    // scan stuff
-    mac_vars.scan_max_slots = BLINK_SCAN_MAX_SLOTS;
-
     // synchronization stuff
     mac_vars.asn = 0;
 
@@ -222,22 +222,6 @@ uint8_t bl_mac_get_remaining_capacity(void) {
 
 static void set_slot_state(bl_mac_state_t state) {
     mac_vars.state = state;
-
-    // if (mac_vars.join_state == JOIN_STATE_SCANNING) {
-    //     switch (state) {
-    //         case STATE_SCAN_LISTEN:
-    //             DEBUG_GPIO_SET(&pin3);
-    //             break;
-    //         case STATE_SCAN_RX:
-    //             break;
-    //         case STATE_SLEEP:
-    //             DEBUG_GPIO_CLEAR(&pin3);
-    //             break;
-    //         default:
-    //             break;
-    //     }
-    //     return;
-    // }
 
     switch (state) {
         case STATE_RX_DATA_LISTEN:
@@ -295,10 +279,10 @@ static void start_scan(void) {
     mac_vars.is_scanning = true;
 
     // end_scan will be called when the scan is over
-    bl_timer_hf_fix_periodic_with_ref_us(
+    bl_timer_hf_set_oneshot_with_ref_us(
         BLINK_TIMER_DEV,
         BLINK_TIMER_INTER_SLOT_CHANNEL,
-        mac_vars.start_slot_ts,
+        mac_vars.scan_started_ts,
         BLINK_SCAN_MAX_DURATION, // scan during a certain amount of slots
         &end_scan
     );
@@ -315,13 +299,12 @@ static void start_scan(void) {
 }
 
 static void end_scan(void) {
-    mac_vars.is_scanning = fals;
+    mac_vars.is_scanning = false;
     DEBUG_GPIO_CLEAR(&pin0); // debug: show that the scan is over
     set_slot_state(STATE_SLEEP);
     disable_radio_and_intra_slot_timers();
 
-    // if (select_gateway_and_sync()) {
-    if (false) { // WIP: just keep scanning
+    if (false && select_gateway_and_sync()) { // WIP: just keep scanning
         // found a gateway and synchronized to it
         bl_assoc_set_state(JOIN_STATE_SYNCED);
     } else {
@@ -548,81 +531,21 @@ static void activity_rie2(void) {
 // --------------------- scan activities ------------------
 
 static bool select_gateway_and_sync(void) {
+    uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
     disable_radio_and_intra_slot_timers();
 
-    // select best channel_info
-    // uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
-    mac_vars.selected_channel_info = bl_scan_select(mac_vars.scan_started_ts, mac_vars.start_slot_ts);
-    if (mac_vars.selected_channel_info.timestamp == 0) {
+    bl_channel_info_t selected_gateway = bl_assoc_select_gateway(mac_vars.scan_started_ts, now_ts);
+
+    if (selected_gateway.timestamp == 0) {
         // no gateway found
         set_slot_state(STATE_SLEEP);
         end_slot();
         return false;
     }
 
-    if (mac_vars.join_state == JOIN_STATE_JOINED) { // this is a handover attempt
-        if (mac_vars.selected_channel_info.rssi < mac_vars.synced_gateway_rssi + BLINK_SCAN_HANDOVER_HYSTERESIS) {
-            // rssi difference is not enough to justify handover
-            set_slot_state(STATE_SLEEP);
-            end_slot();
-            return false;
-        }
-    }
+    // TODO: other checks, then do the synchronization.
 
-    if (!bl_scheduler_set_schedule(mac_vars.selected_channel_info.beacon.active_schedule_id)) {
-        // schedule not found
-        // NOTE: what to do in this case? for now, just silently fail (a new scan will begin again via new_slot_synced)
-        set_slot_state(STATE_SLEEP);
-        end_slot();
-        return false;
-    }
-
-    uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
-
-    // -------- BEGIN TODO: fix synchronization after mac refactor
-    // // save the gateway address -- will try to join it in the next shared uplink slot
-    // mac_vars.synced_gateway = mac_vars.selected_channel_info.beacon.src;
-
-    // // the selected gateway may have been scanned a few slot_durations ago, so we need to account for that difference
-    // // NOTE: this assumes that the slot duration is the same for gateways and nodes
-    // uint64_t asn_count_since_beacon = (now_ts - mac_vars.selected_channel_info.timestamp) / slot_durations.whole_slot;
-    // asn_count_since_beacon += 2; // make sure we sync to a ts in the future
-
-    // // advance the asn to match the gateway's
-    // mac_vars.asn = mac_vars.selected_channel_info.beacon.asn + asn_count_since_beacon;
-    // mac_vars.asn -= 1; // adjust off by one
-
-    // // ---- calculate how much time we should adjust to match the gateway's slot ticking time
-
-    // // the time when the gateway started this beacon slot, accounting for TsTxOffset
-    // uint32_t gateway_ts = mac_vars.selected_channel_info.timestamp - BLINK_TS_TX_OFFSET;
-    // // advance it by the number of slots we have been scanning
-    // gateway_ts += (asn_count_since_beacon * slot_durations.whole_slot);
-
-    // uint32_t sync_diff = gateway_ts - mac_vars.start_slot_ts;
-
-    // sync_diff -= 144; // NOTE: ad-hoc correction based on experiments. to be adjusted as the code or parameters change.
-
-    // // set new slot ticking reference, overriding the timer set at new_slot_synced
-    // bl_timer_hf_set_oneshot_with_ref_us(
-    //     BLINK_TIMER_DEV,
-    //     BLINK_TIMER_INTER_SLOT_CHANNEL, // overrides the currently set timer, which is non-synchronized
-    //     mac_vars.start_slot_ts, // timestamp of the beacon at start_frame (which matches the start of the slot for synced_gateway), corrected by the asn_diff to account for the scan delay
-    //     sync_diff,
-    //     &new_slot_synced
-    // );
-
-    // // update start_slot and sync ts
-    // mac_vars.start_slot_ts = mac_vars.start_slot_ts + sync_diff;
-    // mac_vars.synced_ts = mac_vars.start_slot_ts;
-
-    // set_slot_state(STATE_SLEEP);
-    // -------- END TODO
-
-    // synchronization is done!
-    end_slot();
-
-    return true;
+    return false;
 }
 
 static void activity_scan_start_frame(uint32_t ts) {

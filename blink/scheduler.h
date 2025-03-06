@@ -27,9 +27,6 @@
 #define BLINK_BACKOFF_N_MIN 5
 #define BLINK_BACKOFF_N_MAX 9
 
-#define BLINK_N_BLE_REGULAR_CHANNELS 37
-#define BLINK_N_BLE_ADVERTISING_CHANNELS 3
-
 // #ifndef BLINK_FIXED_CHANNEL
 #define BLINK_FIXED_CHANNEL 37 // to hardcode the channel, use a valid value other than 0
 // #endif

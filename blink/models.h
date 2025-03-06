@@ -6,10 +6,20 @@
 #include <nrf.h>
 
 
+#define BLINK_N_BLE_REGULAR_CHANNELS 37
+#define BLINK_N_BLE_ADVERTISING_CHANNELS 3
+
 typedef enum {
     BLINK_GATEWAY = 'G',
     BLINK_NODE = 'D',
 } bl_node_type_t;
+
+typedef enum {
+    BLINK_CONNECTED,
+    BLINK_DISCONNECTED,
+    BLINK_NODE_JOINED,
+    BLINK_NODE_LEFT,
+} bl_event_t;
 
 typedef enum {
     BLINK_RADIO_ACTION_SLEEP = 'S',
@@ -31,5 +41,9 @@ typedef struct {
     bool available_for_scan;
     bool slot_can_join;
 } bl_slot_info_t;
+
+// NOTE: could have these be a single callback (*bl_event_cb_t)(bl_event_t event, uint8_t *packet, uint8_t length), and then one of the events can be BLINK_RX
+typedef void (*bl_rx_cb_t)(uint8_t *packet, uint8_t length);  ///< Function pointer to the callback function called on packet receive
+typedef void (*bl_event_cb_t)(bl_event_t event);             ///< Function pointer to the callback function called for network events
 
 #endif // __MODELS_H

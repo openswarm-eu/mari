@@ -8,6 +8,7 @@
 #include "mac.h"
 #include "scheduler.h"
 #include "radio.h"
+#include "queue.h"
 
 //=========================== defines ==========================================
 
@@ -40,7 +41,7 @@ static queue_vars_t queue_vars = { 0 };
 uint8_t bl_queue_next_packet(slot_type_t slot_type, uint8_t *packet) {
     uint8_t len = 0;
 
-    if (queue_vars.node_type == BLINK_GATEWAY) {
+    if (bl_get_node_type() == BLINK_GATEWAY) {
         if (slot_type == SLOT_TYPE_BEACON) {
             // prepare a beacon packet with current asn, remaining capacity and active schedule id
             len = bl_build_packet_beacon(
@@ -61,7 +62,7 @@ uint8_t bl_queue_next_packet(slot_type_t slot_type, uint8_t *packet) {
                 }
             }
         }
-    } else if (queue_vars.node_type == BLINK_NODE) {
+    } else if (bl_get_node_type() == BLINK_NODE) {
         if (slot_type == SLOT_TYPE_SHARED_UPLINK) {
             if (bl_assoc_pending_join_packet()) {
                 // prepare a join request packet

@@ -68,6 +68,10 @@ void bl_get_joined_nodes(uint64_t *nodes, uint8_t *num_nodes) {
     memcpy(nodes, _blink_vars.joined_nodes, _blink_vars.joined_nodes_len * sizeof(uint64_t));
 }
 
+bl_node_type_t bl_get_node_type(void) {
+    return _blink_vars.node_type;
+}
+
 //=========================== callbacks ===========================================
 
 static void isr_radio_start_frame(uint32_t ts) {

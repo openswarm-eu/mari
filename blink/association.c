@@ -16,10 +16,8 @@
 #include <stdbool.h>
 
 #include "association.h"
-#include "blink.h"
-#include "mac.h"
 #include "scan.h"
-#include "scheduler.h"
+#include "radio.h"
 
 //=========================== defines =========================================
 
@@ -59,32 +57,29 @@ bool bl_assoc_pending_join_packet(void) {
     return false; // FIXME
 }
 
-inline void bl_assoc_set_state(bl_assoc_state_t join_state) {
-    mac_vars.join_state = join_state;
+inline void bl_assoc_set_state(bl_assoc_state_t state) {
+    assoc_vars.state = state;
 
 #ifdef DEBUG
     // remember: the LEDs are active low
-    DEBUG_GPIO_SET(&led0); DEBUG_GPIO_SET(&led1); DEBUG_GPIO_SET(&led2); DEBUG_GPIO_SET(&led3);
-    switch (join_state) {
+    // DEBUG_GPIO_SET(&led0); DEBUG_GPIO_SET(&led1); DEBUG_GPIO_SET(&led2); DEBUG_GPIO_SET(&led3);
+    switch (state) {
         case JOIN_STATE_IDLE:
-            DEBUG_GPIO_CLEAR(&pin1);
+            // DEBUG_GPIO_CLEAR(&pin1);
             break;
         case JOIN_STATE_SCANNING:
-            DEBUG_GPIO_SET(&pin1);
-            DEBUG_GPIO_CLEAR(&led0);
+            // DEBUG_GPIO_SET(&pin1);
+            // DEBUG_GPIO_CLEAR(&led0);
             break;
         case JOIN_STATE_SYNCED:
-            DEBUG_GPIO_CLEAR(&pin1);
-            DEBUG_GPIO_CLEAR(&led1);
+            // DEBUG_GPIO_CLEAR(&pin1);
+            // DEBUG_GPIO_CLEAR(&led1);
             break;
         case JOIN_STATE_JOINING:
-            DEBUG_GPIO_CLEAR(&led2);
+            // DEBUG_GPIO_CLEAR(&led2);
             break;
         case JOIN_STATE_JOINED:
-            DEBUG_GPIO_CLEAR(&led3);
-            if (mac_vars.is_background_scanning) {
-                DEBUG_GPIO_CLEAR(&led0);
-            }
+            // DEBUG_GPIO_CLEAR(&led3);
             break;
         default:
             break;
@@ -100,7 +95,7 @@ void bl_assoc_handle_beacon(uint8_t *packet, uint8_t length, uint8_t channel, ui
     }
 
     // now that we know it's a beacon packet, parse and process it
-    bl_beacon_packet_header_t *header = (bl_beacon_packet_header_t *)packet;
+    bl_beacon_packet_header_t *beacon = (bl_beacon_packet_header_t *)packet;
 
     if (beacon->version != BLINK_PROTOCOL_VERSION) {
         // ignore packet with different protocol version
@@ -138,9 +133,13 @@ void bl_assoc_handle_packet(uint8_t *packet, uint8_t length) {
     // }
 
     // // save this scan info
-    // bl_scan_add(*beacon, bl_radio_rssi(), BLINK_FIXED_CHANNEL, mac_vars.current_scan_item_ts, mac_vars.asn);
+    // bl_scan_add(*beacon, bl_radio_rssi(), BLINK_FIXED_CHANNEL, assoc_vars.current_scan_item_ts, assoc_vars.asn);
 
 
+}
+
+bl_channel_info_t bl_assoc_select_gateway(uint32_t start_ts, uint32_t end_ts) {
+    return bl_scan_select(start_ts, end_ts);
 }
 
 //=========================== callbacks =======================================
