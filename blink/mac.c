@@ -179,6 +179,7 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
     if (mac_vars.node_type == BLINK_GATEWAY) {
         mac_vars.is_synced = true;
         mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
+        bl_assoc_set_state(JOIN_STATE_JOINED);
         bl_timer_hf_set_periodic_us(
             BLINK_TIMER_DEV,
             BLINK_TIMER_INTER_SLOT_CHANNEL,
@@ -413,6 +414,11 @@ static void activity_ri3(uint32_t ts) {
 
     // cancel timer for rx_guard
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
+
+    if (bl_get_node_type() == BLINK_GATEWAY) {
+        // the gateway is the time reference, so no need to check for clock drift
+        return;
+    }
 
     uint32_t time_cpu_periph = 47; // got this value by looking at the logic analyzer
 
