@@ -18,6 +18,7 @@
 #include <nrf.h>
 
 #include "blink.h"
+#include "models.h"
 #include "scheduler.h"
 #include "association.h"
 

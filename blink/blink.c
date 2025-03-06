@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "protocol.h"
+#include "models.h"
 #include "mac.h"
 #include "scheduler.h"
 #include "queue.h"
