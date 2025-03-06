@@ -84,7 +84,7 @@ typedef struct {
     uint64_t asn; ///< Absolute slot number
     bl_slot_info_t current_slot_info; ///< Information about the current slot
 
-    bl_rx_cb_t app_rx_callback; ///< Function pointer, stores the application callback
+    bl_event_cb_t blink_event_callback; ///< Function pointer, stores the application callback
 
     bl_received_packet_t received_packet; ///< Last received packet
 
@@ -147,9 +147,9 @@ static void isr_mac_radio_end_frame(uint32_t ts);
 
 //=========================== public ===========================================
 
-void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
+void bl_mac_init(bl_node_type_t node_type, bl_event_cb_t event_callback) {
     (void)node_type;
-    (void)rx_callback;
+    (void)event_callback;
 #ifdef DEBUG
     db_gpio_init(&pin0, DB_GPIO_OUT);
     db_gpio_init(&pin1, DB_GPIO_OUT);
@@ -171,7 +171,7 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
     mac_vars.asn = 0;
 
     // application callback
-    mac_vars.app_rx_callback = rx_callback;
+    mac_vars.blink_event_callback = event_callback;
 
     // begin the slot
     set_slot_state(STATE_SLEEP);
@@ -495,8 +495,14 @@ static void activity_ri4(uint32_t ts) {
             break;
         case BLINK_PACKET_DATA:
             // send the packet to the application
-            if (mac_vars.app_rx_callback) {
-                mac_vars.app_rx_callback(mac_vars.received_packet.packet, mac_vars.received_packet.packet_len);
+            if (mac_vars.blink_event_callback) {
+                bl_event_data_t event_data = {
+                    .data.new_packet = {
+                        .packet = mac_vars.received_packet.packet,
+                        .length = mac_vars.received_packet.packet_len
+                    }
+                };
+                mac_vars.blink_event_callback(BLINK_NEW_PACKET, event_data);
             }
             break;
     }
