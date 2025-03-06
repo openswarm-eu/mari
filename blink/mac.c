@@ -293,7 +293,7 @@ static void end_scan(void) {
     set_slot_state(STATE_SLEEP);
     disable_radio_and_intra_slot_timers();
 
-    if (false && select_gateway_and_sync()) { // WIP: just keep scanning
+    if (select_gateway_and_sync()) { // WIP: just keep scanning
         // found a gateway and synchronized to it
         bl_assoc_set_state(JOIN_STATE_SYNCED);
     } else {
@@ -519,6 +519,15 @@ static void activity_rie2(void) {
 
 // --------------------- scan activities ------------------
 
+static void activity_scan_dispatch_new_schedule(void) {
+    bl_timer_hf_set_periodic_us(
+        BLINK_TIMER_DEV,
+        BLINK_TIMER_INTER_SLOT_CHANNEL,
+        slot_durations.whole_slot,
+        &new_slot_synced
+    );
+}
+
 static bool select_gateway_and_sync(void) {
     uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
     disable_radio_and_intra_slot_timers();
@@ -532,9 +541,42 @@ static bool select_gateway_and_sync(void) {
         return false;
     }
 
-    // TODO: other checks, then do the synchronization.
+    if (!bl_scheduler_set_schedule(selected_gateway.beacon.active_schedule_id)) {
+        // schedule not found
+        // NOTE: what to do in this case? for now, just silently fail (a new scan will begin again via new_scan)
+        set_slot_state(STATE_SLEEP);
+        end_slot();
+        return false;
+    }
 
-    return false;
+    mac_vars.synced_gateway = selected_gateway.beacon.src;
+
+    // the selected gateway may have been scanned a few slot_durations ago, so we need to account for that difference
+    // NOTE: this assumes that the slot duration is the same for gateways and nodes
+    uint32_t time_since_beacon = now_ts - selected_gateway.timestamp;
+    uint64_t asn_count_since_beacon = (time_since_beacon / slot_durations.whole_slot) + 1; // +1 because we are inside the current slot
+    uint64_t time_into_gateway_slot = time_since_beacon % slot_durations.whole_slot;
+
+    uint64_t time_to_skip_one_slot = 0;
+    if (time_into_gateway_slot > slot_durations.whole_slot / 2) {
+        // too close to the next slot, skip this one
+        asn_count_since_beacon++;
+        time_to_skip_one_slot = slot_durations.whole_slot;
+    }
+
+    uint64_t time_cpu_and_toa = 398; // measured using the logic analyzer
+
+    bl_timer_hf_set_oneshot_us(
+        BLINK_TIMER_DEV,
+        BLINK_TIMER_CHANNEL_1,
+        ((slot_durations.whole_slot - time_into_gateway_slot) + time_to_skip_one_slot) - time_cpu_and_toa,
+        &activity_scan_dispatch_new_schedule
+    );
+
+    // set the asn to match the gateway's
+    mac_vars.asn = selected_gateway.beacon.asn + asn_count_since_beacon;
+
+    return true;
 }
 
 static void activity_scan_start_frame(uint32_t ts) {
