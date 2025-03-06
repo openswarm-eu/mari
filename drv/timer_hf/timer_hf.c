@@ -139,6 +139,13 @@ void bl_timer_hf_set_periodic_us(timer_hf_t timer, uint8_t channel, uint32_t us,
     _devs[timer].p->CC[channel] += _timer_hf_vars[timer].timer_callback[channel].period_us;
 }
 
+void bl_timer_hf_adjust_periodic_us(timer_hf_t timer, uint8_t channel, int32_t adjust_us) {
+    assert(channel >= 0 && channel < _devs[timer].cc_num + 1);  // Make sure the required channel is correct
+
+    // Only update the CC register, so that the adjust applies only to the current "tick"
+    _devs[timer].p->CC[channel] += adjust_us;
+}
+
 void bl_timer_hf_set_oneshot_us(timer_hf_t timer, uint8_t channel, uint32_t us, timer_hf_cb_t cb) {
     assert(channel >= 0 && channel < _devs[timer].cc_num + 1);  // Make sure the required channel is correct
     assert(cb);                                                 // Make sure the callback function is valid

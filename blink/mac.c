@@ -399,8 +399,7 @@ static void activity_ri2(void) {
 #else
     puts("Channel hopping not implemented yet");
 #endif
-
-bl_radio_rx();
+    bl_radio_rx();
 }
 
 static void activity_ri3(uint32_t ts) {
@@ -411,29 +410,23 @@ static void activity_ri3(uint32_t ts) {
     // cancel timer for rx_guard
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
 
-    // NOTE: got these parameters by looking at the logic analyzer
-    uint32_t tx_delay_radio = 28; // time between START task and ADDRESS event
-    uint32_t propagation_time = 6;
-    uint32_t rx_delay_radio = 27;
-    uint32_t ad_hoc_fix = 21;
+    uint32_t time_cpu_periph = 47; // got this value by looking at the logic analyzer
 
-    uint32_t expected_ts = mac_vars.start_slot_ts + slot_durations.tx_offset + (tx_delay_radio+propagation_time+rx_delay_radio+ad_hoc_fix);
+    uint32_t expected_ts = mac_vars.start_slot_ts + slot_durations.tx_offset + time_cpu_periph;
     int32_t clock_drift = ts - expected_ts;
     uint32_t abs_clock_drift = abs(clock_drift);
 
-    if (abs_clock_drift < 40) {
+    if (abs_clock_drift < 5) {
         // very small corrections can safely be ignored
-    } else if (abs_clock_drift < 150) {
+    } else if (abs_clock_drift < 80) {
         // drift is acceptable
         // adjust the slot reference
-        bl_timer_hf_set_oneshot_with_ref_diff_us(
+        bl_timer_hf_adjust_periodic_us(
             BLINK_TIMER_DEV,
             BLINK_TIMER_INTER_SLOT_CHANNEL,
-            mac_vars.start_slot_ts,
-            slot_durations.whole_slot + clock_drift,
-            &new_slot_synced
+            clock_drift
         );
-        // DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3); // show that the slot was adjusted for clock drift
+        DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3); // show that the slot was adjusted for clock drift
     } else {
         // drift is too high, need to re-sync
         bl_assoc_set_state(JOIN_STATE_IDLE);
