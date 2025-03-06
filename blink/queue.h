@@ -19,6 +19,6 @@ bool bl_queue_pop(void);
 
 void bl_queue_set_join_packet(uint64_t node_id, bl_packet_type_t packet_type);
 bool bl_queue_has_join_packet(void);
-void bl_queue_get_join_packet(uint8_t *packet, uint8_t *length);
+uint8_t bl_queue_get_join_packet(uint8_t *packet);
 
 #endif // __QUEUE_H

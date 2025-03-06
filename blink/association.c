@@ -15,9 +15,10 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "radio.h"
 #include "association.h"
 #include "scan.h"
-#include "radio.h"
+#include "queue.h"
 
 //=========================== debug ============================================
 
@@ -55,8 +56,8 @@ typedef struct {
     // uint32_t current_scan_item_ts; ///< Timestamp of the current scan item
     // bl_channel_info_t selected_channel_info;
 
-    // // SYNC/JOINING state
-    // bool waiting_join_response;
+    // SYNC/JOINING state
+    bool waiting_join_response;
 
     // // JOINED state
     // bool is_background_scanning; ///< Whether the node is scanning in the background
@@ -83,9 +84,13 @@ void bl_assoc_init(void) {
     bl_assoc_set_state(JOIN_STATE_IDLE);
 }
 
-bool bl_assoc_pending_join_packet(void) {
-    // return assoc_vars.state == JOIN_STATE_JOINING;
-    return false; // FIXME
+bool bl_assoc_node_ready_to_join(void) {
+    // TODO: also call bl_backoff_is_ready() here
+    return assoc_vars.state == JOIN_STATE_SYNCED;
+}
+
+bool bl_assoc_gateway_pending_join_response(void) {
+    return assoc_vars.state == JOIN_STATE_JOINING;
 }
 
 inline void bl_assoc_set_state(bl_assoc_state_t state) {
@@ -144,27 +149,23 @@ void bl_assoc_handle_beacon(uint8_t *packet, uint8_t length, uint8_t channel, ui
 }
 
 void bl_assoc_handle_packet(uint8_t *packet, uint8_t length) {
-    (void)packet;
     (void)length;
-    // bl_packet_header_t *header = (bl_packet_header_t *)packet;
+    bl_packet_header_t *header = (bl_packet_header_t *)packet;
 
+    if (bl_get_node_type() == BLINK_GATEWAY) {
+        if (header->type == BLINK_PACKET_JOIN_REQUEST) {
+            // TODO:
+            // - verify if node can be accepted
+            // - save node to client_list
 
-    // if (beacon->remaining_capacity == 0) {
-    //     // this gateway is full, ignore it
-    //     break;
-    //
-
-    // // now that we know it's a beacon packet, parse and process it
-    // bl_beacon_packet_header_t *beacon = (bl_beacon_packet_header_t *)packet;
-
-    // if (beacon->version != BLINK_PROTOCOL_VERSION) {
-    //     // ignore packet with different protocol version
-    //     break;
-    // }
-
-    // // save this scan info
-    // bl_scan_add(*beacon, bl_radio_rssi(), BLINK_FIXED_CHANNEL, assoc_vars.current_scan_item_ts, assoc_vars.asn);
-
+            // for now, just automatically accepting any node
+            bl_queue_set_join_packet(header->src, BLINK_PACKET_JOIN_RESPONSE);
+        }
+    } else if (bl_get_node_type() == BLINK_NODE) {
+        if (header->type == BLINK_PACKET_JOIN_RESPONSE) {
+            bl_assoc_set_state(JOIN_STATE_JOINED);
+        }
+    }
 
 }
 

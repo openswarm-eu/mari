@@ -34,7 +34,7 @@ typedef enum {
 void bl_assoc_init(void);
 void bl_assoc_set_state(bl_assoc_state_t join_state);
 bl_channel_info_t bl_assoc_select_gateway(uint32_t start_ts, uint32_t end_ts);
-bool bl_assoc_pending_join_packet(void);
+bool bl_assoc_node_ready_to_join(void);
 void bl_assoc_handle_beacon(uint8_t *packet, uint8_t length, uint8_t channel, uint32_t ts);
 void bl_assoc_handle_packet(uint8_t *packet, uint8_t length);
 

@@ -51,10 +51,10 @@ uint8_t bl_queue_next_packet(slot_type_t slot_type, uint8_t *packet) {
                 bl_scheduler_get_active_schedule_id()
             );
         } else if (slot_type == SLOT_TYPE_DOWNLINK) {
-            if (bl_assoc_pending_join_packet()) {
-                // prepare a join response packet
+            if (bl_queue_has_join_packet()) {
+                len = bl_queue_get_join_packet(packet);
             } else {
-                // laod a packet from the queue, if any is available
+                // load a packet from the queue, if any is available
                 len = bl_queue_peek(packet);
                 if (len) {
                     // actually pop the packet from the queue
@@ -64,11 +64,11 @@ uint8_t bl_queue_next_packet(slot_type_t slot_type, uint8_t *packet) {
         }
     } else if (bl_get_node_type() == BLINK_NODE) {
         if (slot_type == SLOT_TYPE_SHARED_UPLINK) {
-            if (bl_assoc_pending_join_packet()) {
-                // prepare a join request packet
+            if (bl_assoc_node_ready_to_join()) {
+                len = bl_build_packet_join_request(packet, bl_mac_get_synced_gateway());
             }
         } else if (slot_type == SLOT_TYPE_UPLINK) {
-            // laod a packet from the queue, if any is available
+            // load a packet from the queue, if any is available
             len = bl_queue_peek(packet);
             if (len) {
                 // actually pop the packet from the queue
@@ -124,10 +124,12 @@ bool bl_queue_has_join_packet(void) {
     return queue_vars.join_packet.length > 0;
 }
 
-void bl_queue_get_join_packet(uint8_t *packet, uint8_t *length) {
+uint8_t bl_queue_get_join_packet(uint8_t *packet) {
     memcpy(packet, queue_vars.join_packet.buffer, queue_vars.join_packet.length);
-    *length = queue_vars.join_packet.length;
+    uint8_t len = queue_vars.join_packet.length;
 
     // clear the join request
     queue_vars.join_packet.length = 0;
+
+    return len;
 }

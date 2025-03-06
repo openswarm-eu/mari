@@ -190,6 +190,10 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
     }
 }
 
+uint64_t bl_mac_get_synced_gateway(void) {
+    return mac_vars.synced_gateway;
+}
+
 uint64_t bl_mac_get_asn(void) {
     return mac_vars.asn;
 }
