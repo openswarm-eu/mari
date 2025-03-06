@@ -5,33 +5,18 @@
 #include <string.h>
 
 #include "protocol.h"
+#include "models.h"
 #include "mac.h"
 #include "scheduler.h"
+#include "queue.h"
 #include "radio.h"
 
 //=========================== defines ==========================================
-
-#define BLINK_PACKET_QUEUE_SIZE (8) // must be a power of 2
-
-typedef struct {
-    uint8_t length;
-    uint8_t buffer[BLINK_PACKET_MAX_SIZE];
-} blink_packet_t;
-
-typedef struct {
-    uint8_t         current;                            ///< Current position in the queue
-    uint8_t         last;                               ///< Position of the last item added in the queue
-    blink_packet_t  packets[BLINK_PACKET_QUEUE_SIZE];
-} blink_packet_queue_t;
 
 typedef struct {
     bl_node_type_t          node_type;
     bl_rx_cb_t              app_rx_callback;
     bl_event_cb_t           app_event_callback;
-
-    // TODO: move queue stuff to own file
-    blink_packet_queue_t    packet_queue;
-    blink_packet_t          join_packet;
 
     // node data
     bool                    is_connected;
@@ -83,61 +68,12 @@ void bl_get_joined_nodes(uint64_t *nodes, uint8_t *num_nodes) {
     memcpy(nodes, _blink_vars.joined_nodes, _blink_vars.joined_nodes_len * sizeof(uint64_t));
 }
 
-//--------------------------- packet queue -------------------------------------
-
-void bl_queue_add(uint8_t *packet, uint8_t length) {
-    // enqueue for transmission
-    memcpy(_blink_vars.packet_queue.packets[_blink_vars.packet_queue.last].buffer, packet, length);
-    _blink_vars.packet_queue.packets[_blink_vars.packet_queue.last].length = length;
-    // increment the `last` index
-    _blink_vars.packet_queue.last = (_blink_vars.packet_queue.last + 1) % BLINK_PACKET_QUEUE_SIZE;
+bl_node_type_t bl_get_node_type(void) {
+    return _blink_vars.node_type;
 }
 
-bool bl_queue_peek(uint8_t *packet, uint8_t *length) {
-    if (_blink_vars.packet_queue.current == _blink_vars.packet_queue.last) {
-        return false;
-    }
-
-    memcpy(packet, _blink_vars.packet_queue.packets[_blink_vars.packet_queue.current].buffer, _blink_vars.packet_queue.packets[_blink_vars.packet_queue.current].length);
-    *length = _blink_vars.packet_queue.packets[_blink_vars.packet_queue.current].length;
-
-    // do not increment the `current` index here, as this is just a peek
-
-    return true;
-}
-
-bool bl_queue_pop(void) {
-    if (_blink_vars.packet_queue.current == _blink_vars.packet_queue.last) {
-        return false;
-    } else {
-        // increment the `current` index
-        _blink_vars.packet_queue.current = (_blink_vars.packet_queue.current + 1) % BLINK_PACKET_QUEUE_SIZE;
-        return true;
-    }
-}
-
-void bl_queue_set_join_packet(uint64_t node_id, bl_packet_type_t packet_type) {
-    uint8_t len = 0;
-    if (packet_type == BLINK_PACKET_JOIN_REQUEST) {
-        len = bl_build_packet_join_request(_blink_vars.join_packet.buffer, node_id);
-    } else if (packet_type == BLINK_PACKET_JOIN_RESPONSE) {
-        len = bl_build_packet_join_response(_blink_vars.join_packet.buffer, node_id);
-    } else {
-        return;
-    }
-    _blink_vars.join_packet.length = len;
-}
-
-bool bl_queue_has_join_packet(void) {
-    return _blink_vars.join_packet.length > 0;
-}
-
-void bl_queue_get_join_packet(uint8_t *packet, uint8_t *length) {
-    memcpy(packet, _blink_vars.join_packet.buffer, _blink_vars.join_packet.length);
-    *length = _blink_vars.join_packet.length;
-
-    // clear the join request
-    _blink_vars.join_packet.length = 0;
+void bl_set_node_type(bl_node_type_t node_type) {
+    _blink_vars.node_type = node_type;
 }
 
 //=========================== callbacks ===========================================

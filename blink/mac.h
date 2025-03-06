@@ -18,6 +18,9 @@
 #include <nrf.h>
 
 #include "blink.h"
+#include "models.h"
+#include "scheduler.h"
+#include "association.h"
 
 //=========================== defines ==========================================
 
@@ -45,23 +48,11 @@
 
 #define BLINK_WHOLE_SLOT_DURATION (BLINK_TS_TX_OFFSET + BLINK_PACKET_TOA_WITH_PADDING + BLINK_END_GUARD_TIME) // Complete slot duration
 
-// default scan duration in us
-#define BLINK_SCAN_MAX_SLOTS (7) // how many slots to scan for. should probably be the size of the largest schedule
-
 #define BLINK_MAX_TIME_NO_RX_DESYNC (BLINK_WHOLE_SLOT_DURATION * BLINK_SCAN_MAX_SLOTS) // us, arbitrary value for now
 
-typedef enum {
-    BLINK_RADIO_ACTION_SLEEP = 'S',
-    BLINK_RADIO_ACTION_RX = 'R',
-    BLINK_RADIO_ACTION_TX = 'T',
-} bl_radio_action_t;
-
-typedef enum {
-    SLOT_TYPE_BEACON = 'B',
-    SLOT_TYPE_SHARED_UPLINK = 'S',
-    SLOT_TYPE_DOWNLINK = 'D',
-    SLOT_TYPE_UPLINK = 'U',
-} slot_type_t;
+// default scan duration in us
+#define BLINK_SCAN_MAX_SLOTS (97) // how many slots to scan for. should probably be the size of the largest schedule
+#define BLINK_SCAN_MAX_DURATION (BLINK_SCAN_MAX_SLOTS * BLINK_WHOLE_SLOT_DURATION) // how many slots to scan for. should probably be the size of the largest schedule
 
 /* Duration of intra-slot sections */
 typedef struct {
@@ -83,16 +74,11 @@ typedef struct {
 
 extern bl_slot_durations_t slot_durations;
 
-typedef struct {
-    bl_radio_action_t radio_action;
-    uint8_t channel;
-    slot_type_t type;
-    bool available_for_scan;
-    bool slot_can_join;
-} bl_slot_info_t;
-
 //=========================== prototypes ==========================================
 
 void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback);
+uint64_t bl_mac_get_synced_gateway(void);
+uint64_t bl_mac_get_asn(void);
+uint8_t bl_mac_get_remaining_capacity(void);
 
 #endif // __MAC_H

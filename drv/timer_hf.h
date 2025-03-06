@@ -49,6 +49,8 @@ uint32_t bl_timer_hf_now(timer_hf_t timer);
  */
 void bl_timer_hf_set_periodic_us(timer_hf_t timer, uint8_t channel, uint32_t us, timer_hf_cb_t cb);
 
+void bl_timer_hf_adjust_periodic_us(timer_hf_t timer, uint8_t channel, int32_t adjust_us);
+
 /**
  * @brief Set a callback to be called once after an amount of microseconds
  *
