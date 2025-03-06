@@ -432,6 +432,7 @@ static void activity_ri3(uint32_t ts) {
         bl_assoc_set_state(JOIN_STATE_IDLE);
         set_slot_state(STATE_SLEEP);
         end_slot();
+        start_scan();
     }
 }
 
