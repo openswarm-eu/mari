@@ -19,6 +19,29 @@
 #include "scan.h"
 #include "radio.h"
 
+//=========================== debug ============================================
+
+#ifndef DEBUG // FIXME: remove before merge. Just to make VS Code enable code behind `#ifdef DEBUG`
+#define DEBUG
+#endif
+
+#ifdef DEBUG
+#include "gpio.h" // for debugging
+// the 4 LEDs of the DK are on port 0, pins 13, 14, 15, 16
+gpio_t led0 = { .port = 0, .pin = 13 };
+gpio_t led1 = { .port = 0, .pin = 14 };
+gpio_t led2 = { .port = 0, .pin = 15 };
+gpio_t led3 = { .port = 0, .pin = 16 };
+#define DEBUG_GPIO_TOGGLE(pin) db_gpio_toggle(pin)
+#define DEBUG_GPIO_SET(pin) db_gpio_set(pin)
+#define DEBUG_GPIO_CLEAR(pin) db_gpio_clear(pin)
+#else
+// No-op when DEBUG is not defined
+#define DEBUG_GPIO_TOGGLE(pin) ((void)0))
+#define DEBUG_GPIO_SET(pin) ((void)0))
+#define DEBUG_GPIO_CLEAR(pin) ((void)0))
+#endif // DEBUG
+
 //=========================== defines =========================================
 
 typedef struct {
@@ -49,7 +72,15 @@ static assoc_vars_t assoc_vars = { 0 };
 //=========================== public ==========================================
 
 void bl_assoc_init(void) {
-    assoc_vars.state = JOIN_STATE_IDLE;
+#ifdef DEBUG
+    db_gpio_init(&led0, DB_GPIO_OUT);
+    db_gpio_init(&led1, DB_GPIO_OUT);
+    db_gpio_init(&led2, DB_GPIO_OUT);
+    db_gpio_init(&led3, DB_GPIO_OUT);
+    // remember: the LEDs are active low
+#endif
+
+    bl_assoc_set_state(JOIN_STATE_IDLE);
 }
 
 bool bl_assoc_pending_join_packet(void) {
@@ -61,25 +92,24 @@ inline void bl_assoc_set_state(bl_assoc_state_t state) {
     assoc_vars.state = state;
 
 #ifdef DEBUG
-    // remember: the LEDs are active low
-    // DEBUG_GPIO_SET(&led0); DEBUG_GPIO_SET(&led1); DEBUG_GPIO_SET(&led2); DEBUG_GPIO_SET(&led3);
+    DEBUG_GPIO_SET(&led0); DEBUG_GPIO_SET(&led1); DEBUG_GPIO_SET(&led2); DEBUG_GPIO_SET(&led3);
     switch (state) {
         case JOIN_STATE_IDLE:
             // DEBUG_GPIO_CLEAR(&pin1);
             break;
         case JOIN_STATE_SCANNING:
             // DEBUG_GPIO_SET(&pin1);
-            // DEBUG_GPIO_CLEAR(&led0);
+            DEBUG_GPIO_CLEAR(&led0);
             break;
         case JOIN_STATE_SYNCED:
             // DEBUG_GPIO_CLEAR(&pin1);
-            // DEBUG_GPIO_CLEAR(&led1);
+            DEBUG_GPIO_CLEAR(&led1);
             break;
         case JOIN_STATE_JOINING:
-            // DEBUG_GPIO_CLEAR(&led2);
+            DEBUG_GPIO_CLEAR(&led2);
             break;
         case JOIN_STATE_JOINED:
-            // DEBUG_GPIO_CLEAR(&led3);
+            DEBUG_GPIO_CLEAR(&led3);
             break;
         default:
             break;

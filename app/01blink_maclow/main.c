@@ -61,6 +61,8 @@ int main(void) {
 
     bl_set_node_type(node_type);
 
+    bl_assoc_init();
+
     bl_scheduler_init(node_type, &schedule);
     printf("\n==== Device of type %c and id %llx is using schedule 0x%0X ====\n\n", node_type, db_device_id(), schedule.id);
 

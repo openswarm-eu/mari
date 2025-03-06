@@ -40,11 +40,6 @@ gpio_t pin0 = { .port = 1, .pin = 2 };
 gpio_t pin1 = { .port = 1, .pin = 3 };
 gpio_t pin2 = { .port = 1, .pin = 4 };
 gpio_t pin3 = { .port = 1, .pin = 5 };
-// the 4 LEDs of the DK are on port 0, pins 13, 14, 15, 16
-gpio_t led0 = { .port = 0, .pin = 13 };
-gpio_t led1 = { .port = 0, .pin = 14 };
-gpio_t led2 = { .port = 0, .pin = 15 };
-gpio_t led3 = { .port = 0, .pin = 16 };
 #define DEBUG_GPIO_TOGGLE(pin) db_gpio_toggle(pin)
 #define DEBUG_GPIO_SET(pin) db_gpio_set(pin)
 #define DEBUG_GPIO_CLEAR(pin) db_gpio_clear(pin)
@@ -160,10 +155,6 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
     db_gpio_init(&pin1, DB_GPIO_OUT);
     db_gpio_init(&pin2, DB_GPIO_OUT);
     db_gpio_init(&pin3, DB_GPIO_OUT);
-    db_gpio_init(&led0, DB_GPIO_OUT);
-    db_gpio_init(&led1, DB_GPIO_OUT);
-    db_gpio_init(&led2, DB_GPIO_OUT);
-    db_gpio_init(&led3, DB_GPIO_OUT);
 #endif
 
     // initialize the high frequency timer
