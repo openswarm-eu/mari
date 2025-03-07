@@ -11,12 +11,14 @@
 #include <nrf.h>
 #include <stdio.h>
 
+#include "timer_hf.h"
 #include "blink.h"
 #include "mac.h"
 #include "protocol.h"
-#include "timer_hf.h"
 
 //=========================== defines ==========================================
+
+#define BLINK_APP_TIMER_DEV 1
 
 #define DATA_LEN 4
 
@@ -29,8 +31,10 @@ typedef struct {
 gateway_vars_t gateway_vars = { 0 };
 
 uint8_t packet[BLINK_PACKET_MAX_SIZE] = { 0 };
-uint8_t data[DATA_LEN] = { 0xFF, 0xFE, 0xFD, 0xFC };
-uint64_t dst = 0x1;
+uint8_t payload[] = { 0xFA, 0xFA, 0xFA, 0xFA, 0xFA };
+uint8_t payload_len = 5;
+
+extern schedule_t schedule_minuscule, schedule_small, schedule_huge, schedule_only_beacons, schedule_only_beacons_optimized_scan;
 
 //=========================== callbacks ========================================
 
@@ -60,6 +64,8 @@ void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
         case BLINK_ERROR:
             printf("Error\n");
             break;
+        default:
+            break;
     }
 }
 
@@ -68,23 +74,20 @@ void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
 int main(void)
 {
     printf("Hello Blink Gateway\n");
-    bl_timer_hf_init(BLINK_TIMER_DEV);
+    bl_timer_hf_init(BLINK_APP_TIMER_DEV);
 
-    bl_init(BLINK_GATEWAY, &blink_event_callback);
+    bl_init(BLINK_GATEWAY, &schedule_minuscule, &blink_event_callback);
 
-    size_t i = 0;
-    size_t packet_len = 0;
     while (1) {
-        if (i++ % 10 == 0) {
-            // for now, the join is very artificial, just to test the callbacks
-            printf("Sending JOIN_RESPONSE packet\n");
-            packet_len = bl_build_packet_join_response(packet, dst);
-        } else {
-            printf("Sending DATA packet %d\n", i);
-            packet_len = bl_build_packet_data(packet, dst, data, DATA_LEN);
-        }
+        __SEV();
+        __WFE();
+        __WFE();
+
+        uint8_t packet_len = bl_build_packet_data(packet, BLINK_BROADCAST_ADDRESS, payload, payload_len);
+
         bl_tx(packet, packet_len);
 
-        bl_timer_hf_delay_ms(BLINK_TIMER_DEV, 1000);
+        // sleep for 500 ms
+        bl_timer_hf_delay_ms(BLINK_APP_TIMER_DEV, 500);
     }
 }

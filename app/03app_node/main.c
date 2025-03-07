@@ -30,7 +30,8 @@ typedef struct {
 node_vars_t node_vars = { 0 };
 
 uint8_t packet[BLINK_PACKET_MAX_SIZE] = { 0 };
-uint8_t hello[] = { 0x48, 0x65, 0x6C, 0x6C, 0x6F }; // "Hello"
+uint8_t payload[] = { 0xF0, 0xF0, 0xF0, 0xF0, 0xF0 };
+uint8_t payload_len = 5;
 
 extern schedule_t schedule_minuscule, schedule_small, schedule_huge, schedule_only_beacons, schedule_only_beacons_optimized_scan;
 
@@ -76,8 +77,7 @@ int main(void)
         __WFE();
 
         if (node_vars.is_connected) {
-            // enqueue a 'hello' packet
-            uint8_t packet_len = bl_build_packet_data(packet, node_vars.connected_gateway, hello, 5);
+            uint8_t packet_len = bl_build_packet_data(packet, node_vars.connected_gateway, payload, payload_len);
 
             bl_tx(packet, packet_len);
 
