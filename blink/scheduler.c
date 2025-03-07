@@ -119,6 +119,17 @@ bool bl_scheduler_deassign_uplink_cell(uint64_t node_id) {
     return false;
 }
 
+uint8_t bl_scheduler_remaining_capacity(void) {
+    uint8_t remaining_capacity = 0;
+    for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
+        cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
+        if (cell->type == SLOT_TYPE_UPLINK && cell->assigned_node_id == NULL) {
+            remaining_capacity++;
+        }
+    }
+    return remaining_capacity;
+}
+
 bl_slot_info_t bl_scheduler_tick(uint64_t asn) {
     // get the current cell
     size_t cell_index = asn % (_schedule_vars.active_schedule_ptr)->n_cells;
