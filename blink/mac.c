@@ -94,11 +94,7 @@ typedef struct {
     uint32_t scan_started_ts; ///< Timestamp of the start of the scan
     uint32_t current_scan_item_ts; ///< Timestamp of the current scan item
 
-    bool is_synced; ///< Whether the node is synchronized with a gateway
-    uint32_t synced_ts; ///< Timestamp of the packet
     uint64_t synced_gateway; ///< ID of the gateway the node is synchronized with
-    int8_t synced_gateway_rssi; ///< RSSI of the gateway the node is synchronized with
-
 } mac_vars_t;
 
 //=========================== variables ========================================
@@ -177,7 +173,6 @@ void bl_mac_init(bl_node_type_t node_type, bl_event_cb_t event_callback) {
     set_slot_state(STATE_SLEEP);
 
     if (mac_vars.node_type == BLINK_GATEWAY) {
-        mac_vars.is_synced = true;
         mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
         bl_assoc_set_state(JOIN_STATE_JOINED);
         bl_timer_hf_set_periodic_us(
@@ -189,10 +184,6 @@ void bl_mac_init(bl_node_type_t node_type, bl_event_cb_t event_callback) {
     } else {
         start_scan();
     }
-}
-
-uint64_t bl_mac_get_synced_gateway(void) {
-    return mac_vars.synced_gateway;
 }
 
 uint64_t bl_mac_get_asn(void) {
@@ -231,6 +222,7 @@ static void new_slot_synced(void) {
         // TODO: implement per-node tracking of received packets
     } else if (mac_vars.node_type == BLINK_NODE && bl_assoc_node_is_joined()) {
         if ((mac_vars.asn - mac_vars.received_packet.asn) > bl_scheduler_get_active_schedule_slot_count() * BLINK_MAX_SLOTFRAMES_NO_RX_LEAVE) {
+            mac_vars.blink_event_callback(BLINK_DISCONNECTED, (bl_event_data_t){ 0 });
             bl_assoc_set_state(JOIN_STATE_IDLE);
             set_slot_state(STATE_SLEEP);
             end_slot();

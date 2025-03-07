@@ -46,23 +46,8 @@ gpio_t led3 = { .port = 0, .pin = 16 };
 //=========================== defines =========================================
 
 typedef struct {
-    // bl_node_type_t          node_type; // get from blink: bl_get_node_type()
     bl_assoc_state_t state;
-
     bl_event_cb_t blink_event_callback;
-
-    // // SCANNING state
-    // uint8_t scan_max_slots; ///< Maximum number of slots to scan
-    // uint32_t scan_started_ts; ///< Timestamp of the start of the scan
-    // uint64_t scan_started_asn; ///< ASN when the scan started
-    // uint32_t current_scan_item_ts; ///< Timestamp of the current scan item
-    // bl_channel_info_t selected_channel_info;
-
-    // SYNC/JOINING state
-    bool waiting_join_response;
-
-    // // JOINED state
-    // bool is_background_scanning; ///< Whether the node is scanning in the background
 } assoc_vars_t;
 
 //=========================== variables =======================================
