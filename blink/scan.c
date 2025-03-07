@@ -87,9 +87,10 @@ void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel,
 // Compute the average rssi for each gateway, and return the highest one.
 // The documentation says that remaining capacity should also be taken into account,
 // but we will simply not add a gateway to the scan list if its capacity if full.
-bl_channel_info_t bl_scan_select(uint32_t ts_scan_started, uint32_t ts_scan_ended) {
-    uint64_t best_gateway_idx = 0;
-    bl_channel_info_t best_channel_info = { 0 };
+bool bl_scan_select(bl_channel_info_t *best_channel_info, uint32_t ts_scan_started, uint32_t ts_scan_ended) {
+    int8_t best_gateway_idx = -1;
+    // make sure best_channel_info is zeroed out
+    memset(best_channel_info, 0, sizeof(bl_channel_info_t));
     int8_t best_gateway_rssi = INT8_MIN;
     for (size_t i = 0; i < BLINK_MAX_SCAN_LIST_SIZE; i++) {
         if (scan_vars.scans[i].gateway_id == 0) {
@@ -121,8 +122,11 @@ bl_channel_info_t bl_scan_select(uint32_t ts_scan_started, uint32_t ts_scan_ende
             best_gateway_idx = i;
         }
     }
-    best_channel_info = _get_channel_info_latest(scan_vars.scans[best_gateway_idx]);
-    return best_channel_info;
+    if (best_gateway_idx < 0) {
+        return false;
+    }
+    *best_channel_info = _get_channel_info_latest(scan_vars.scans[best_gateway_idx]);
+    return true;
 }
 
 //=========================== private ==========================================

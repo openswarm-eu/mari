@@ -70,7 +70,9 @@ typedef enum {
 typedef struct {
     uint8_t channel;
     int8_t rssi;
-    uint32_t finished_ts;
+    uint32_t ts;
+    uint64_t asn;
+    bool to_me;
     uint8_t packet[BLINK_PACKET_MAX_SIZE];
     uint8_t packet_len;
 } bl_received_packet_t;
@@ -92,11 +94,7 @@ typedef struct {
     uint32_t scan_started_ts; ///< Timestamp of the start of the scan
     uint32_t current_scan_item_ts; ///< Timestamp of the current scan item
 
-    bool is_synced; ///< Whether the node is synchronized with a gateway
-    uint32_t synced_ts; ///< Timestamp of the packet
     uint64_t synced_gateway; ///< ID of the gateway the node is synchronized with
-    int8_t synced_gateway_rssi; ///< RSSI of the gateway the node is synchronized with
-
 } mac_vars_t;
 
 //=========================== variables ========================================
@@ -175,7 +173,6 @@ void bl_mac_init(bl_node_type_t node_type, bl_event_cb_t event_callback) {
     set_slot_state(STATE_SLEEP);
 
     if (mac_vars.node_type == BLINK_GATEWAY) {
-        mac_vars.is_synced = true;
         mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
         bl_assoc_set_state(JOIN_STATE_JOINED);
         bl_timer_hf_set_periodic_us(
@@ -187,10 +184,6 @@ void bl_mac_init(bl_node_type_t node_type, bl_event_cb_t event_callback) {
     } else {
         start_scan();
     }
-}
-
-uint64_t bl_mac_get_synced_gateway(void) {
-    return mac_vars.synced_gateway;
 }
 
 uint64_t bl_mac_get_asn(void) {
@@ -223,6 +216,20 @@ static void set_slot_state(bl_mac_state_t state) {
 static void new_slot_synced(void) {
     mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
     DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0); // debug: show that a new slot started
+
+    // too long without receiving a packet? disconnect
+    if (mac_vars.node_type == BLINK_GATEWAY) {
+        bl_assoc_clear_old_nodes(mac_vars.asn);
+    } else if (mac_vars.node_type == BLINK_NODE && bl_assoc_node_is_joined()) {
+        if ((mac_vars.asn - mac_vars.received_packet.asn) > bl_scheduler_get_active_schedule_slot_count() * BLINK_MAX_SLOTFRAMES_NO_RX_LEAVE) {
+            mac_vars.blink_event_callback(BLINK_DISCONNECTED, (bl_event_data_t){ 0 });
+            bl_assoc_set_state(JOIN_STATE_IDLE);
+            set_slot_state(STATE_SLEEP);
+            end_slot();
+            start_scan();
+            return;
+        }
+    }
 
     mac_vars.current_slot_info = bl_scheduler_tick(mac_vars.asn++);
 
@@ -472,8 +479,6 @@ static void activity_ri4(uint32_t ts) {
 
     bl_radio_get_rx_packet(mac_vars.received_packet.packet, &mac_vars.received_packet.packet_len);
 
-    mac_vars.received_packet.finished_ts = ts; // NOTE: save ts now, or only if packet is valid?
-
     bl_packet_header_t *header = (bl_packet_header_t *)mac_vars.received_packet.packet;
 
     if (header->version != BLINK_PROTOCOL_VERSION) {
@@ -481,9 +486,19 @@ static void activity_ri4(uint32_t ts) {
         return;
     }
 
-    if (header->dst != mac_vars.device_id && header->dst != BLINK_BROADCAST_ADDRESS) {
+    if (header->dst != mac_vars.device_id && header->dst != BLINK_BROADCAST_ADDRESS && header->type != BLINK_PACKET_BEACON) {
         end_slot();
         return;
+    }
+
+    // now that we know it's a blink packet, either for me, or broadcast, or a beacon, store some info about it
+    mac_vars.received_packet.channel = mac_vars.current_slot_info.channel;
+    mac_vars.received_packet.rssi = bl_radio_rssi();
+    mac_vars.received_packet.ts = ts;
+    mac_vars.received_packet.asn = mac_vars.asn;
+
+    if (mac_vars.node_type == BLINK_GATEWAY && header->dst == mac_vars.device_id) {
+        bl_assoc_save_received_from_node(header->src, mac_vars.asn);
     }
 
     switch (header->type) {
@@ -532,7 +547,13 @@ static bool select_gateway_and_sync(void) {
     uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
     disable_radio_and_intra_slot_timers();
 
-    bl_channel_info_t selected_gateway = bl_assoc_select_gateway(mac_vars.scan_started_ts, now_ts);
+    bl_channel_info_t selected_gateway = { 0 };
+    if (!bl_scan_select(&selected_gateway, mac_vars.scan_started_ts, now_ts)) {
+        // no gateway found
+        set_slot_state(STATE_SLEEP);
+        end_slot();
+        return false;
+    }
 
     if (selected_gateway.timestamp == 0) {
         // no gateway found

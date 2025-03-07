@@ -64,6 +64,8 @@ bool bl_scheduler_deassign_uplink_cell(uint64_t node_id);
 
 uint8_t bl_scheduler_remaining_capacity(void);
 
+uint8_t bl_scheduler_get_active_schedule_slot_count(void);
+
 /**
  * @brief Computes the channel to be used in a given slot.
  *
