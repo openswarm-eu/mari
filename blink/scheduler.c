@@ -82,7 +82,9 @@ bool bl_scheduler_set_schedule(uint8_t schedule_id) {
 int16_t bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id) {
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
-        if (cell->type == SLOT_TYPE_UPLINK && cell->assigned_node_id == NULL) {
+        // normally the cell is available if empty, but it may also be that case that
+        // the node just temporarily lost connection, so we can just re-assign the same cell_id
+        if (cell->type == SLOT_TYPE_UPLINK && (cell->assigned_node_id == NULL || cell->assigned_node_id == node_id)) {
             cell->assigned_node_id = node_id;
             return i;
         }
