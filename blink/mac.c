@@ -219,7 +219,7 @@ static void new_slot_synced(void) {
 
     // too long without receiving a packet? disconnect
     if (mac_vars.node_type == BLINK_GATEWAY) {
-        // TODO: implement per-node tracking of received packets
+        bl_assoc_clear_old_nodes(mac_vars.asn);
     } else if (mac_vars.node_type == BLINK_NODE && bl_assoc_node_is_joined()) {
         if ((mac_vars.asn - mac_vars.received_packet.asn) > bl_scheduler_get_active_schedule_slot_count() * BLINK_MAX_SLOTFRAMES_NO_RX_LEAVE) {
             mac_vars.blink_event_callback(BLINK_DISCONNECTED, (bl_event_data_t){ 0 });
@@ -496,6 +496,10 @@ static void activity_ri4(uint32_t ts) {
     mac_vars.received_packet.rssi = bl_radio_rssi();
     mac_vars.received_packet.ts = ts;
     mac_vars.received_packet.asn = mac_vars.asn;
+
+    if (mac_vars.node_type == BLINK_GATEWAY && header->dst == mac_vars.device_id) {
+        bl_assoc_save_received_from_node(header->src, mac_vars.asn);
+    }
 
     switch (header->type) {
         case BLINK_PACKET_BEACON:

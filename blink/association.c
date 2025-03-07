@@ -46,8 +46,17 @@ gpio_t led3 = { .port = 0, .pin = 16 };
 //=========================== defines =========================================
 
 typedef struct {
+    uint64_t node_id;
+    uint64_t asn;
+} bl_received_from_node_t;
+
+typedef struct {
     bl_assoc_state_t state;
     bl_event_cb_t blink_event_callback;
+
+    // NOTE: this could be improved by merging with the scheduler table
+    // however, the scheduler table already uses a lot of memory because everything is hardcoded
+    bl_received_from_node_t last_received_from_node[BLINK_MAX_NODES];
 } assoc_vars_t;
 
 //=========================== variables =======================================
@@ -151,6 +160,7 @@ void bl_assoc_handle_packet(uint8_t *packet, uint8_t length) {
             int16_t cell_id = bl_scheduler_assign_next_available_uplink_cell(header->src);
             if (cell_id >= 0) {
                 bl_queue_set_join_response(header->src, (uint8_t)cell_id);
+                assoc_vars.blink_event_callback(BLINK_NODE_JOINED, (bl_event_data_t){ .data.node_info.node_id = header->src });
             } else {
                 assoc_vars.blink_event_callback(BLINK_ERROR, (bl_event_data_t){ 0 });
             }
@@ -168,7 +178,43 @@ void bl_assoc_handle_packet(uint8_t *packet, uint8_t length) {
             }
         }
     }
+}
 
+bool bl_assoc_save_received_from_node(uint64_t node_id, uint64_t asn) {
+    // save the node_id and asn
+    // if the node_id is already in the list, update the asn
+    // otherwise, add it to the first empty spot
+    for (size_t i = 0; i < BLINK_MAX_NODES; i++) {
+        if (assoc_vars.last_received_from_node[i].node_id == node_id) {
+            assoc_vars.last_received_from_node[i].asn = asn;
+            return true;
+        }
+        if (assoc_vars.last_received_from_node[i].node_id == 0) {
+            assoc_vars.last_received_from_node[i].node_id = node_id;
+            assoc_vars.last_received_from_node[i].asn = asn;
+            return true;
+        }
+    }
+    // should never reach here
+    return false;
+}
+
+void bl_assoc_clear_old_nodes(uint64_t asn) {
+    // clear all nodes that have not been heard from in the last N asn
+    // also deassign the cells from the scheduler
+    uint64_t max_asn_old = bl_scheduler_get_active_schedule_slot_count() * BLINK_MAX_SLOTFRAMES_NO_RX_LEAVE;
+    for (size_t i = 0; i < BLINK_MAX_NODES; i++) {
+        bl_received_from_node_t *node = &assoc_vars.last_received_from_node[i];
+        if (node->node_id != 0 &&
+            asn - node->asn > max_asn_old) {
+            assoc_vars.blink_event_callback(BLINK_NODE_LEFT, (bl_event_data_t){ .data.node_info.node_id = node->node_id });
+            // deassign the cell
+            bl_scheduler_deassign_uplink_cell(node->node_id);
+            // clear the node
+            node->node_id = 0;
+            node->asn = 0;
+        }
+    }
 }
 
 //=========================== callbacks =======================================

@@ -31,6 +31,7 @@
 #define BLINK_TIMER_CHANNEL_3 3 ///< Channel for ticking the desynchronization window
 
 // Bytes per millisecond in BLE 2M mode
+#define BLINK_BLE_PAYLOAD_MAX_LENGTH UINT8_MAX
 #define BLE_2M (1000 * 1000 * 2) // 2 Mbps
 #define BLE_2M_B_MS (BLE_2M / 8 / 1000) // 250 bytes/ms
 #define BLE_2M_US_PER_BYTE (1000 / BLE_2M_B_MS) // 4 us
@@ -39,7 +40,7 @@
 #define BLINK_TS_TX_OFFSET (300) // time for radio setup before TX
 #define BLINK_RX_GUARD_TIME (150) // time range relative to BLINK_TS_TX_OFFSET for the receiver to start RXing
 #define BLINK_END_GUARD_TIME BLINK_RX_GUARD_TIME
-#define BLINK_PACKET_TOA (BLE_2M_US_PER_BYTE * DB_BLE_PAYLOAD_MAX_LENGTH) // Time on air for the maximum payload.
+#define BLINK_PACKET_TOA (BLE_2M_US_PER_BYTE * BLINK_BLE_PAYLOAD_MAX_LENGTH) // Time on air for the maximum payload.
 #define BLINK_PACKET_TOA_WITH_PADDING (BLINK_PACKET_TOA + 50) // Add padding based on experiments. Also, it takes 28 us until event ADDRESS is triggered (when the packet actually starts traveling over the air)
 
 // Duration of some packets
