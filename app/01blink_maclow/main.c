@@ -55,7 +55,7 @@ static void print_slot_timing(void);
 
 int main(void) {
     // initialize schedule
-    schedule_t schedule = schedule_minuscule;
+    schedule_t schedule = schedule_huge;
 
     //bl_node_type_t node_type = BLINK_GATEWAY;
     bl_node_type_t node_type = BLINK_NODE;

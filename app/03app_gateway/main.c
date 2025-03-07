@@ -34,33 +34,32 @@ uint64_t dst = 0x1;
 
 //=========================== callbacks ========================================
 
-// NOTE: to test this callback right now, manually set is_connected to true in blink.c
-void rx_cb(uint8_t *packet, uint8_t length)
-{
-    printf("Gateway application received packet of length %d: ", length);
-    for (int i = 0; i < length; i++) {
-        printf("%02X ", packet[i]);
-    }
-    printf("\n");
-}
-
-void event_cb(bl_event_t event)
-{
+void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
     switch (event) {
-    case BLINK_NODE_JOINED:
-        gateway_vars.connected_nodes++;
-        uint64_t joined_nodes[BLINK_MAX_NODES] = { 0 };
-        uint8_t joined_nodes_len = 0;
-        bl_get_joined_nodes(joined_nodes, &joined_nodes_len);
-        // TODO: send to Edge Gateway via UART
-        break;
-    case BLINK_NODE_LEFT:
-        if (gateway_vars.connected_nodes > 0) {
-            gateway_vars.connected_nodes--;
-        }
-        break;
-    default:
-        break;
+        case BLINK_NEW_PACKET:
+            printf("Blink received data packet of length %d: ", event_data.data.new_packet.length);
+            for (int i = 0; i < event_data.data.new_packet.length; i++) {
+                printf("%02X ", event_data.data.new_packet.packet[i]);
+            }
+            printf("\n");
+            break;
+        case BLINK_NODE_JOINED:
+            printf("New node joined: %016llX\n", event_data.data.node_info.node_id);
+            gateway_vars.connected_nodes++; // FIXME have this be managed within the blink library
+            uint64_t joined_nodes[BLINK_MAX_NODES] = { 0 };
+            uint8_t joined_nodes_len = 0;
+            bl_get_joined_nodes(joined_nodes, &joined_nodes_len);
+            // TODO: send to Edge Gateway via UART
+            break;
+        case BLINK_NODE_LEFT:
+            printf("Node left: %016llX\n", event_data.data.node_info.node_id);
+            if (gateway_vars.connected_nodes > 0) {
+                gateway_vars.connected_nodes--; // FIXME have this be managed within the blink library
+            }
+            break;
+        case BLINK_ERROR:
+            printf("Error\n");
+            break;
     }
 }
 
@@ -71,7 +70,7 @@ int main(void)
     printf("Hello Blink Gateway\n");
     bl_timer_hf_init(BLINK_TIMER_DEV);
 
-    bl_init(BLINK_GATEWAY, &rx_cb, &event_cb);
+    bl_init(BLINK_GATEWAY, &blink_event_callback);
 
     size_t i = 0;
     size_t packet_len = 0;

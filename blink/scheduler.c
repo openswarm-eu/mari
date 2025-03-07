@@ -61,6 +61,9 @@ void bl_scheduler_init(bl_node_type_t node_type, schedule_t *application_schedul
 
     _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_minuscule;
     _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_tiny;
+    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_huge;
+    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_small;
+    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_big;
 
     if (application_schedule != NULL) {
         _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = *application_schedule;
