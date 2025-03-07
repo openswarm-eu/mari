@@ -103,11 +103,14 @@ void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
             uint8_t packet_len = bl_build_packet_data(packet, event_data.data.gateway_info.gateway_id, data, 5);
 
             bl_queue_add(packet, packet_len);
+            bl_queue_add(packet, packet_len);
+            bl_queue_add(packet, packet_len);
             break;
         case BLINK_DISCONNECTED:
             printf("Disconnected\n");
             break;
-        default:
+        case BLINK_ERROR:
+            printf("Error\n");
             break;
     }
 }

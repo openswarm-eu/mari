@@ -31,6 +31,7 @@ typedef enum {
     BLINK_DISCONNECTED,
     BLINK_NODE_JOINED,
     BLINK_NODE_LEFT,
+    BLINK_ERROR,
 } bl_event_t;
 
 typedef struct {

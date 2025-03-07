@@ -56,24 +56,10 @@ bl_slot_info_t bl_scheduler_tick(uint64_t asn);
  */
 bool bl_scheduler_set_schedule(uint8_t schedule_id);
 
-/**
- * @brief Assigns the next available uplink cell to a given node.
- *
- * @param[in] node_id         Node ID
- *
- * @return true if the uplink cell was successfully assigned, false otherwise (e.g., all uplink cells are already assigned)
- */
-bool bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id);
+int16_t bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id);
 
-bool bl_scheduler_assign_myself_to_cell(uint8_t cell_index);
+bool bl_scheduler_assign_myself_to_cell(uint16_t cell_index);
 
-/**
- * @brief Deassigns the uplink cell assigned to a given node.
- *
- * @param[in] node_id         Node ID
- *
- * @return true if the uplink cell was successfully deassigned, false otherwise
- */
 bool bl_scheduler_deassign_uplink_cell(uint64_t node_id);
 
 /**

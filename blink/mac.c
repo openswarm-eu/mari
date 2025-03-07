@@ -290,6 +290,7 @@ static void end_scan(void) {
     if (select_gateway_and_sync()) { // WIP: just keep scanning
         // found a gateway and synchronized to it
         bl_assoc_set_state(JOIN_STATE_SYNCED);
+        bl_queue_set_join_request(mac_vars.synced_gateway);
     } else {
         // no gateway found, back to scanning
         start_scan();

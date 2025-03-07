@@ -65,7 +65,7 @@ uint8_t bl_queue_next_packet(slot_type_t slot_type, uint8_t *packet) {
     } else if (bl_get_node_type() == BLINK_NODE) {
         if (slot_type == SLOT_TYPE_SHARED_UPLINK) {
             if (bl_assoc_node_ready_to_join()) {
-                len = bl_build_packet_join_request(packet, bl_mac_get_synced_gateway());
+                len = bl_queue_get_join_packet(packet);
             }
         } else if (slot_type == SLOT_TYPE_UPLINK) {
             // load a packet from the queue, if any is available
@@ -108,15 +108,25 @@ bool bl_queue_pop(void) {
     }
 }
 
-void bl_queue_set_join_packet(uint64_t node_id, bl_packet_type_t packet_type) {
-    uint8_t len = 0;
-    if (packet_type == BLINK_PACKET_JOIN_REQUEST) {
-        len = bl_build_packet_join_request(queue_vars.join_packet.buffer, node_id);
-    } else if (packet_type == BLINK_PACKET_JOIN_RESPONSE) {
-        len = bl_build_packet_join_response(queue_vars.join_packet.buffer, node_id);
-    } else {
-        return;
-    }
+// void bl_queue_set_join_packet(uint64_t node_id, bl_packet_type_t packet_type) {
+//     uint8_t len = 0;
+//     if (packet_type == BLINK_PACKET_JOIN_REQUEST) {
+//         len = bl_build_packet_join_request(queue_vars.join_packet.buffer, node_id);
+//     } else if (packet_type == BLINK_PACKET_JOIN_RESPONSE) {
+//         len = bl_build_packet_join_response(queue_vars.join_packet.buffer, node_id);
+//     } else {
+//         return;
+//     }
+//     queue_vars.join_packet.length = len;
+// }
+
+void bl_queue_set_join_request(uint64_t node_id) {
+    queue_vars.join_packet.length = bl_build_packet_join_request(queue_vars.join_packet.buffer, node_id);
+}
+
+void bl_queue_set_join_response(uint64_t node_id, uint8_t assigned_cell_id) {
+    uint8_t len = bl_build_packet_join_response(queue_vars.join_packet.buffer, node_id);
+    queue_vars.join_packet.buffer[len++] = assigned_cell_id;
     queue_vars.join_packet.length = len;
 }
 

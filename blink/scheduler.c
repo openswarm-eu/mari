@@ -79,19 +79,19 @@ bool bl_scheduler_set_schedule(uint8_t schedule_id) {
 }
 
 // to be called at the GATEWAY when processing a JOIN_REQUEST
-bool bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id) {
+int16_t bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id) {
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
         if (cell->type == SLOT_TYPE_UPLINK && cell->assigned_node_id == NULL) {
             cell->assigned_node_id = node_id;
-            return true;
+            return i;
         }
     }
-    return false;
+    return -1;
 }
 
 // to be called at the NODE when processing a JOIN_RESPONSE
-bool bl_scheduler_assign_myself_to_cell(uint8_t cell_index) {
+bool bl_scheduler_assign_myself_to_cell(uint16_t cell_index) {
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
         if (cell->type == SLOT_TYPE_UPLINK && i == cell_index) {
@@ -102,6 +102,7 @@ bool bl_scheduler_assign_myself_to_cell(uint8_t cell_index) {
     return false;
 }
 
+// to be called at the GATEWAY when a node leaves
 bool bl_scheduler_deassign_uplink_cell(uint64_t node_id) {
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];

@@ -51,7 +51,7 @@
 #define BLINK_MAX_TIME_NO_RX_DESYNC (BLINK_WHOLE_SLOT_DURATION * BLINK_SCAN_MAX_SLOTS) // us, arbitrary value for now
 
 // default scan duration in us
-#define BLINK_SCAN_MAX_SLOTS (97) // how many slots to scan for. should probably be the size of the largest schedule
+#define BLINK_SCAN_MAX_SLOTS (7) // how many slots to scan for. should probably be the size of the largest schedule
 #define BLINK_SCAN_MAX_DURATION (BLINK_SCAN_MAX_SLOTS * BLINK_WHOLE_SLOT_DURATION) // how many slots to scan for. should probably be the size of the largest schedule
 
 /* Duration of intra-slot sections */
