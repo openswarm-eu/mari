@@ -97,6 +97,10 @@ bool bl_assoc_gateway_pending_join_response(void) {
     return assoc_vars.state == JOIN_STATE_JOINING;
 }
 
+bool bl_assoc_node_is_joined(void) {
+    return assoc_vars.state == JOIN_STATE_JOINED;
+}
+
 inline void bl_assoc_set_state(bl_assoc_state_t state) {
     assoc_vars.state = state;
 

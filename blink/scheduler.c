@@ -179,6 +179,10 @@ uint8_t bl_scheduler_get_active_schedule_id(void) {
     return _schedule_vars.active_schedule_ptr->id;
 }
 
+uint8_t bl_scheduler_get_active_schedule_slot_count(void) {
+    return _schedule_vars.active_schedule_ptr->n_cells;
+}
+
 //=========================== private ==========================================
 
 void _compute_gateway_action(cell_t cell, bl_slot_info_t *slot_info) {

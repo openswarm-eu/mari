@@ -54,6 +54,8 @@
 #define BLINK_SCAN_MAX_SLOTS (BLINK_N_CELLS_MAX) // how many slots to scan for. should probably be the size of the largest schedule
 #define BLINK_SCAN_MAX_DURATION (BLINK_SCAN_MAX_SLOTS * BLINK_WHOLE_SLOT_DURATION) // how many slots to scan for. should probably be the size of the largest schedule
 
+#define BLINK_MAX_SLOTFRAMES_NO_RX_LEAVE (5) // how many slotframes to wait before leaving the network if nothing is received
+
 /* Duration of intra-slot sections */
 typedef struct {
     // transmitter
