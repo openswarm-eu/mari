@@ -12,6 +12,7 @@
 
 // #ifndef BLINK_FIXED_CHANNEL
 #define BLINK_FIXED_CHANNEL 37 // to hardcode the channel, use a valid value other than 0
+#define BLINK_FIXED_SCAN_CHANNEL 37 // to hardcode the channel, use a valid value other than 0
 // #endif
 
 #define BLINK_N_CELLS_MAX 137

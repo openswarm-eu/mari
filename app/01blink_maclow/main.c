@@ -69,7 +69,7 @@ int main(void) {
     bl_scheduler_init(node_type, &schedule);
     printf("\n==== Device of type %c and id %llx is using schedule 0x%0X ====\n\n", node_type, db_device_id(), schedule.id);
 
-    printf("BLINK_FIXED_CHANNEL = %d\n", BLINK_FIXED_CHANNEL);
+    //printf("BLINK_FIXED_CHANNEL = %d\n", BLINK_FIXED_CHANNEL);
 
     // initialize the mac
     bl_mac_init(node_type, blink_event_callback);

@@ -273,10 +273,11 @@ static void start_scan(void) {
     // mac_vars.assoc_info = bl_assoc_get_info(); // NOTE: why this?
 
     set_slot_state(STATE_RX_DATA_LISTEN);
-#ifdef BLINK_FIXED_CHANNEL
-    bl_radio_set_channel(BLINK_FIXED_CHANNEL); // not doing channel hopping for now
+    bl_radio_disable();
+#ifdef BLINK_FIXED_SCAN_CHANNEL
+    bl_radio_set_channel(BLINK_FIXED_SCAN_CHANNEL); // not doing channel hopping for now
 #else
-    puts("Channel hopping not implemented yet");
+    bl_radio_set_channel(mac_vars.current_slot_info.channel);
 #endif
     bl_radio_rx();
 }
@@ -323,6 +324,8 @@ static void activity_ti1(void) {
     uint8_t packet[BLINK_PACKET_MAX_SIZE];
     uint8_t packet_len = bl_queue_next_packet(mac_vars.current_slot_info.type, packet);
     if (packet_len > 0) {
+        bl_radio_disable();
+        bl_radio_set_channel(mac_vars.current_slot_info.channel);
         bl_radio_tx_prepare(packet, packet_len);
     } else {
         // nothing to tx
@@ -398,10 +401,11 @@ static void activity_ri2(void) {
     // called by: timer isr
     set_slot_state(STATE_RX_DATA_LISTEN);
 
+    bl_radio_disable();
 #ifdef BLINK_FIXED_CHANNEL
     bl_radio_set_channel(BLINK_FIXED_CHANNEL); // not doing channel hopping for now
 #else
-    puts("Channel hopping not implemented yet");
+    bl_radio_set_channel(mac_vars.current_slot_info.channel);
 #endif
     bl_radio_rx();
 }
@@ -591,7 +595,7 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
     uint8_t packet_len;
     bl_radio_get_rx_packet(packet, &packet_len);
 
-    bl_assoc_handle_beacon(packet, packet_len, BLINK_FIXED_CHANNEL, mac_vars.current_scan_item_ts);
+    bl_assoc_handle_beacon(packet, packet_len, BLINK_FIXED_SCAN_CHANNEL, mac_vars.current_scan_item_ts);
 
     // if there is still enough time before end of scan, re-enable the radio
     if (end_frame_ts + BLINK_BEACON_TOA_WITH_PADDING < mac_vars.scan_started_ts + BLINK_SCAN_MAX_DURATION) {

@@ -146,8 +146,12 @@ uint8_t bl_scheduler_get_channel(slot_type_t slot_type, uint64_t asn, uint8_t ch
     return BLINK_FIXED_CHANNEL;
 #endif
     if (slot_type == SLOT_TYPE_BEACON) {
+#ifdef BLINK_FIXED_SCAN_CHANNEL
+        return BLINK_FIXED_SCAN_CHANNEL;
+#else
         // special handling in case the cell is a beacon
         return BLINK_N_BLE_REGULAR_CHANNELS + (asn % BLINK_N_BLE_ADVERTISING_CHANNELS);
+#endif
     } else {
         // As per RFC 7554:
         //   frequency = F {(ASN + channelOffset) mod nFreq}
