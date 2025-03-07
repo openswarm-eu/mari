@@ -14,7 +14,7 @@
 
 //=========================== prototypes ==========================================
 
-void bl_init(bl_node_type_t node_type, bl_event_cb_t event_callback);
+void bl_init(bl_node_type_t node_type, schedule_t *app_schedule, bl_event_cb_t app_event_callback);
 void bl_tx(uint8_t *packet, uint8_t length);
 void bl_get_joined_nodes(uint64_t *nodes, uint8_t *num_nodes);
 bl_node_type_t bl_get_node_type(void);

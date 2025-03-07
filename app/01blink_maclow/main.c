@@ -13,9 +13,10 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+#include "device.h"
 #include "mac.h"
 #include "scheduler.h"
-#include "device.h"
+#include "queue.h"
 
 /* Very simple test schedule */
 schedule_t schedule_test = {
@@ -49,7 +50,7 @@ extern schedule_t schedule_minuscule, schedule_small, schedule_huge, schedule_on
 extern bl_slot_durations_t slot_durations;
 
 // static void radio_callback(uint8_t *packet, uint8_t length);
-void event_cb(bl_event_t event, bl_event_data_t event_data);
+void blink_event_callback(bl_event_t event, bl_event_data_t event_data);
 static void print_slot_timing(void);
 
 int main(void) {
@@ -63,27 +64,25 @@ int main(void) {
 
     bl_set_node_type(node_type);
 
-    bl_assoc_init();
+    bl_assoc_init(blink_event_callback);
 
     bl_scheduler_init(node_type, &schedule);
     printf("\n==== Device of type %c and id %llx is using schedule 0x%0X ====\n\n", node_type, db_device_id(), schedule.id);
 
     printf("BLINK_FIXED_CHANNEL = %d\n", BLINK_FIXED_CHANNEL);
 
-    // initialize the TSCH driver
-    //bl_default_slot_timing.end_guard = 1000 * 1000; // add an extra second of delay.
-    bl_mac_init(node_type, event_cb);
-    //printf("Slot duration: %d us\n", bl_default_slot_timing.whole_slot);
+    // initialize the mac
+    bl_mac_init(node_type, blink_event_callback);
 
     while (1) {
         __WFE();
     }
 }
 
-void event_cb(bl_event_t event, bl_event_data_t event_data) {
+void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
     switch (event) {
         case BLINK_NEW_PACKET:
-            printf("Gateway application received packet of length %d: ", event_data.data.new_packet.length);
+            printf("Blink received data packet of length %d: ", event_data.data.new_packet.length);
             for (int i = 0; i < event_data.data.new_packet.length; i++) {
                 printf("%02X ", event_data.data.new_packet.packet[i]);
             }
@@ -94,6 +93,19 @@ void event_cb(bl_event_t event, bl_event_data_t event_data) {
             break;
         case BLINK_NODE_LEFT:
             printf("Node left: %016llX\n", event_data.data.node_info.node_id);
+            break;
+        case BLINK_CONNECTED:
+            printf("Connected\n");
+            // enqueue a 'hello' packet
+            uint8_t packet[BLINK_PACKET_MAX_SIZE] = { 0 };
+            uint8_t data[] = { 0x48, 0x65, 0x6C, 0x6C, 0x6F }; // "Hello"
+
+            uint8_t packet_len = bl_build_packet_data(packet, event_data.data.gateway_info.gateway_id, data, 5);
+
+            bl_queue_add(packet, packet_len);
+            break;
+        case BLINK_DISCONNECTED:
+            printf("Disconnected\n");
             break;
         default:
             break;

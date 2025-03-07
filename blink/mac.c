@@ -148,8 +148,6 @@ static void isr_mac_radio_end_frame(uint32_t ts);
 //=========================== public ===========================================
 
 void bl_mac_init(bl_node_type_t node_type, bl_event_cb_t event_callback) {
-    (void)node_type;
-    (void)event_callback;
 #ifdef DEBUG
     db_gpio_init(&pin0, DB_GPIO_OUT);
     db_gpio_init(&pin1, DB_GPIO_OUT);

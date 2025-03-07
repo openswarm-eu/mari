@@ -17,10 +17,7 @@ typedef struct {
     bl_node_type_t          node_type;
     bl_event_cb_t           app_event_callback;
 
-    // node data
-    bool                    is_connected;
-
-    // gateway data
+    // gateway only
     uint64_t                joined_nodes[BLINK_MAX_NODES];
     uint8_t                 joined_nodes_len;
 } blink_vars_t;
@@ -35,14 +32,12 @@ static void event_callback(bl_event_t event, bl_event_data_t event_data);
 
 //=========================== public ===========================================
 
-void bl_init(bl_node_type_t node_type, bl_event_cb_t app_event_callback) {
+void bl_init(bl_node_type_t node_type, schedule_t *app_schedule, bl_event_cb_t app_event_callback) {
     _blink_vars.node_type = node_type;
-    _blink_vars.is_connected = true; // FIXME true just for tests
     _blink_vars.app_event_callback = app_event_callback;
 
-    bl_assoc_init();
-    bl_scheduler_init(node_type, NULL);
-    //bl_scheduler_init(node_type, &schedule);
+    bl_assoc_init(event_callback);
+    bl_scheduler_init(node_type, app_schedule);
     bl_mac_init(node_type, event_callback);
 }
 
