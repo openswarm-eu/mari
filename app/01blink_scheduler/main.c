@@ -36,6 +36,7 @@ int main(void) {
     // loop n_slotframes*n_cells times and make the scheduler tick
     // also, try to assign and deassign uplink cell at specific slotframes
     size_t n_slotframes = 4;
+    //uint64_t asn = (1ULL << 48) + 123456789; // use a large number to test scheduler tick duration
     uint64_t asn = 0;
     for (size_t j = 0; j < n_slotframes; j++) {
         for (size_t i = 0; i < schedule.n_cells; i++) {
@@ -48,7 +49,7 @@ int main(void) {
             bl_timer_hf_delay_us(BLINK_TIMER_DEV, SLOT);
         }
         puts(".");
-        if (j == 0 && !bl_scheduler_assign_next_available_uplink_cell(db_device_id())) { // try to assign at the end of first slotframe
+        if (j == 0 && bl_scheduler_assign_next_available_uplink_cell(db_device_id()) < 0) { // try to assign at the end of first slotframe
             printf("Failed to assign uplink cell\n");
             return 1;
         } else if (j == n_slotframes-2 && !bl_scheduler_deassign_uplink_cell(db_device_id())) { // try to deassign at the end of the second-to-last slotframe
@@ -56,6 +57,7 @@ int main(void) {
             return 1;
         }
     }
+    puts("Finished.");
 
     while (1) {
         __WFE();

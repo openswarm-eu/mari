@@ -31,7 +31,7 @@ typedef enum {
 
 //=========================== prototypes =======================================
 
-void bl_assoc_init(void);
+void bl_assoc_init(bl_event_cb_t event_callback);
 void bl_assoc_set_state(bl_assoc_state_t join_state);
 bl_channel_info_t bl_assoc_select_gateway(uint32_t start_ts, uint32_t end_ts);
 bool bl_assoc_node_ready_to_join(void);

@@ -39,7 +39,7 @@ schedule_t schedule_only_beacons_optimized_scan = {
     }
 };
 
-/* Schedule with 11 slot_durations, supporting up to 5 nodes */
+/* Schedule with 11 slots, supporting up to 5 nodes */
 schedule_t schedule_minuscule = {
     .id = 6,
     .max_nodes = 5,

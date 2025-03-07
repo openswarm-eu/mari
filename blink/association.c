@@ -49,6 +49,8 @@ typedef struct {
     // bl_node_type_t          node_type; // get from blink: bl_get_node_type()
     bl_assoc_state_t state;
 
+    bl_event_cb_t blink_event_callback;
+
     // // SCANNING state
     // uint8_t scan_max_slots; ///< Maximum number of slots to scan
     // uint32_t scan_started_ts; ///< Timestamp of the start of the scan
@@ -72,7 +74,7 @@ static assoc_vars_t assoc_vars = { 0 };
 
 //=========================== public ==========================================
 
-void bl_assoc_init(void) {
+void bl_assoc_init(bl_event_cb_t event_callback) {
 #ifdef DEBUG
     db_gpio_init(&led0, DB_GPIO_OUT);
     db_gpio_init(&led1, DB_GPIO_OUT);
@@ -80,6 +82,8 @@ void bl_assoc_init(void) {
     db_gpio_init(&led3, DB_GPIO_OUT);
     // remember: the LEDs are active low
 #endif
+
+    assoc_vars.blink_event_callback = event_callback;
 
     bl_assoc_set_state(JOIN_STATE_IDLE);
 }
@@ -154,16 +158,25 @@ void bl_assoc_handle_packet(uint8_t *packet, uint8_t length) {
 
     if (bl_get_node_type() == BLINK_GATEWAY) {
         if (header->type == BLINK_PACKET_JOIN_REQUEST) {
-            // TODO:
-            // - verify if node can be accepted
-            // - save node to client_list
-
-            // for now, just automatically accepting any node
-            bl_queue_set_join_packet(header->src, BLINK_PACKET_JOIN_RESPONSE);
+            // try to assign a cell to the node
+            int16_t cell_id = bl_scheduler_assign_next_available_uplink_cell(header->src);
+            if (cell_id >= 0) {
+                bl_queue_set_join_response(header->src, (uint8_t)cell_id);
+            } else {
+                assoc_vars.blink_event_callback(BLINK_ERROR, (bl_event_data_t){ 0 });
+            }
         }
     } else if (bl_get_node_type() == BLINK_NODE) {
         if (header->type == BLINK_PACKET_JOIN_RESPONSE) {
-            bl_assoc_set_state(JOIN_STATE_JOINED);
+            // cell_id is just after the header
+            uint8_t cell_id = packet[sizeof(bl_packet_header_t)];
+            if (bl_scheduler_assign_myself_to_cell(cell_id)) {
+                bl_assoc_set_state(JOIN_STATE_JOINED);
+                bl_event_data_t event_data = { .data.gateway_info.gateway_id = header->src };
+                assoc_vars.blink_event_callback(BLINK_CONNECTED, event_data);
+            } else {
+                assoc_vars.blink_event_callback(BLINK_ERROR, (bl_event_data_t){ 0 });
+            }
         }
     }
 

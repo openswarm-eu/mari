@@ -27,29 +27,6 @@
 #define BLINK_BACKOFF_N_MIN 5
 #define BLINK_BACKOFF_N_MAX 9
 
-// #ifndef BLINK_FIXED_CHANNEL
-#define BLINK_FIXED_CHANNEL 37 // to hardcode the channel, use a valid value other than 0
-// #endif
-
-#define BLINK_N_CELLS_MAX 137
-
-#define BLINK_ENABLE_BACKGROUND_SCAN 0
-
-typedef struct {
-    slot_type_t type;
-    uint8_t channel_offset;
-    uint64_t assigned_node_id;
-} cell_t;
-
-typedef struct {
-    uint8_t id; // unique identifier for the schedule
-    uint8_t max_nodes; // maximum number of nodes that can be scheduled, equivalent to the number of uplink slot_durations
-    uint8_t backoff_n_min; // minimum exponent for the backoff algorithm
-    uint8_t backoff_n_max; // maximum exponent for the backoff algorithm
-    size_t n_cells; // number of cells in this schedule
-    cell_t cells[BLINK_N_CELLS_MAX]; // cells in this schedule. NOTE(FIXME?): the first 3 cells must be beacons
-} schedule_t;
-
 //=========================== prototypes ==========================================
 
 /**
@@ -79,24 +56,10 @@ bl_slot_info_t bl_scheduler_tick(uint64_t asn);
  */
 bool bl_scheduler_set_schedule(uint8_t schedule_id);
 
-/**
- * @brief Assigns the next available uplink cell to a given node.
- *
- * @param[in] node_id         Node ID
- *
- * @return true if the uplink cell was successfully assigned, false otherwise (e.g., all uplink cells are already assigned)
- */
-bool bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id);
+int16_t bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id);
 
-bool bl_scheduler_assign_myself_to_cell(uint8_t cell_index);
+bool bl_scheduler_assign_myself_to_cell(uint16_t cell_index);
 
-/**
- * @brief Deassigns the uplink cell assigned to a given node.
- *
- * @param[in] node_id         Node ID
- *
- * @return true if the uplink cell was successfully deassigned, false otherwise
- */
 bool bl_scheduler_deassign_uplink_cell(uint64_t node_id);
 
 /**

@@ -51,7 +51,7 @@
 #define BLINK_MAX_TIME_NO_RX_DESYNC (BLINK_WHOLE_SLOT_DURATION * BLINK_SCAN_MAX_SLOTS) // us, arbitrary value for now
 
 // default scan duration in us
-#define BLINK_SCAN_MAX_SLOTS (97) // how many slots to scan for. should probably be the size of the largest schedule
+#define BLINK_SCAN_MAX_SLOTS (BLINK_N_CELLS_MAX) // how many slots to scan for. should probably be the size of the largest schedule
 #define BLINK_SCAN_MAX_DURATION (BLINK_SCAN_MAX_SLOTS * BLINK_WHOLE_SLOT_DURATION) // how many slots to scan for. should probably be the size of the largest schedule
 
 /* Duration of intra-slot sections */
@@ -76,7 +76,7 @@ extern bl_slot_durations_t slot_durations;
 
 //=========================== prototypes ==========================================
 
-void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback);
+void bl_mac_init(bl_node_type_t node_type, bl_event_cb_t event_callback);
 uint64_t bl_mac_get_synced_gateway(void);
 uint64_t bl_mac_get_asn(void);
 uint8_t bl_mac_get_remaining_capacity(void);

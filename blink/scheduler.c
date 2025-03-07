@@ -61,6 +61,9 @@ void bl_scheduler_init(bl_node_type_t node_type, schedule_t *application_schedul
 
     _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_minuscule;
     _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_tiny;
+    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_huge;
+    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_small;
+    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_big;
 
     if (application_schedule != NULL) {
         _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = *application_schedule;
@@ -79,19 +82,21 @@ bool bl_scheduler_set_schedule(uint8_t schedule_id) {
 }
 
 // to be called at the GATEWAY when processing a JOIN_REQUEST
-bool bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id) {
+int16_t bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id) {
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
-        if (cell->type == SLOT_TYPE_UPLINK && cell->assigned_node_id == NULL) {
+        // normally the cell is available if empty, but it may also be that case that
+        // the node just temporarily lost connection, so we can just re-assign the same cell_id
+        if (cell->type == SLOT_TYPE_UPLINK && (cell->assigned_node_id == NULL || cell->assigned_node_id == node_id)) {
             cell->assigned_node_id = node_id;
-            return true;
+            return i;
         }
     }
-    return false;
+    return -1;
 }
 
 // to be called at the NODE when processing a JOIN_RESPONSE
-bool bl_scheduler_assign_myself_to_cell(uint8_t cell_index) {
+bool bl_scheduler_assign_myself_to_cell(uint16_t cell_index) {
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
         if (cell->type == SLOT_TYPE_UPLINK && i == cell_index) {
@@ -102,6 +107,7 @@ bool bl_scheduler_assign_myself_to_cell(uint8_t cell_index) {
     return false;
 }
 
+// to be called at the GATEWAY when a node leaves
 bool bl_scheduler_deassign_uplink_cell(uint64_t node_id) {
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
@@ -145,8 +151,12 @@ uint8_t bl_scheduler_get_channel(slot_type_t slot_type, uint64_t asn, uint8_t ch
     return BLINK_FIXED_CHANNEL;
 #endif
     if (slot_type == SLOT_TYPE_BEACON) {
+#ifdef BLINK_FIXED_SCAN_CHANNEL
+        return BLINK_FIXED_SCAN_CHANNEL;
+#else
         // special handling in case the cell is a beacon
         return BLINK_N_BLE_REGULAR_CHANNELS + (asn % BLINK_N_BLE_ADVERTISING_CHANNELS);
+#endif
     } else {
         // As per RFC 7554:
         //   frequency = F {(ASN + channelOffset) mod nFreq}

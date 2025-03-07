@@ -84,7 +84,7 @@ typedef struct {
     uint64_t asn; ///< Absolute slot number
     bl_slot_info_t current_slot_info; ///< Information about the current slot
 
-    bl_rx_cb_t app_rx_callback; ///< Function pointer, stores the application callback
+    bl_event_cb_t blink_event_callback; ///< Function pointer, stores the application callback
 
     bl_received_packet_t received_packet; ///< Last received packet
 
@@ -147,9 +147,7 @@ static void isr_mac_radio_end_frame(uint32_t ts);
 
 //=========================== public ===========================================
 
-void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
-    (void)node_type;
-    (void)rx_callback;
+void bl_mac_init(bl_node_type_t node_type, bl_event_cb_t event_callback) {
 #ifdef DEBUG
     db_gpio_init(&pin0, DB_GPIO_OUT);
     db_gpio_init(&pin1, DB_GPIO_OUT);
@@ -171,7 +169,7 @@ void bl_mac_init(bl_node_type_t node_type, bl_rx_cb_t rx_callback) {
     mac_vars.asn = 0;
 
     // application callback
-    mac_vars.app_rx_callback = rx_callback;
+    mac_vars.blink_event_callback = event_callback;
 
     // begin the slot
     set_slot_state(STATE_SLEEP);
@@ -275,10 +273,11 @@ static void start_scan(void) {
     // mac_vars.assoc_info = bl_assoc_get_info(); // NOTE: why this?
 
     set_slot_state(STATE_RX_DATA_LISTEN);
-#ifdef BLINK_FIXED_CHANNEL
-    bl_radio_set_channel(BLINK_FIXED_CHANNEL); // not doing channel hopping for now
+    bl_radio_disable();
+#ifdef BLINK_FIXED_SCAN_CHANNEL
+    bl_radio_set_channel(BLINK_FIXED_SCAN_CHANNEL); // not doing channel hopping for now
 #else
-    puts("Channel hopping not implemented yet");
+    bl_radio_set_channel(mac_vars.current_slot_info.channel);
 #endif
     bl_radio_rx();
 }
@@ -292,6 +291,7 @@ static void end_scan(void) {
     if (select_gateway_and_sync()) { // WIP: just keep scanning
         // found a gateway and synchronized to it
         bl_assoc_set_state(JOIN_STATE_SYNCED);
+        bl_queue_set_join_request(mac_vars.synced_gateway);
     } else {
         // no gateway found, back to scanning
         start_scan();
@@ -324,6 +324,8 @@ static void activity_ti1(void) {
     uint8_t packet[BLINK_PACKET_MAX_SIZE];
     uint8_t packet_len = bl_queue_next_packet(mac_vars.current_slot_info.type, packet);
     if (packet_len > 0) {
+        bl_radio_disable();
+        bl_radio_set_channel(mac_vars.current_slot_info.channel);
         bl_radio_tx_prepare(packet, packet_len);
     } else {
         // nothing to tx
@@ -399,10 +401,11 @@ static void activity_ri2(void) {
     // called by: timer isr
     set_slot_state(STATE_RX_DATA_LISTEN);
 
+    bl_radio_disable();
 #ifdef BLINK_FIXED_CHANNEL
     bl_radio_set_channel(BLINK_FIXED_CHANNEL); // not doing channel hopping for now
 #else
-    puts("Channel hopping not implemented yet");
+    bl_radio_set_channel(mac_vars.current_slot_info.channel);
 #endif
     bl_radio_rx();
 }
@@ -495,8 +498,14 @@ static void activity_ri4(uint32_t ts) {
             break;
         case BLINK_PACKET_DATA:
             // send the packet to the application
-            if (mac_vars.app_rx_callback) {
-                mac_vars.app_rx_callback(mac_vars.received_packet.packet, mac_vars.received_packet.packet_len);
+            if (mac_vars.blink_event_callback) {
+                bl_event_data_t event_data = {
+                    .data.new_packet = {
+                        .packet = mac_vars.received_packet.packet,
+                        .length = mac_vars.received_packet.packet_len
+                    }
+                };
+                mac_vars.blink_event_callback(BLINK_NEW_PACKET, event_data);
             }
             break;
     }
@@ -586,7 +595,7 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
     uint8_t packet_len;
     bl_radio_get_rx_packet(packet, &packet_len);
 
-    bl_assoc_handle_beacon(packet, packet_len, BLINK_FIXED_CHANNEL, mac_vars.current_scan_item_ts);
+    bl_assoc_handle_beacon(packet, packet_len, BLINK_FIXED_SCAN_CHANNEL, mac_vars.current_scan_item_ts);
 
     // if there is still enough time before end of scan, re-enable the radio
     if (end_frame_ts + BLINK_BEACON_TOA_WITH_PADDING < mac_vars.scan_started_ts + BLINK_SCAN_MAX_DURATION) {
