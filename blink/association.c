@@ -186,10 +186,6 @@ void bl_assoc_handle_packet(uint8_t *packet, uint8_t length) {
 
 }
 
-bl_channel_info_t bl_assoc_select_gateway(uint32_t start_ts, uint32_t end_ts) {
-    return bl_scan_select(start_ts, end_ts);
-}
-
 //=========================== callbacks =======================================
 
 //=========================== private =========================================

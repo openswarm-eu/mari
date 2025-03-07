@@ -551,7 +551,13 @@ static bool select_gateway_and_sync(void) {
     uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
     disable_radio_and_intra_slot_timers();
 
-    bl_channel_info_t selected_gateway = bl_assoc_select_gateway(mac_vars.scan_started_ts, now_ts);
+    bl_channel_info_t selected_gateway = { 0 };
+    if (!bl_scan_select(&selected_gateway, mac_vars.scan_started_ts, now_ts)) {
+        // no gateway found
+        set_slot_state(STATE_SLEEP);
+        end_slot();
+        return false;
+    }
 
     if (selected_gateway.timestamp == 0) {
         // no gateway found
