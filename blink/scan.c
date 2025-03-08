@@ -5,7 +5,6 @@
 #include <stdbool.h>
 
 #include "scan.h"
-#include "timer_hf.h"
 
 //=========================== variables =======================================
 

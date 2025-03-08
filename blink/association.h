@@ -14,8 +14,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "protocol.h"
-#include "scan.h"
+
+#include "models.h"
 
 //=========================== defines ==========================================
 

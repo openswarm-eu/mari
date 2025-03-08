@@ -1,15 +1,14 @@
 #include <nrf.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 
-#include "protocol.h"
 #include "models.h"
 #include "mac.h"
 #include "scheduler.h"
+#include "association.h"
 #include "queue.h"
-#include "radio.h"
+#include "blink.h"
 
 //=========================== defines ==========================================
 

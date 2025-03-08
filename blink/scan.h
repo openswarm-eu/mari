@@ -3,14 +3,10 @@
 
 #include <nrf.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 #include <stdbool.h>
 
-#include "device.h"
 #include "protocol.h"
 #include "models.h"
-#include "scheduler.h"
 
 //=========================== defines =========================================
 

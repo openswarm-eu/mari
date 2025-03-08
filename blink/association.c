@@ -12,13 +12,15 @@
 #include <nrf.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdbool.h>
 
 #include "radio.h"
 #include "association.h"
 #include "scan.h"
 #include "queue.h"
+#include "mac.h"
+#include "blink.h"
+#include "scheduler.h"
 
 //=========================== debug ============================================
 
