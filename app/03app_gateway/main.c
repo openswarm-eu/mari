@@ -22,7 +22,7 @@
 #define DATA_LEN 4
 
 typedef struct {
-    uint8_t connected_nodes;
+    bool dummy;
 } gateway_vars_t;
 
 //=========================== variables ========================================
@@ -48,17 +48,14 @@ void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
             break;
         case BLINK_NODE_JOINED:
             printf("New node joined: %016llX\n", event_data.data.node_info.node_id);
-            gateway_vars.connected_nodes++; // FIXME have this be managed within the blink library
             uint64_t joined_nodes[BLINK_MAX_NODES] = { 0 };
-            uint8_t joined_nodes_len = 0;
-            bl_get_joined_nodes(joined_nodes, &joined_nodes_len);
-            // TODO: send to Edge Gateway via UART
+            uint8_t joined_nodes_len = bl_gateway_get_nodes(joined_nodes);
+            printf("Number of connected nodes: %d\n", joined_nodes_len);
+            // TODO: send list of joined_nodes to Edge Gateway via UART
             break;
         case BLINK_NODE_LEFT:
             printf("Node left: %016llX\n", event_data.data.node_info.node_id);
-            if (gateway_vars.connected_nodes > 0) {
-                gateway_vars.connected_nodes--; // FIXME have this be managed within the blink library
-            }
+            printf("Number of connected nodes: %d\n", bl_gateway_count_nodes());
             break;
         case BLINK_ERROR:
             printf("Error\n");
