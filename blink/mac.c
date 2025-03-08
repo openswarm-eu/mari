@@ -190,6 +190,10 @@ uint64_t bl_mac_get_asn(void) {
     return mac_vars.asn;
 }
 
+uint64_t bl_mac_get_synced_gateway(void) {
+    return mac_vars.synced_gateway;
+}
+
 //=========================== private ==========================================
 
 static void set_slot_state(bl_mac_state_t state) {
