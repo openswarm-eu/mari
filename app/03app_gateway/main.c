@@ -13,7 +13,6 @@
 
 #include "timer_hf.h"
 #include "blink.h"
-#include "mac.h"
 #include "protocol.h"
 
 //=========================== defines ==========================================

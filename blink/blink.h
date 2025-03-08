@@ -4,8 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "models.h"
-#include "protocol.h"
-#include "scheduler.h"
 
 //=========================== defines ==========================================
 

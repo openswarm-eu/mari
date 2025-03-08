@@ -14,13 +14,10 @@
  */
 
 #include <stdint.h>
-#include <stdlib.h>
 #include <stdbool.h>
 #include <nrf.h>
 
 #include "models.h"
-#include "mac.h"
-#include "blink.h"
 
 //=========================== defines ==========================================
 

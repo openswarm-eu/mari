@@ -10,8 +10,6 @@
  */
 #include <nrf.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 #include <stdbool.h>
 
 #include "blink.h"
@@ -19,6 +17,7 @@
 #include "queue.h"
 #include "scan.h"
 #include "scheduler.h"
+#include "association.h"
 #include "radio.h"
 #include "timer_hf.h"
 #include "protocol.h"

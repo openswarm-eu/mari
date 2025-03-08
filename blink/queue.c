@@ -1,13 +1,13 @@
 #include <nrf.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 
 #include "protocol.h"
 #include "mac.h"
 #include "scheduler.h"
-#include "radio.h"
+#include "association.h"
+#include "blink.h"
 #include "queue.h"
 
 //=========================== defines ==========================================
@@ -110,18 +110,6 @@ bool bl_queue_pop(void) {
         return true;
     }
 }
-
-// void bl_queue_set_join_packet(uint64_t node_id, bl_packet_type_t packet_type) {
-//     uint8_t len = 0;
-//     if (packet_type == BLINK_PACKET_JOIN_REQUEST) {
-//         len = bl_build_packet_join_request(queue_vars.join_packet.buffer, node_id);
-//     } else if (packet_type == BLINK_PACKET_JOIN_RESPONSE) {
-//         len = bl_build_packet_join_response(queue_vars.join_packet.buffer, node_id);
-//     } else {
-//         return;
-//     }
-//     queue_vars.join_packet.length = len;
-// }
 
 void bl_queue_set_join_request(uint64_t node_id) {
     queue_vars.join_packet.length = bl_build_packet_join_request(queue_vars.join_packet.buffer, node_id);

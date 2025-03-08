@@ -8,7 +8,7 @@
  *
  * @copyright Inria, 2024
  */
-#include "scheduler.h"
+#include "models.h"
 
 #define BLINK_N_SCHEDULES 1 + 7 // account for the schedule that can be passed by the application during initialization
 
