@@ -81,8 +81,8 @@ int main(void)
 
             bl_tx(packet, packet_len);
 
-            // sleep for some time
-            bl_timer_hf_delay_us(BLINK_APP_TIMER_DEV, bl_scheduler_get_active_schedule_slot_count() * BLINK_WHOLE_SLOT_DURATION * 2);
+            // sleep for 500 ms
+            bl_timer_hf_delay_ms(BLINK_APP_TIMER_DEV, 500);
         }
     }
 }

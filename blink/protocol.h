@@ -16,6 +16,7 @@ typedef enum {
     BLINK_PACKET_BEACON = 1,
     BLINK_PACKET_JOIN_REQUEST = 2,
     BLINK_PACKET_JOIN_RESPONSE = 3,
+    BLINK_PACKET_KEEPALIVE = 4,
     BLINK_PACKET_DATA = 5,
 } bl_packet_type_t;
 
@@ -44,6 +45,8 @@ size_t bl_build_packet_data(uint8_t *buffer, uint64_t dst, uint8_t *data, size_t
 size_t bl_build_packet_join_request(uint8_t *buffer, uint64_t dst);
 
 size_t bl_build_packet_join_response(uint8_t *buffer, uint64_t dst);
+
+size_t bl_build_packet_keepalive(uint8_t *buffer, uint64_t dst);
 
 size_t bl_build_packet_beacon(uint8_t *buffer, uint64_t asn, uint8_t remaining_capacity, uint8_t active_schedule_id);
 

@@ -10,6 +10,8 @@
 
 #define BLINK_PACKET_QUEUE_SIZE (8) // must be a power of 2
 
+#define BLINK_AUTO_UPLINK_KEEPALIVE 1 // whether to send a keepalive packet when there is nothing to send
+
 //=========================== prototypes ======================================
 
 void bl_queue_add(uint8_t *packet, uint8_t length);
