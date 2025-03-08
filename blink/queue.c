@@ -73,6 +73,9 @@ uint8_t bl_queue_next_packet(slot_type_t slot_type, uint8_t *packet) {
             if (len) {
                 // actually pop the packet from the queue
                 bl_queue_pop();
+            } else if (BLINK_AUTO_UPLINK_KEEPALIVE) {
+                // send a keepalive packet
+                len = bl_build_packet_keepalive(packet);
             }
         }
     }

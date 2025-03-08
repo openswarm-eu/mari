@@ -519,6 +519,9 @@ static void activity_ri4(uint32_t ts) {
                 mac_vars.blink_event_callback(BLINK_NEW_PACKET, event_data);
             }
             break;
+        case BLINK_PACKET_KEEPALIVE:
+            // at this point can just ignore keepalives, since node info was already saved in the association module
+            break;
     }
 
     end_slot();
