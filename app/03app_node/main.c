@@ -35,7 +35,7 @@ extern schedule_t schedule_minuscule, schedule_small, schedule_huge, schedule_on
 
 //=========================== prototypes =======================================
 
-void blink_event_callback(bl_event_t event, bl_event_data_t event_data);
+static void blink_event_callback(bl_event_t event, bl_event_data_t event_data);
 
 //=========================== main =============================================
 
@@ -62,7 +62,7 @@ int main(void)
 
 //=========================== callbacks ========================================
 
-void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
+static void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
     switch (event) {
         case BLINK_NEW_PACKET:
             printf("Blink received data packet of length %d: ", event_data.data.new_packet.length);

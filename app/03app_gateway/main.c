@@ -35,6 +35,46 @@ uint8_t payload_len = 5;
 
 extern schedule_t schedule_minuscule, schedule_small, schedule_huge, schedule_only_beacons, schedule_only_beacons_optimized_scan;
 
+//=========================== prototypes =======================================
+
+void blink_event_callback(bl_event_t event, bl_event_data_t event_data);
+
+//=========================== main =============================================
+
+int main(void)
+{
+    printf("Hello Blink Gateway\n");
+    bl_timer_hf_init(BLINK_APP_TIMER_DEV);
+
+    bl_init(BLINK_GATEWAY, &schedule_minuscule, &blink_event_callback);
+
+    while (1) {
+        __SEV();
+        __WFE();
+        __WFE();
+
+        // test: send a broadcast packet
+        uint8_t packet_len = bl_build_packet_data(packet, BLINK_BROADCAST_ADDRESS, payload, payload_len);
+        bl_tx(packet, packet_len);
+
+        // sleep for 500 ms
+        bl_timer_hf_delay_ms(BLINK_APP_TIMER_DEV, 500);
+
+        // test: enqueue packets to all connected nodes
+        uint64_t nodes[BLINK_MAX_NODES] = { 0 };
+        uint8_t nodes_len = bl_gateway_get_nodes(nodes);
+        for (int i = 0; i < nodes_len; i++) {
+            printf("Enqueing TX to node %d: %016llX\n", i, nodes[i]);
+            payload[0] = i;
+            uint8_t packet_len = bl_build_packet_data(packet, nodes[i], payload, payload_len);
+            bl_tx(packet, packet_len);
+        }
+
+        // sleep for 500 ms
+        bl_timer_hf_delay_ms(BLINK_APP_TIMER_DEV, 500);
+    }
+}
+
 //=========================== callbacks ========================================
 
 void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
@@ -62,28 +102,5 @@ void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
             break;
         default:
             break;
-    }
-}
-
-//=========================== main =============================================
-
-int main(void)
-{
-    printf("Hello Blink Gateway\n");
-    bl_timer_hf_init(BLINK_APP_TIMER_DEV);
-
-    bl_init(BLINK_GATEWAY, &schedule_minuscule, &blink_event_callback);
-
-    while (1) {
-        __SEV();
-        __WFE();
-        __WFE();
-
-        uint8_t packet_len = bl_build_packet_data(packet, BLINK_BROADCAST_ADDRESS, payload, payload_len);
-
-        bl_tx(packet, packet_len);
-
-        // sleep for 500 ms
-        bl_timer_hf_delay_ms(BLINK_APP_TIMER_DEV, 500);
     }
 }
