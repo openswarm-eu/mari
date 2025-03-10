@@ -11,6 +11,7 @@
 #include <nrf.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "blink.h"
 #include "mac.h"
@@ -65,16 +66,6 @@ typedef enum {
     STATE_RX_DATA = 33,
 
 } bl_mac_state_t;
-
-typedef struct {
-    uint8_t channel;
-    int8_t rssi;
-    uint32_t ts;
-    uint64_t asn;
-    bool to_me;
-    uint8_t packet[BLINK_PACKET_MAX_SIZE];
-    uint8_t packet_len;
-} bl_received_packet_t;
 
 typedef struct {
     bl_node_type_t node_type; //< whether the node is a gateway or a dotbot
@@ -229,9 +220,9 @@ static void new_slot_synced(void) {
 
     // too long without receiving a packet? disconnect
     if (mac_vars.node_type == BLINK_GATEWAY) {
-        bl_assoc_clear_old_nodes(mac_vars.asn);
-    } else if (mac_vars.node_type == BLINK_NODE && bl_assoc_node_is_joined()) {
-        if ((mac_vars.asn - mac_vars.received_packet.asn) > bl_scheduler_get_active_schedule_slot_count() * BLINK_MAX_SLOTFRAMES_NO_RX_LEAVE) {
+        bl_assoc_gateway_clear_old_nodes(mac_vars.asn);
+    } else if (mac_vars.node_type == BLINK_NODE && bl_assoc_is_joined()) {
+        if (bl_assoc_node_gateway_is_lost(mac_vars.asn)) {
             bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway };
             mac_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
             bl_assoc_set_state(JOIN_STATE_IDLE);
@@ -552,43 +543,13 @@ static void activity_ri4(uint32_t ts) {
         return;
     }
 
-    if (header->dst != mac_vars.device_id && header->dst != BLINK_BROADCAST_ADDRESS && header->type != BLINK_PACKET_BEACON) {
-        end_slot();
-        return;
-    }
-
-    // now that we know it's a blink packet, either for me, or broadcast, or a beacon, store some info about it
+    // now that we know it's a blink packet, store some info about it
     mac_vars.received_packet.channel = mac_vars.current_slot_info.channel;
     mac_vars.received_packet.rssi = bl_radio_rssi();
     mac_vars.received_packet.ts = ts;
     mac_vars.received_packet.asn = mac_vars.asn;
 
-    if (mac_vars.node_type == BLINK_GATEWAY && header->dst == mac_vars.device_id) {
-        bl_assoc_save_received_from_node(header->src, mac_vars.asn);
-    }
-
-    switch (header->type) {
-        case BLINK_PACKET_BEACON:
-        case BLINK_PACKET_JOIN_REQUEST:
-        case BLINK_PACKET_JOIN_RESPONSE:
-            bl_assoc_handle_packet(mac_vars.received_packet.packet, mac_vars.received_packet.packet_len);
-            break;
-        case BLINK_PACKET_DATA:
-            // send the packet to the application
-            if (mac_vars.blink_event_callback) {
-                bl_event_data_t event_data = {
-                    .data.new_packet = {
-                        .packet = mac_vars.received_packet.packet,
-                        .length = mac_vars.received_packet.packet_len
-                    }
-                };
-                mac_vars.blink_event_callback(BLINK_NEW_PACKET, event_data);
-            }
-            break;
-        case BLINK_PACKET_KEEPALIVE:
-            // at this point can just ignore keepalives, since node info was already saved in the association module
-            break;
-    }
+    bl_handle_packet(mac_vars.received_packet.packet, mac_vars.received_packet.packet_len);
 
     end_slot();
 }
@@ -622,7 +583,7 @@ static bool select_gateway_and_sync(void) {
         return false;
     }
 
-    if (bl_assoc_node_is_joined()) {
+    if (bl_assoc_is_joined()) {
         // this is a handover attempt
         if (selected_gateway.beacon.src == mac_vars.synced_gateway) {
             // should not happen, but just in case: already synced to this gateway, ignore it

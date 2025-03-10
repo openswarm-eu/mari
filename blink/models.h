@@ -20,6 +20,8 @@
 
 #define BLINK_ENABLE_BACKGROUND_SCAN 1
 
+#define BLINK_PACKET_MAX_SIZE 255
+
 //=========================== types ===========================================
 
 typedef enum {
@@ -84,6 +86,16 @@ typedef struct {
     size_t n_cells; // number of cells in this schedule
     cell_t cells[BLINK_N_CELLS_MAX]; // cells in this schedule. NOTE(FIXME?): the first 3 cells must be beacons
 } schedule_t;
+
+typedef struct {
+    uint8_t channel;
+    int8_t rssi;
+    uint32_t ts;
+    uint64_t asn;
+    bool to_me;
+    uint8_t packet[BLINK_PACKET_MAX_SIZE];
+    uint8_t packet_len;
+} bl_received_packet_t;
 
 //=========================== callbacks =======================================
 

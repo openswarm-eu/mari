@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "radio.h"
 #include "timer_hf.h"
 #include "blink.h"
 #include "protocol.h"
@@ -65,7 +66,7 @@ int main(void)
 static void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
     switch (event) {
         case BLINK_NEW_PACKET:
-            printf("Blink received data packet of length %d: ", event_data.data.new_packet.length);
+            printf("New data packet, rssi %d, length %d: ", bl_radio_rssi(), event_data.data.new_packet.length);
             for (int i = 0; i < event_data.data.new_packet.length; i++) {
                 printf("%02X ", event_data.data.new_packet.packet[i]);
             }
