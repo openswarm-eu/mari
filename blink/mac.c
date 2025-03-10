@@ -502,6 +502,8 @@ static void activity_ri3(uint32_t ts) {
         // DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3); // show that the slot was adjusted for clock drift
     } else {
         // drift is too high, need to re-sync
+        bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway };
+        mac_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
         bl_assoc_set_state(JOIN_STATE_IDLE);
         set_slot_state(STATE_SLEEP);
         end_slot();
