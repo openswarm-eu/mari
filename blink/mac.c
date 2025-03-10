@@ -128,6 +128,8 @@ static void activity_rie1(void);
 static void activity_ri4(uint32_t ts);
 static void activity_rie2(void);
 
+static void fix_drift(uint32_t ts);
+
 static void start_scan(void);
 static void end_scan(void);
 static void activity_scan_start_frame(uint32_t ts);
@@ -478,37 +480,7 @@ static void activity_ri3(uint32_t ts) {
     // cancel timer for rx_guard
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_2);
 
-    if (bl_get_node_type() == BLINK_GATEWAY) {
-        // the gateway is the time reference, so no need to check for clock drift
-        return;
-    }
-
-    uint32_t time_cpu_periph = 47; // got this value by looking at the logic analyzer
-
-    uint32_t expected_ts = mac_vars.start_slot_ts + slot_durations.tx_offset + time_cpu_periph;
-    int32_t clock_drift = ts - expected_ts;
-    uint32_t abs_clock_drift = abs(clock_drift);
-
-    if (abs_clock_drift < 5) {
-        // very small corrections can safely be ignored
-    } else if (abs_clock_drift < 80) {
-        // drift is acceptable
-        // adjust the slot reference
-        bl_timer_hf_adjust_periodic_us(
-            BLINK_TIMER_DEV,
-            BLINK_TIMER_INTER_SLOT_CHANNEL,
-            clock_drift
-        );
-        // DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3); // show that the slot was adjusted for clock drift
-    } else {
-        // drift is too high, need to re-sync
-        bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway, .tag = BLINK_OUT_OF_SYNC };
-        mac_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
-        bl_assoc_set_state(JOIN_STATE_IDLE);
-        set_slot_state(STATE_SLEEP);
-        end_slot();
-        start_scan();
-    }
+    mac_vars.received_packet.start_ts = ts;
 }
 
 static void activity_rie1(void) {
@@ -545,10 +517,17 @@ static void activity_ri4(uint32_t ts) {
         return;
     }
 
+    if (mac_vars.node_type == BLINK_NODE && bl_assoc_is_joined() && header->src == mac_vars.synced_gateway) {
+        // only fix drift if the packet comes from the gateway we are synced to
+        // NOTE: this should ideally be done at ri3 (when the packet starts), but we don't have the id there.
+        //       could use use the physical BLE address for that?
+        fix_drift(mac_vars.received_packet.start_ts);
+    }
+
     // now that we know it's a blink packet, store some info about it
     mac_vars.received_packet.channel = mac_vars.current_slot_info.channel;
     mac_vars.received_packet.rssi = bl_radio_rssi();
-    mac_vars.received_packet.ts = ts;
+    mac_vars.received_packet.end_ts = ts;
     mac_vars.received_packet.asn = mac_vars.asn;
 
     bl_handle_packet(mac_vars.received_packet.packet, mac_vars.received_packet.packet_len);
@@ -562,6 +541,35 @@ static void activity_rie2(void) {
     set_slot_state(STATE_SLEEP);
 
     end_slot();
+}
+
+static void fix_drift(uint32_t ts) {
+    uint32_t time_cpu_periph = 47; // got this value by looking at the logic analyzer
+
+    uint32_t expected_ts = mac_vars.start_slot_ts + slot_durations.tx_offset + time_cpu_periph;
+    int32_t clock_drift = ts - expected_ts;
+    uint32_t abs_clock_drift = abs(clock_drift);
+
+    if (abs_clock_drift < 5) {
+        // very small corrections can safely be ignored
+    } else if (abs_clock_drift < 80) {
+        // drift is acceptable
+        // adjust the slot reference
+        bl_timer_hf_adjust_periodic_us(
+            BLINK_TIMER_DEV,
+            BLINK_TIMER_INTER_SLOT_CHANNEL,
+            clock_drift
+        );
+        DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3); // show that the slot was adjusted for clock drift
+    } else {
+        // drift is too high, need to re-sync
+        bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway, .tag = BLINK_OUT_OF_SYNC };
+        mac_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
+        bl_assoc_set_state(JOIN_STATE_IDLE);
+        set_slot_state(STATE_SLEEP);
+        end_slot();
+        start_scan();
+    }
 }
 
 // --------------------- scan activities ------------------

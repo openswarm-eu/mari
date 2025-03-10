@@ -97,7 +97,8 @@ typedef struct {
 typedef struct {
     uint8_t channel;
     int8_t rssi;
-    uint32_t ts;
+    uint32_t start_ts;
+    uint32_t end_ts;
     uint64_t asn;
     bool to_me;
     uint8_t packet[BLINK_PACKET_MAX_SIZE];
