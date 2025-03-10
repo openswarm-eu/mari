@@ -38,6 +38,12 @@ typedef enum {
     BLINK_ERROR,
 } bl_event_t;
 
+typedef enum {
+    BLINK_HANDOVER = 1,
+    BLINK_OUT_OF_SYNC,
+    BLINK_PEER_LOST,
+} bl_event_tag_t;
+
 typedef struct {
     union {
         struct {
@@ -51,6 +57,7 @@ typedef struct {
             uint64_t gateway_id;
         } gateway_info;
     } data;
+    bl_event_tag_t tag;
 } bl_event_data_t;
 
 typedef enum {

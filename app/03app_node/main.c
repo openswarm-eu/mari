@@ -32,7 +32,7 @@ node_vars_t node_vars = { 0 };
 uint8_t payload[] = { 0xF0, 0xF0, 0xF0, 0xF0, 0xF0 };
 uint8_t payload_len = 5;
 
-extern schedule_t schedule_minuscule, schedule_small, schedule_huge, schedule_only_beacons, schedule_only_beacons_optimized_scan;
+extern schedule_t schedule_minuscule, schedule_tiny, schedule_small, schedule_huge, schedule_only_beacons, schedule_only_beacons_optimized_scan;
 
 //=========================== prototypes =======================================
 
@@ -79,7 +79,7 @@ static void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
         }
         case BLINK_DISCONNECTED: {
             uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
-            printf("Disconnected from gateway %016llX\n", gateway_id);
+            printf("Disconnected from gateway %016llX, reason: %u\n", gateway_id, event_data.tag);
             break;
         }
         case BLINK_ERROR:

@@ -66,7 +66,7 @@ typedef struct {
 
 //=========================== variables =======================================
 
-static assoc_vars_t assoc_vars = { 0 };
+assoc_vars_t assoc_vars = { 0 };
 
 //=========================== prototypes ======================================
 
@@ -180,7 +180,7 @@ void bl_assoc_gateway_clear_old_nodes(uint64_t asn) {
     for (size_t i = 0; i < BLINK_MAX_NODES; i++) {
         bl_received_from_node_t *node = &assoc_vars.last_received_from_node[i];
         if (node->node_id != 0 && asn - node->asn > max_asn_old) {
-            assoc_vars.blink_event_callback(BLINK_NODE_LEFT, (bl_event_data_t){ .data.node_info.node_id = node->node_id });
+            assoc_vars.blink_event_callback(BLINK_NODE_LEFT, (bl_event_data_t){ .data.node_info.node_id = node->node_id, .tag = BLINK_PEER_LOST });
             // deassign the cell
             bl_scheduler_deassign_uplink_cell(node->node_id);
             // clear the node

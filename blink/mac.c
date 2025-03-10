@@ -223,7 +223,7 @@ static void new_slot_synced(void) {
         bl_assoc_gateway_clear_old_nodes(mac_vars.asn);
     } else if (mac_vars.node_type == BLINK_NODE && bl_assoc_is_joined()) {
         if (bl_assoc_node_gateway_is_lost(mac_vars.asn)) {
-            bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway };
+            bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway, .tag = BLINK_PEER_LOST };
             mac_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
             bl_assoc_set_state(JOIN_STATE_IDLE);
             set_slot_state(STATE_SLEEP);
@@ -502,7 +502,7 @@ static void activity_ri3(uint32_t ts) {
         // DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3); // show that the slot was adjusted for clock drift
     } else {
         // drift is too high, need to re-sync
-        bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway };
+        bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway, .tag = BLINK_OUT_OF_SYNC };
         mac_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
         bl_assoc_set_state(JOIN_STATE_IDLE);
         set_slot_state(STATE_SLEEP);
@@ -609,7 +609,7 @@ static bool select_gateway_and_sync(void) {
 
     if (is_handover) {
         // a handover is going to happen, notify application about network disconnection
-        bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway };
+        bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway, .tag = BLINK_HANDOVER };
         mac_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
     }
 
