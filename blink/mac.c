@@ -464,11 +464,7 @@ static void activity_ri2(void) {
     set_slot_state(STATE_RX_DATA_LISTEN);
 
     bl_radio_disable();
-#ifdef BLINK_FIXED_CHANNEL
-    bl_radio_set_channel(BLINK_FIXED_CHANNEL); // not doing channel hopping for now
-#else
     bl_radio_set_channel(mac_vars.current_slot_info.channel);
-#endif
     bl_radio_rx();
 }
 

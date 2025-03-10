@@ -12,7 +12,7 @@
 #define BLINK_N_BLE_ADVERTISING_CHANNELS 3
 
 // #ifndef BLINK_FIXED_CHANNEL
-#define BLINK_FIXED_CHANNEL 37 // to hardcode the channel, use a valid value other than 0
+#define BLINK_FIXED_CHANNEL 0 // to hardcode the channel, use a valid value other than 0
 #define BLINK_FIXED_SCAN_CHANNEL 37 // to hardcode the channel, use a valid value other than 0
 // #endif
 
