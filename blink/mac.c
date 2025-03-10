@@ -232,7 +232,8 @@ static void new_slot_synced(void) {
         bl_assoc_clear_old_nodes(mac_vars.asn);
     } else if (mac_vars.node_type == BLINK_NODE && bl_assoc_node_is_joined()) {
         if ((mac_vars.asn - mac_vars.received_packet.asn) > bl_scheduler_get_active_schedule_slot_count() * BLINK_MAX_SLOTFRAMES_NO_RX_LEAVE) {
-            mac_vars.blink_event_callback(BLINK_DISCONNECTED, (bl_event_data_t){ 0 });
+            bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway };
+            mac_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
             bl_assoc_set_state(JOIN_STATE_IDLE);
             set_slot_state(STATE_SLEEP);
             end_slot();
@@ -645,7 +646,8 @@ static bool select_gateway_and_sync(void) {
 
     if (is_handover) {
         // a handover is going to happen, notify application about network disconnection
-        mac_vars.blink_event_callback(BLINK_DISCONNECTED, (bl_event_data_t){ 0 });
+        bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway };
+        mac_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
     }
 
     mac_vars.synced_gateway = selected_gateway.beacon.src;

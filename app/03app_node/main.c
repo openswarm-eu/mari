@@ -71,12 +71,16 @@ static void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
             }
             printf("\n");
             break;
-        case BLINK_CONNECTED:
-            printf("Connected\n");
+        case BLINK_CONNECTED: {
+            uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
+            printf("Connected to gateway %016llX\n", gateway_id);
             break;
-        case BLINK_DISCONNECTED:
-            printf("Disconnected\n");
+        }
+        case BLINK_DISCONNECTED: {
+            uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
+            printf("Disconnected from gateway %016llX\n", gateway_id);
             break;
+        }
         case BLINK_ERROR:
             printf("Error\n");
             break;
