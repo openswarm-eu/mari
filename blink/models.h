@@ -18,7 +18,7 @@
 
 #define BLINK_N_CELLS_MAX 137
 
-#define BLINK_ENABLE_BACKGROUND_SCAN 0
+#define BLINK_ENABLE_BACKGROUND_SCAN 1
 
 //=========================== types ===========================================
 

@@ -97,6 +97,7 @@ typedef struct {
     bool is_bg_scanning; ///< Whether the node is scanning for gateways in the background
 
     uint64_t synced_gateway; ///< ID of the gateway the node is synchronized with
+    uint32_t synced_ts; ///< Timestamp of the last synchronization
 } mac_vars_t;
 
 //=========================== variables ========================================
@@ -622,6 +623,10 @@ static bool select_gateway_and_sync(void) {
         // this is a handover attempt
         if (selected_gateway.beacon.src == mac_vars.synced_gateway) {
             // should not happen, but just in case: already synced to this gateway, ignore it
+            return false;
+        }
+        if (mac_vars.synced_ts - selected_gateway.timestamp < BLINK_HANDOVER_MIN_INTERVAL) {
+            // just recently performed a synchronization, will not try again so soon
             return false;
         }
         if (selected_gateway.rssi < mac_vars.received_packet.rssi + BLINK_HANDOVER_RSSI_HYSTERESIS) {
