@@ -322,7 +322,6 @@ static void start_background_scan(void) {
     // 1. prepare timestamps and and arm timer
     mac_vars.scan_started_ts = mac_vars.start_slot_ts; // reuse the slot start time as reference
     mac_vars.scan_expected_end_ts = mac_vars.scan_started_ts + (BLINK_TS_TX_OFFSET + BLINK_PACKET_TOA_WITH_PADDING);
-    DEBUG_GPIO_SET(&pin0); // debug: show that a new scan started
 
     // end_scan will be called when the scan is over
     bl_timer_hf_set_oneshot_with_ref_us(
@@ -348,10 +347,13 @@ static void start_background_scan(void) {
 }
 
 static void end_background_scan(void) {
-    if (!bl_scheduler_node_next_slot_will_sleep(mac_vars.asn)) {
+    // DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3); // debug: show that the background scan is over
+    cell_t next_slot = bl_scheduler_node_peek_slot(mac_vars.asn); // remember: the asn was already incremented at new_slot_synced
+    bool sleep_next_slot = next_slot.type == SLOT_TYPE_UPLINK && next_slot.assigned_node_id != db_device_id();
+
+    if (!sleep_next_slot) {
         // only stop the background scan if the next slot is not a sleep slot
         mac_vars.is_bg_scanning = false;
-        DEBUG_GPIO_CLEAR(&pin0); // debug: show that the scan is over
         set_slot_state(STATE_SLEEP);
         disable_radio_and_intra_slot_timers();
     }
@@ -505,7 +507,7 @@ static void activity_ri3(uint32_t ts) {
             BLINK_TIMER_INTER_SLOT_CHANNEL,
             clock_drift
         );
-        DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3); // show that the slot was adjusted for clock drift
+        // DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3); // show that the slot was adjusted for clock drift
     } else {
         // drift is too high, need to re-sync
         bl_assoc_set_state(JOIN_STATE_IDLE);

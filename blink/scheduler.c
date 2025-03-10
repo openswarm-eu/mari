@@ -183,11 +183,11 @@ uint8_t bl_scheduler_get_active_schedule_slot_count(void) {
     return _schedule_vars.active_schedule_ptr->n_cells;
 }
 
-bool bl_scheduler_node_next_slot_will_sleep(uint64_t asn) {
-    size_t cell_index = (asn + 1) % (_schedule_vars.active_schedule_ptr)->n_cells;
+cell_t bl_scheduler_node_peek_slot(uint64_t asn) {
+    size_t cell_index = (asn) % (_schedule_vars.active_schedule_ptr)->n_cells;
     cell_t cell = (_schedule_vars.active_schedule_ptr)->cells[cell_index];
 
-    return cell.type == SLOT_TYPE_UPLINK && cell.assigned_node_id != db_device_id();
+    return cell;
 }
 
 //=========================== private ==========================================
