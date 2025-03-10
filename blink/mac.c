@@ -314,21 +314,22 @@ static void end_scan(void) {
 
 static void start_background_scan(void) {
     // 1. prepare timestamps and and arm timer
-    mac_vars.scan_started_ts = mac_vars.start_slot_ts; // reuse the slot start time as reference
-    mac_vars.scan_expected_end_ts = mac_vars.scan_started_ts + (BLINK_TS_TX_OFFSET + BLINK_PACKET_TOA_WITH_PADDING);
+    if (!mac_vars.is_bg_scanning) {
+        mac_vars.scan_started_ts = mac_vars.start_slot_ts; // reuse the slot start time as reference
+        mac_vars.scan_expected_end_ts = mac_vars.scan_started_ts + (BLINK_TS_TX_OFFSET + BLINK_PACKET_TOA_WITH_PADDING);
+    }
 
     // end_scan will be called when the scan is over
     bl_timer_hf_set_oneshot_with_ref_us(
         BLINK_TIMER_DEV,
         BLINK_TIMER_CHANNEL_1, // remember that the inter-slot timer is already being used for the slot
-        mac_vars.scan_started_ts, // in this case, we use the slot start time as reference because we are synced
+        mac_vars.start_slot_ts, // in this case, we use the slot start time as reference because we are synced
         BLINK_TS_TX_OFFSET + BLINK_PACKET_TOA_WITH_PADDING, // scan for some time during this slot
         &end_background_scan
     );
 
     // 2. turn on the radio, in case it was off (bg scan might be already running since the last slot)
     if (!mac_vars.is_bg_scanning) {
-        mac_vars.is_bg_scanning = true;
         set_slot_state(STATE_RX_DATA_LISTEN);
         bl_radio_disable();
 #ifdef BLINK_FIXED_SCAN_CHANNEL
@@ -338,6 +339,7 @@ static void start_background_scan(void) {
 #endif
         bl_radio_rx();
     }
+    mac_vars.is_bg_scanning = true;
 }
 
 static void end_background_scan(void) {
@@ -356,6 +358,11 @@ static void end_background_scan(void) {
         // found a gateway and synchronized to it
         bl_assoc_set_state(JOIN_STATE_SYNCED);
         bl_queue_set_join_request(mac_vars.synced_gateway);
+
+        // stop the background scan if we are synced!
+        mac_vars.is_bg_scanning = false;
+        set_slot_state(STATE_SLEEP);
+        disable_radio_and_intra_slot_timers();
     }
 }
 
@@ -599,7 +606,7 @@ static bool select_gateway_and_sync(void) {
             // just recently performed a synchronization, will not try again so soon
             return false;
         }
-        if (selected_gateway.rssi < mac_vars.received_packet.rssi + BLINK_HANDOVER_RSSI_HYSTERESIS) {
+        if (selected_gateway.rssi > mac_vars.received_packet.rssi + BLINK_HANDOVER_RSSI_HYSTERESIS) {
             // the new gateway is not strong enough, ignore it
             return false;
         }
@@ -683,7 +690,7 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
 // --------------------- radio ---------------------
 static void isr_mac_radio_start_frame(uint32_t ts) {
     DEBUG_GPIO_SET(&pin2);
-    if (mac_vars.is_scanning) {
+    if (mac_vars.is_scanning || mac_vars.is_bg_scanning) {
         activity_scan_start_frame(ts);
         return;
     }
@@ -700,7 +707,7 @@ static void isr_mac_radio_start_frame(uint32_t ts) {
 static void isr_mac_radio_end_frame(uint32_t ts) {
     DEBUG_GPIO_CLEAR(&pin2);
 
-    if (mac_vars.is_scanning) {
+    if (mac_vars.is_scanning || mac_vars.is_bg_scanning) {
         activity_scan_end_frame(ts);
         return;
     }

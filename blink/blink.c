@@ -147,9 +147,12 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
 
         switch (header->type) {
             case BLINK_PACKET_BEACON:
-                bl_assoc_handle_beacon(packet, length, BLINK_FIXED_SCAN_CHANNEL, bl_mac_get_asn());
+                // bl_assoc_handle_beacon(packet, length, BLINK_FIXED_SCAN_CHANNEL, bl_mac_get_asn());
                 if (from_my_gateway) {
+                    bl_assoc_handle_beacon(packet, length, BLINK_FIXED_SCAN_CHANNEL, bl_mac_get_asn());
                     bl_assoc_node_keep_gateway_alive(bl_mac_get_asn());
+                } else {
+                    bl_assoc_handle_beacon(packet, length, BLINK_FIXED_SCAN_CHANNEL, bl_mac_get_asn());
                 }
                 break;
             case BLINK_PACKET_JOIN_RESPONSE: {
