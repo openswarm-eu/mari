@@ -148,7 +148,9 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
         switch (header->type) {
             case BLINK_PACKET_BEACON:
                 bl_assoc_handle_beacon(packet, length, BLINK_FIXED_SCAN_CHANNEL, bl_mac_get_asn());
-                bl_assoc_node_keep_gateway_alive(bl_mac_get_asn());
+                if (from_my_gateway) {
+                    bl_assoc_node_keep_gateway_alive(bl_mac_get_asn());
+                }
                 break;
             case BLINK_PACKET_JOIN_RESPONSE: {
                 if (bl_assoc_get_state() != JOIN_STATE_JOINING) {
@@ -161,6 +163,7 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
                     bl_assoc_set_state(JOIN_STATE_JOINED);
                     bl_event_data_t event_data = { .data.gateway_info.gateway_id = header->src };
                     _blink_vars.app_event_callback(BLINK_CONNECTED, event_data);
+                    bl_assoc_node_keep_gateway_alive(bl_mac_get_asn()); // initialize the gateway's keep-alive
                 } else {
                     _blink_vars.app_event_callback(BLINK_ERROR, (bl_event_data_t){ 0 });
                 }
