@@ -13,7 +13,7 @@
     <file file_name="bl_clock.c" />
     <file file_name="../bl_clock.h" />
   </project>
-  <project Name="00drv_gpio">
+  <project Name="00drv_bl_gpio">
     <configuration
       Name="Common"
       project_directory="bl_gpio"
@@ -21,7 +21,7 @@
     <file file_name="bl_gpio.c" />
     <file file_name="../bl_gpio.h" />
   </project>
-  <project Name="00drv_timer_hf">
+  <project Name="00drv_bl_timer_hf">
     <configuration
       Name="Common"
       project_dependencies="00drv_clock"
@@ -30,10 +30,10 @@
     <file file_name="bl_timer_hf.c" />
     <file file_name="../bl_timer_hf.h" />
   </project>
-  <project Name="00drv_radio">
+  <project Name="00drv_bl_radio">
     <configuration
       Name="Common"
-      project_dependencies="00drv_clock(00drv);00drv_timer_hf(00drv)"
+      project_dependencies="00drv_clock(00drv);00drv_bl_timer_hf(00drv)"
       project_directory="bl_radio"
       project_type="Library" />
     <file file_name="bl_radio.c" />
