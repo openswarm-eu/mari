@@ -14,7 +14,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
-#include "clock.h"
+#include "bl_clock.h"
 #include "bl_timer_hf.h"
 
 //=========================== define ===========================================

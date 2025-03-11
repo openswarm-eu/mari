@@ -15,7 +15,7 @@
 #include <stdbool.h>
 
 #include "scheduler.h"
-#include "device.h"
+#include "bl_device.h"
 #if defined(NRF5340_XXAA) && defined(NRF_NETWORK)
 #include "ipc.h"
 #endif

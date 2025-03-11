@@ -10,7 +10,7 @@
  */
 #include <nrf.h>
 #include <stdbool.h>
-#include "clock.h"
+#include "bl_clock.h"
 
 //=========================== defines ==========================================
 

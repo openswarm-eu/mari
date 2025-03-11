@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "device.h"
+#include "bl_device.h"
 #include "bl_radio.h"
 #include "association.h"
 #include "scan.h"
@@ -30,7 +30,7 @@
 #endif
 
 #ifdef DEBUG
-#include "gpio.h" // for debugging
+#include "bl_gpio.h" // for debugging
 // the 4 LEDs of the DK are on port 0, pins 13, 14, 15, 16
 gpio_t led0 = { .port = 0, .pin = 13 };
 gpio_t led1 = { .port = 0, .pin = 14 };

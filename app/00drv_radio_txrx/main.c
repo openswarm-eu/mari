@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "device.h"
+#include "bl_device.h"
 #include "bl_radio.h"
 #include "bl_timer_hf.h"
 #include "protocol.h"
@@ -21,7 +21,7 @@
 
 //=========================== debug ============================================
 
-#include "gpio.h"
+#include "bl_gpio.h"
 gpio_t pin0 = { .port = 1, .pin = 2 }; // variable names reflect the logic analyzer channels
 gpio_t pin1 = { .port = 1, .pin = 3 };
 gpio_t pin2 = { .port = 1, .pin = 4 };

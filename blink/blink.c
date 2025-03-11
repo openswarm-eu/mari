@@ -14,7 +14,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "device.h"
+#include "bl_device.h"
 #include "models.h"
 #include "protocol.h"
 #include "mac.h"

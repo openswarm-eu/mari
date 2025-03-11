@@ -1,5 +1,5 @@
-#ifndef __CLOCK_H
-#define __CLOCK_H
+#ifndef __BL_CLOCK_H
+#define __BL_CLOCK_H
 
 /**
  * @defgroup    bsp_clock   Clock
@@ -31,4 +31,4 @@ void bl_hfclk_init(void);
  */
 void bl_lfclk_init(void);
 
-#endif
+#endif /* __BL_CLOCK_H */

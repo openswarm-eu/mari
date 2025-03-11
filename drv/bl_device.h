@@ -1,5 +1,5 @@
-#ifndef __DEVICE_H
-#define __DEVICE_H
+#ifndef __BL_DEVICE_H
+#define __BL_DEVICE_H
 
 /**
  * @defgroup    bsp_device  Device information
@@ -48,4 +48,4 @@ static inline uint64_t bl_device_id(void) {
 #endif
 }
 
-#endif
+#endif /* __BL_DEVICE_H */

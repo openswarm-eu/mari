@@ -9,7 +9,7 @@
  */
 #include <stdint.h>
 #include <string.h>
-#include "device.h"
+#include "bl_device.h"
 #include "protocol.h"
 
 //=========================== prototypes =======================================

@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "clock.h"
+#include "bl_clock.h"
 #include "ipc.h"
 #include "bl_radio.h"
 #include "bl_timer_hf.h"

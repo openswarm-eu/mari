@@ -1,5 +1,5 @@
-#ifndef __GPIO_H
-#define __GPIO_H
+#ifndef __BL_GPIO_H
+#define __BL_GPIO_H
 
 /**
  * @defgroup    bsp_gpio    GPIO
@@ -123,4 +123,4 @@ void bl_gpio_toggle(const gpio_t *gpio);
  */
 uint8_t bl_gpio_read(const gpio_t *gpio);
 
-#endif
+#endif /* __BL_GPIO_H */

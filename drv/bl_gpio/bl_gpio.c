@@ -11,7 +11,7 @@
 #include <nrf.h>
 #include <assert.h>
 #include <stdbool.h>
-#include "gpio.h"
+#include "bl_gpio.h"
 
 //=========================== defines ==========================================
 

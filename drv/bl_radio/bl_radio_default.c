@@ -16,7 +16,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "clock.h"
+#include "bl_clock.h"
 #include "bl_timer_hf.h"
 #include "bl_radio.h"
 

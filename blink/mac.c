@@ -23,7 +23,7 @@
 #include "bl_radio.h"
 #include "bl_timer_hf.h"
 #include "protocol.h"
-#include "device.h"
+#include "bl_device.h"
 #if defined(NRF5340_XXAA) && defined(NRF_NETWORK)
 #include "ipc.h"
 #endif
@@ -35,7 +35,7 @@
 #endif
 
 #ifdef DEBUG
-#include "gpio.h" // for debugging
+#include "bl_gpio.h" // for debugging
 // pins connected to logic analyzer, variable names reflect the channel number
 gpio_t pin0 = { .port = 1, .pin = 2 };
 gpio_t pin1 = { .port = 1, .pin = 3 };

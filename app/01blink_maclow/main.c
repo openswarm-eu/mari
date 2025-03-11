@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "device.h"
+#include "bl_device.h"
 #include "mac.h"
 #include "scheduler.h"
 #include "queue.h"
