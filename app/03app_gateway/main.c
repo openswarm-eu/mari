@@ -46,7 +46,7 @@ int main(void)
     printf("Hello Blink Gateway\n");
     bl_timer_hf_init(BLINK_APP_TIMER_DEV);
 
-    bl_init(BLINK_GATEWAY, &schedule_huge, &blink_event_callback);
+    bl_init(BLINK_GATEWAY, &schedule_minuscule, &blink_event_callback);
 
     while (1) {
         __SEV();

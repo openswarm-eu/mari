@@ -86,6 +86,7 @@ typedef struct {
     uint32_t current_scan_item_ts; ///< Timestamp of the current scan item
 
     bool is_bg_scanning; ///< Whether the node is scanning for gateways in the background
+    bool bg_scan_sleep_next_slot; ///< Whether the next slot is a sleep slot
 
     uint64_t synced_gateway; ///< ID of the gateway the node is synchronized with
     uint32_t synced_ts; ///< Timestamp of the last synchronization
@@ -207,7 +208,7 @@ static void set_slot_state(bl_mac_state_t state) {
             break;
         case STATE_SLEEP:
             DEBUG_GPIO_CLEAR(&pin1);
-            // DEBUG_GPIO_CLEAR(&pin3);
+            DEBUG_GPIO_CLEAR(&pin2); // pin2 might be SET in case a packet had just started to arrive, so set it low again
             break;
         default:
             break;
@@ -316,7 +317,7 @@ static void start_background_scan(void) {
     // 1. prepare timestamps and and arm timer
     if (!mac_vars.is_bg_scanning) {
         mac_vars.scan_started_ts = mac_vars.start_slot_ts; // reuse the slot start time as reference
-        mac_vars.scan_expected_end_ts = mac_vars.scan_started_ts + (BLINK_TS_TX_OFFSET + BLINK_PACKET_TOA_WITH_PADDING);
+        mac_vars.scan_expected_end_ts = mac_vars.scan_started_ts + BLINK_BG_SCAN_DURATION;
     }
 
     // end_scan will be called when the scan is over
@@ -324,7 +325,7 @@ static void start_background_scan(void) {
         BLINK_TIMER_DEV,
         BLINK_TIMER_CHANNEL_1, // remember that the inter-slot timer is already being used for the slot
         mac_vars.start_slot_ts, // in this case, we use the slot start time as reference because we are synced
-        BLINK_TS_TX_OFFSET + BLINK_PACKET_TOA_WITH_PADDING, // scan for some time during this slot
+        BLINK_BG_SCAN_DURATION, // scan for some time during this slot
         &end_background_scan
     );
 
@@ -343,26 +344,20 @@ static void start_background_scan(void) {
 }
 
 static void end_background_scan(void) {
-    // DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3); // debug: show that the background scan is over
     cell_t next_slot = bl_scheduler_node_peek_slot(mac_vars.asn); // remember: the asn was already incremented at new_slot_synced
-    bool sleep_next_slot = next_slot.type == SLOT_TYPE_UPLINK && next_slot.assigned_node_id != db_device_id();
+    mac_vars.bg_scan_sleep_next_slot = next_slot.type == SLOT_TYPE_UPLINK && next_slot.assigned_node_id != db_device_id();
 
-    if (!sleep_next_slot) {
-        // only stop the background scan if the next slot is not a sleep slot
+    if (!mac_vars.bg_scan_sleep_next_slot) {
+        // if next slot is not sleep, stop the background scan and check if there is an alternative gateway to join
         mac_vars.is_bg_scanning = false;
         set_slot_state(STATE_SLEEP);
         disable_radio_and_intra_slot_timers();
-    }
 
-    if (select_gateway_and_sync()) {
-        // found a gateway and synchronized to it
-        bl_assoc_set_state(JOIN_STATE_SYNCED);
-        bl_queue_set_join_request(mac_vars.synced_gateway);
-
-        // stop the background scan if we are synced!
-        mac_vars.is_bg_scanning = false;
-        set_slot_state(STATE_SLEEP);
-        disable_radio_and_intra_slot_timers();
+        if (select_gateway_and_sync()) {
+            // found a gateway and synchronized to it
+            bl_assoc_set_state(JOIN_STATE_SYNCED);
+            bl_queue_set_join_request(mac_vars.synced_gateway);
+        }
     }
 }
 
@@ -563,7 +558,6 @@ static void fix_drift(uint32_t ts) {
             BLINK_TIMER_INTER_SLOT_CHANNEL,
             clock_drift
         );
-        DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3); // show that the slot was adjusted for clock drift
     } else {
         // drift is too high, need to re-sync
         bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway, .tag = BLINK_OUT_OF_SYNC };
@@ -619,9 +613,17 @@ static bool select_gateway_and_sync(void) {
     }
 
     if (is_handover) {
+        DEBUG_GPIO_SET(&pin3); DEBUG_GPIO_CLEAR(&pin3); // pin3 DEBUG
         // a handover is going to happen, notify application about network disconnection
         bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway, .tag = BLINK_HANDOVER };
         mac_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
+        // during handover, we don't want the inter slot timer to tick again before we finish sync, so just set if far away in the future
+        bl_timer_hf_set_periodic_us(
+            BLINK_TIMER_DEV,
+            BLINK_TIMER_INTER_SLOT_CHANNEL,
+            slot_durations.whole_slot << 4, // 16 slots in the future
+            &new_slot_synced
+        );
     }
 
     mac_vars.synced_gateway = selected_gateway.beacon.src;
@@ -639,12 +641,16 @@ static bool select_gateway_and_sync(void) {
         time_to_skip_one_slot = slot_durations.whole_slot;
     }
 
-    uint64_t time_cpu_and_toa = 398; // measured using the logic analyzer
+    uint64_t time_cpu_and_toa = 398; // magic number: measured using the logic analyzer
+    if (is_handover) {
+        time_cpu_and_toa += 116; // magic number: measured using the logic analyzer (why??)
+    }
 
+    uint32_t time_dispatch_new_schedule = ((slot_durations.whole_slot - time_into_gateway_slot) + time_to_skip_one_slot) - time_cpu_and_toa;
     bl_timer_hf_set_oneshot_us(
         BLINK_TIMER_DEV,
         BLINK_TIMER_CHANNEL_1,
-        ((slot_durations.whole_slot - time_into_gateway_slot) + time_to_skip_one_slot) - time_cpu_and_toa,
+        time_dispatch_new_schedule,
         &activity_scan_dispatch_new_schedule
     );
 
@@ -669,7 +675,10 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
     bl_assoc_handle_beacon(packet, packet_len, BLINK_FIXED_SCAN_CHANNEL, mac_vars.current_scan_item_ts);
 
     // if there is still enough time before end of scan, re-enable the radio
-    if (end_frame_ts + BLINK_BEACON_TOA_WITH_PADDING < mac_vars.scan_expected_end_ts) {
+    bool still_time_for_rx_scan = mac_vars.is_scanning && (end_frame_ts + BLINK_BEACON_TOA_WITH_PADDING < mac_vars.scan_expected_end_ts);
+    bool still_time_for_rx_bg_scan = mac_vars.is_bg_scanning && mac_vars.bg_scan_sleep_next_slot;
+    if (still_time_for_rx_scan || still_time_for_rx_bg_scan) {
+        // re-enable the radio, if there still time to scan more (conditions for normal / bg scan)
         set_slot_state(STATE_RX_DATA_LISTEN);
         // we cannot call rx immediately, because this runs in isr context/
         // and it might interfere with `if (NRF_RADIO->EVENTS_DISABLED)` in RADIO_IRQHandler
