@@ -75,10 +75,10 @@ assoc_vars_t assoc_vars = { 0 };
 
 void bl_assoc_init(bl_event_cb_t event_callback) {
 #ifdef DEBUG
-    bl_gpio_init(&led0, DB_GPIO_OUT);
-    bl_gpio_init(&led1, DB_GPIO_OUT);
-    bl_gpio_init(&led2, DB_GPIO_OUT);
-    bl_gpio_init(&led3, DB_GPIO_OUT);
+    bl_gpio_init(&led0, BL_GPIO_OUT);
+    bl_gpio_init(&led1, BL_GPIO_OUT);
+    bl_gpio_init(&led2, BL_GPIO_OUT);
+    bl_gpio_init(&led3, BL_GPIO_OUT);
     // remember: the LEDs are active low
 #endif
 

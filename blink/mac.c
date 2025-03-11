@@ -148,17 +148,17 @@ static void isr_mac_radio_end_frame(uint32_t ts);
 
 void bl_mac_init(bl_node_type_t node_type, bl_event_cb_t event_callback) {
 #ifdef DEBUG
-    bl_gpio_init(&pin0, DB_GPIO_OUT);
-    bl_gpio_init(&pin1, DB_GPIO_OUT);
-    bl_gpio_init(&pin2, DB_GPIO_OUT);
-    bl_gpio_init(&pin3, DB_GPIO_OUT);
+    bl_gpio_init(&pin0, BL_GPIO_OUT);
+    bl_gpio_init(&pin1, BL_GPIO_OUT);
+    bl_gpio_init(&pin2, BL_GPIO_OUT);
+    bl_gpio_init(&pin3, BL_GPIO_OUT);
 #endif
 
     // initialize the high frequency timer
     bl_timer_hf_init(BLINK_TIMER_DEV);
 
     // initialize the radio
-    bl_radio_init(&isr_mac_radio_start_frame, &isr_mac_radio_end_frame, DB_RADIO_BLE_2MBit);
+    bl_radio_init(&isr_mac_radio_start_frame, &isr_mac_radio_end_frame, BL_RADIO_BLE_2MBit);
 
     // node stuff
     mac_vars.node_type = node_type;

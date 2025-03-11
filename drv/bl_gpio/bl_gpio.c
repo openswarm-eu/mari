@@ -40,17 +40,17 @@ void bl_gpio_init(const gpio_t *gpio, gpio_mode_t mode) {
     nrf_port[gpio->port]->PIN_CNF[gpio->pin] = 0;
 
     switch (mode) {
-        case DB_GPIO_OUT:
+        case BL_GPIO_OUT:
             nrf_port[gpio->port]->PIN_CNF[gpio->pin] |= GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos;
             break;
-        case DB_GPIO_IN:
+        case BL_GPIO_IN:
             nrf_port[gpio->port]->PIN_CNF[gpio->pin] &= ~(1UL << GPIO_PIN_CNF_INPUT_Pos);
             break;
-        case DB_GPIO_IN_PU:
+        case BL_GPIO_IN_PU:
             nrf_port[gpio->port]->PIN_CNF[gpio->pin] |= (GPIO_PIN_CNF_PULL_Pullup << GPIO_PIN_CNF_PULL_Pos);
             nrf_port[gpio->port]->PIN_CNF[gpio->pin] &= ~(1UL << GPIO_PIN_CNF_INPUT_Pos);
             break;
-        case DB_GPIO_IN_PD:
+        case BL_GPIO_IN_PD:
             nrf_port[gpio->port]->PIN_CNF[gpio->pin] |= (GPIO_PIN_CNF_PULL_Pulldown << GPIO_PIN_CNF_PULL_Pos);
             nrf_port[gpio->port]->PIN_CNF[gpio->pin] &= ~(1UL << GPIO_PIN_CNF_INPUT_Pos);
             break;
