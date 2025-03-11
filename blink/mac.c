@@ -20,8 +20,8 @@
 #include "scan.h"
 #include "scheduler.h"
 #include "association.h"
-#include "radio.h"
-#include "timer_hf.h"
+#include "bl_radio.h"
+#include "bl_timer_hf.h"
 #include "protocol.h"
 #include "device.h"
 #if defined(NRF5340_XXAA) && defined(NRF_NETWORK)

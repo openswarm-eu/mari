@@ -13,8 +13,8 @@
 #include <stdlib.h>
 
 #include "device.h"
-#include "radio.h"
-#include "timer_hf.h"
+#include "bl_radio.h"
+#include "bl_timer_hf.h"
 #include "protocol.h"
 #include "scheduler.h"
 #include "mac.h"

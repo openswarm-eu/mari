@@ -12,8 +12,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "radio.h"
-#include "timer_hf.h"
+#include "bl_radio.h"
+#include "bl_timer_hf.h"
 #include "blink.h"
 #include "protocol.h"
 

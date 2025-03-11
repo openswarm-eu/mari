@@ -25,18 +25,18 @@
     <configuration
       Name="Common"
       project_dependencies="00drv_clock"
-      project_directory="timer_hf"
+      project_directory="bl_timer_hf"
       project_type="Library" />
-    <file file_name="timer_hf.c" />
-    <file file_name="../timer_hf.h" />
+    <file file_name="bl_timer_hf.c" />
+    <file file_name="../bl_timer_hf.h" />
   </project>
   <project Name="00drv_radio">
     <configuration
       Name="Common"
       project_dependencies="00drv_clock(00drv);00drv_timer_hf(00drv)"
-      project_directory="radio"
+      project_directory="bl_radio"
       project_type="Library" />
-    <file file_name="radio.c" />
-    <file file_name="../radio.h" />
+    <file file_name="bl_radio.c" />
+    <file file_name="../bl_radio.h" />
   </project>
 </solution>

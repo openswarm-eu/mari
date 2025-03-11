@@ -1,5 +1,5 @@
-#ifndef __TIMER_HF_H
-#define __TIMER_HF_H
+#ifndef __BL_TIMER_HF_H
+#define __BL_TIMER_HF_H
 
 /**
  * @defgroup    bsp_timer_hf    High Frequency Timer
@@ -110,4 +110,4 @@ void bl_timer_hf_cancel(timer_hf_t timer, uint8_t channel);
  */
 void bl_timer_hf_delay_s(timer_hf_t timer, uint32_t s);
 
-#endif
+#endif /* __BL_TIMER_HF_H */

@@ -17,8 +17,8 @@
 #include <assert.h>
 
 #include "clock.h"
-#include "timer_hf.h"
-#include "radio.h"
+#include "bl_timer_hf.h"
+#include "bl_radio.h"
 
 //=========================== defines ==========================================
 

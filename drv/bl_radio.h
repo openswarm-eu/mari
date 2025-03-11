@@ -1,5 +1,5 @@
-#ifndef __RADIO_H
-#define __RADIO_H
+#ifndef __BL_RADIO_H
+#define __BL_RADIO_H
 
 /**
  * @defgroup    bsp_radio   Radio support
@@ -129,4 +129,4 @@ void bl_radio_get_rx_packet(uint8_t *packet, uint8_t *length);
 void bl_radio_tx_prepare(const uint8_t *tx_buffer, uint8_t length);
 void bl_radio_tx_dispatch(void);
 
-#endif
+#endif // __BL_RADIO_H

@@ -15,7 +15,7 @@
 #include <stdbool.h>
 
 #include "device.h"
-#include "radio.h"
+#include "bl_radio.h"
 #include "association.h"
 #include "scan.h"
 #include "queue.h"

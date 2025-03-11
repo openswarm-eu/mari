@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "clock.h"
-#include "timer_hf.h"
+#include "bl_timer_hf.h"
 
 //=========================== define ===========================================
 

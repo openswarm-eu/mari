@@ -17,8 +17,8 @@
 
 #include "clock.h"
 #include "ipc.h"
-#include "radio.h"
-#include "timer_hf.h"
+#include "bl_radio.h"
+#include "bl_timer_hf.h"
 #include "tz.h"
 
 //=========================== variables ========================================

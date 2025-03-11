@@ -13,7 +13,7 @@
 
 #include "scheduler.h"
 #include "mac.h"
-#include "timer_hf.h"
+#include "bl_timer_hf.h"
 #include "device.h"
 
 #define SLOT 1000 * 1000 // 1 s
