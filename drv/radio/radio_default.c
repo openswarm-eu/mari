@@ -212,7 +212,7 @@ void bl_radio_init(radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb,
     radio_vars.state    = RADIO_STATE_IDLE;
 
     // Configure the external High-frequency Clock. (Needed for correct operation)
-    db_hfclk_init();
+    bl_hfclk_init();
 
     // Configure the Interruptions
     NVIC_SetPriority(RADIO_IRQn, RADIO_INTERRUPT_PRIORITY);  // Set priority for Radio interrupts to 1

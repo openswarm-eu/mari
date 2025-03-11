@@ -31,7 +31,7 @@ int main(void) {
     bl_node_type_t node_type = BLINK_NODE;
     bl_scheduler_init(node_type, &schedule);
 
-    printf("Device of type %c and id %llx is using schedule %d\n\n", node_type, db_device_id(), schedule.id);
+    printf("Device of type %c and id %llx is using schedule %d\n\n", node_type, bl_device_id(), schedule.id);
 
     // loop n_slotframes*n_cells times and make the scheduler tick
     // also, try to assign and deassign uplink cell at specific slotframes
@@ -49,10 +49,10 @@ int main(void) {
             bl_timer_hf_delay_us(BLINK_TIMER_DEV, SLOT);
         }
         puts(".");
-        if (j == 0 && bl_scheduler_assign_next_available_uplink_cell(db_device_id()) < 0) { // try to assign at the end of first slotframe
+        if (j == 0 && bl_scheduler_assign_next_available_uplink_cell(bl_device_id()) < 0) { // try to assign at the end of first slotframe
             printf("Failed to assign uplink cell\n");
             return 1;
-        } else if (j == n_slotframes-2 && !bl_scheduler_deassign_uplink_cell(db_device_id())) { // try to deassign at the end of the second-to-last slotframe
+        } else if (j == n_slotframes-2 && !bl_scheduler_deassign_uplink_cell(bl_device_id())) { // try to deassign at the end of the second-to-last slotframe
             printf("Failed to deassign uplink cell\n");
             return 1;
         }

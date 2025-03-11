@@ -34,7 +34,7 @@ static gpio_vars_t _gpio_vars;
 
 //=========================== public ===========================================
 
-void db_gpio_init(const gpio_t *gpio, gpio_mode_t mode) {
+void bl_gpio_init(const gpio_t *gpio, gpio_mode_t mode) {
 
     // Reset the pin configuration
     nrf_port[gpio->port]->PIN_CNF[gpio->pin] = 0;
@@ -57,7 +57,7 @@ void db_gpio_init(const gpio_t *gpio, gpio_mode_t mode) {
     }
 }
 
-void db_gpio_init_irq(const gpio_t *gpio, gpio_mode_t mode, gpio_irq_edge_t edge, gpio_cb_t callback, void *ctx) {
+void bl_gpio_init_irq(const gpio_t *gpio, gpio_mode_t mode, gpio_irq_edge_t edge, gpio_cb_t callback, void *ctx) {
     uint8_t gpio_pin_idx = 0xff;
     for (uint8_t i = 0; i < _gpio_vars.gpiote_pin_idx; i++) {
         if (_gpio_vars.gpiote_pins[i] == gpio) {
@@ -74,7 +74,7 @@ void db_gpio_init_irq(const gpio_t *gpio, gpio_mode_t mode, gpio_irq_edge_t edge
     _gpio_vars.events[gpio_pin_idx].callback = callback;
     _gpio_vars.events[gpio_pin_idx].ctx      = ctx;
 
-    db_gpio_init(gpio, mode);
+    bl_gpio_init(gpio, mode);
     NVIC_EnableIRQ(GPIOTE_IRQn);
 
     NRF_GPIOTE->CONFIG[gpio_pin_idx] = (GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) |
@@ -84,19 +84,19 @@ void db_gpio_init_irq(const gpio_t *gpio, gpio_mode_t mode, gpio_irq_edge_t edge
     NRF_GPIOTE->INTENSET |= (GPIOTE_INTENSET_IN0_Msk << gpio_pin_idx);
 }
 
-void db_gpio_set(const gpio_t *gpio) {
+void bl_gpio_set(const gpio_t *gpio) {
     nrf_port[gpio->port]->OUTSET = (1 << gpio->pin);
 }
 
-void db_gpio_clear(const gpio_t *gpio) {
+void bl_gpio_clear(const gpio_t *gpio) {
     nrf_port[gpio->port]->OUTCLR = (1 << gpio->pin);
 }
 
-void db_gpio_toggle(const gpio_t *gpio) {
+void bl_gpio_toggle(const gpio_t *gpio) {
     nrf_port[gpio->port]->OUT ^= (1 << gpio->pin);
 }
 
-uint8_t db_gpio_read(const gpio_t *gpio) {
+uint8_t bl_gpio_read(const gpio_t *gpio) {
     if (nrf_port[gpio->port]->DIR & (1 << gpio->pin)) {
         return (nrf_port[gpio->port]->OUT & (1 << gpio->pin)) ? 1 : 0;
     } else {

@@ -77,7 +77,7 @@ __attribute__ ((weak, alias("dummy_handler"))) void CRYPTOCELL_IRQHandler(void);
 #ifndef NO_IPC
 volatile __attribute__((section(".shared_data"))) ipc_shared_data_t ipc_shared_data;
 
-void db_ipc_network_call(ipc_req_t req) {
+void bl_ipc_network_call(ipc_req_t req) {
     if (req != DB_IPC_REQ_NONE) {
         ipc_shared_data.req                    = req;
         NRF_IPC_S->TASKS_SEND[DB_IPC_CHAN_REQ] = 1;

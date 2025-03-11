@@ -103,7 +103,7 @@ bool bl_scheduler_assign_myself_to_cell(uint16_t cell_index) {
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
         if (cell->type == SLOT_TYPE_UPLINK && i == cell_index) {
-            cell->assigned_node_id = db_device_id();
+            cell->assigned_node_id = bl_device_id();
             return true;
         }
     }
@@ -237,7 +237,7 @@ void _compute_dotbot_action(cell_t cell, bl_slot_info_t *slot_info) {
             slot_info->radio_action = BLINK_RADIO_ACTION_TX;
             break;
         case SLOT_TYPE_UPLINK:
-            if (cell.assigned_node_id == db_device_id()) {
+            if (cell.assigned_node_id == bl_device_id()) {
                 slot_info->radio_action = BLINK_RADIO_ACTION_TX;
             } else {
                 slot_info->radio_action = BLINK_RADIO_ACTION_SLEEP;

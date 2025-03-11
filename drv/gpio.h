@@ -81,7 +81,7 @@ static NRF_GPIO_Type *nrf_port[2] = { NRF_P0, NRF_P1 };
  * @param[in]   gpio            Pointer to the GPIO descriptor
  * @param[in]   mode            GPIO mode (output, input, etc)
  */
-void db_gpio_init(const gpio_t *gpio, gpio_mode_t mode);
+void bl_gpio_init(const gpio_t *gpio, gpio_mode_t mode);
 
 /**
  * @brief   Initialize a GPIO with IRQ
@@ -92,28 +92,28 @@ void db_gpio_init(const gpio_t *gpio, gpio_mode_t mode);
  * @param[in]   callback        Function pointer that is called from gpio ISR
  * @param[in]   ctx             Pointer to some context passed as parameter to the callback
  */
-void db_gpio_init_irq(const gpio_t *gpio, gpio_mode_t mode, gpio_irq_edge_t edge, gpio_cb_t callback, void *ctx);
+void bl_gpio_init_irq(const gpio_t *gpio, gpio_mode_t mode, gpio_irq_edge_t edge, gpio_cb_t callback, void *ctx);
 
 /**
  * @brief   Set the GPIO output high
  *
  * @param[in]   gpio            Pointer to the GPIO descriptor
  */
-void db_gpio_set(const gpio_t *gpio);
+void bl_gpio_set(const gpio_t *gpio);
 
 /**
  * @brief   Set the GPIO output low
  *
  * @param[in]   gpio            Pointer to the GPIO descriptor
  */
-void db_gpio_clear(const gpio_t *gpio);
+void bl_gpio_clear(const gpio_t *gpio);
 
 /**
  * @brief   Toggle the GPIO output
  *
  * @param[in]   gpio            Pointer to the GPIO descriptor
  */
-void db_gpio_toggle(const gpio_t *gpio);
+void bl_gpio_toggle(const gpio_t *gpio);
 
 /**
  * @brief   Read the value of a GPIO
@@ -121,6 +121,6 @@ void db_gpio_toggle(const gpio_t *gpio);
  * @param[in]   gpio            Pointer to the GPIO descriptor
  * @return                      GPIO level (0 or 1)
  */
-uint8_t db_gpio_read(const gpio_t *gpio);
+uint8_t bl_gpio_read(const gpio_t *gpio);
 
 #endif

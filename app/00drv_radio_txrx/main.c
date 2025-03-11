@@ -26,9 +26,9 @@ gpio_t pin0 = { .port = 1, .pin = 2 }; // variable names reflect the logic analy
 gpio_t pin1 = { .port = 1, .pin = 3 };
 gpio_t pin2 = { .port = 1, .pin = 4 };
 gpio_t pin3 = { .port = 1, .pin = 5 };
-#define DEBUG_GPIO_TOGGLE(pin) db_gpio_toggle(pin)
-#define DEBUG_GPIO_SET(pin) db_gpio_set(pin)
-#define DEBUG_GPIO_CLEAR(pin) db_gpio_clear(pin)
+#define DEBUG_GPIO_TOGGLE(pin) bl_gpio_toggle(pin)
+#define DEBUG_GPIO_SET(pin) bl_gpio_set(pin)
+#define DEBUG_GPIO_CLEAR(pin) bl_gpio_clear(pin)
 
 //=========================== defines =========================================
 
@@ -54,8 +54,8 @@ static void isr_radio_end_frame(uint32_t ts);
 
 int main(void) {
     bl_timer_hf_init(BLINK_TIMER_DEV);
-    db_gpio_init(&pin0, DB_GPIO_OUT);
-    db_gpio_init(&pin1, DB_GPIO_OUT);
+    bl_gpio_init(&pin0, DB_GPIO_OUT);
+    bl_gpio_init(&pin1, DB_GPIO_OUT);
 
     bl_radio_init(&isr_radio_start_frame, &isr_radio_end_frame, DB_RADIO_BLE_2MBit);
     bl_radio_set_channel(BLINK_FIXED_SCAN_CHANNEL);
@@ -72,7 +72,7 @@ int main(void) {
 //=========================== private =========================================
 
 static void send_beacon_prepare(void) {
-    printf("Sending beacon from %llx\n", db_device_id());
+    printf("Sending beacon from %llx\n", bl_device_id());
     uint8_t packet[BLINK_PACKET_MAX_SIZE] = { 0 };
     size_t len = bl_build_packet_beacon(packet, txrx_vars.asn++, 10, schedule_huge.id);
     bl_radio_disable();

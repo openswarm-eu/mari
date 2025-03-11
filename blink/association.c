@@ -36,9 +36,9 @@ gpio_t led0 = { .port = 0, .pin = 13 };
 gpio_t led1 = { .port = 0, .pin = 14 };
 gpio_t led2 = { .port = 0, .pin = 15 };
 gpio_t led3 = { .port = 0, .pin = 16 };
-#define DEBUG_GPIO_TOGGLE(pin) db_gpio_toggle(pin)
-#define DEBUG_GPIO_SET(pin) db_gpio_set(pin)
-#define DEBUG_GPIO_CLEAR(pin) db_gpio_clear(pin)
+#define DEBUG_GPIO_TOGGLE(pin) bl_gpio_toggle(pin)
+#define DEBUG_GPIO_SET(pin) bl_gpio_set(pin)
+#define DEBUG_GPIO_CLEAR(pin) bl_gpio_clear(pin)
 #else
 // No-op when DEBUG is not defined
 #define DEBUG_GPIO_TOGGLE(pin) ((void)0))
@@ -75,10 +75,10 @@ assoc_vars_t assoc_vars = { 0 };
 
 void bl_assoc_init(bl_event_cb_t event_callback) {
 #ifdef DEBUG
-    db_gpio_init(&led0, DB_GPIO_OUT);
-    db_gpio_init(&led1, DB_GPIO_OUT);
-    db_gpio_init(&led2, DB_GPIO_OUT);
-    db_gpio_init(&led3, DB_GPIO_OUT);
+    bl_gpio_init(&led0, DB_GPIO_OUT);
+    bl_gpio_init(&led1, DB_GPIO_OUT);
+    bl_gpio_init(&led2, DB_GPIO_OUT);
+    bl_gpio_init(&led3, DB_GPIO_OUT);
     // remember: the LEDs are active low
 #endif
 

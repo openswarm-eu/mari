@@ -41,9 +41,9 @@ gpio_t pin0 = { .port = 1, .pin = 2 };
 gpio_t pin1 = { .port = 1, .pin = 3 };
 gpio_t pin2 = { .port = 1, .pin = 4 };
 gpio_t pin3 = { .port = 1, .pin = 5 };
-#define DEBUG_GPIO_TOGGLE(pin) db_gpio_toggle(pin)
-#define DEBUG_GPIO_SET(pin) db_gpio_set(pin)
-#define DEBUG_GPIO_CLEAR(pin) db_gpio_clear(pin)
+#define DEBUG_GPIO_TOGGLE(pin) bl_gpio_toggle(pin)
+#define DEBUG_GPIO_SET(pin) bl_gpio_set(pin)
+#define DEBUG_GPIO_CLEAR(pin) bl_gpio_clear(pin)
 #else
 // No-op when DEBUG is not defined
 #define DEBUG_GPIO_TOGGLE(pin) ((void)0))
@@ -148,10 +148,10 @@ static void isr_mac_radio_end_frame(uint32_t ts);
 
 void bl_mac_init(bl_node_type_t node_type, bl_event_cb_t event_callback) {
 #ifdef DEBUG
-    db_gpio_init(&pin0, DB_GPIO_OUT);
-    db_gpio_init(&pin1, DB_GPIO_OUT);
-    db_gpio_init(&pin2, DB_GPIO_OUT);
-    db_gpio_init(&pin3, DB_GPIO_OUT);
+    bl_gpio_init(&pin0, DB_GPIO_OUT);
+    bl_gpio_init(&pin1, DB_GPIO_OUT);
+    bl_gpio_init(&pin2, DB_GPIO_OUT);
+    bl_gpio_init(&pin3, DB_GPIO_OUT);
 #endif
 
     // initialize the high frequency timer
@@ -162,7 +162,7 @@ void bl_mac_init(bl_node_type_t node_type, bl_event_cb_t event_callback) {
 
     // node stuff
     mac_vars.node_type = node_type;
-    mac_vars.device_id = db_device_id();
+    mac_vars.device_id = bl_device_id();
 
     // synchronization stuff
     mac_vars.asn = 0;
@@ -346,7 +346,7 @@ static void start_background_scan(void) {
 
 static void end_background_scan(void) {
     cell_t next_slot = bl_scheduler_node_peek_slot(mac_vars.asn); // remember: the asn was already incremented at new_slot_synced
-    mac_vars.bg_scan_sleep_next_slot = next_slot.type == SLOT_TYPE_UPLINK && next_slot.assigned_node_id != db_device_id();
+    mac_vars.bg_scan_sleep_next_slot = next_slot.type == SLOT_TYPE_UPLINK && next_slot.assigned_node_id != bl_device_id();
 
     if (!mac_vars.bg_scan_sleep_next_slot) {
         // if next slot is not sleep, stop the background scan and check if there is an alternative gateway to join

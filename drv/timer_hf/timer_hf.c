@@ -108,7 +108,7 @@ void bl_timer_hf_init(timer_hf_t timer) {
 
 #if !defined(USE_SWARMIT)
     // Configure and start High Frequency clock
-    db_hfclk_init();
+    bl_hfclk_init();
 #endif
 
     // Configure the timer
