@@ -15,7 +15,7 @@
 #include "bl_device.h"
 #include "bl_radio.h"
 #include "bl_timer_hf.h"
-#include "protocol.h"
+#include "packet.h"
 #include "scheduler.h"
 #include "mac.h"
 

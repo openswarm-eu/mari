@@ -16,7 +16,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "protocol.h"
+#include "packet.h"
 #include "models.h"
 
 //=========================== defines =========================================

@@ -13,8 +13,8 @@
       project_type="Library" />
     <configuration
       Name="Debug" />
-    <file file_name="protocol.c" />
-    <file file_name="protocol.h" />
+    <file file_name="packet.c" />
+    <file file_name="packet.h" />
 
     <file file_name="models.h" />
 

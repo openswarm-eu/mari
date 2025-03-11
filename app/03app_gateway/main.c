@@ -13,7 +13,7 @@
 
 #include "bl_timer_hf.h"
 #include "blink.h"
-#include "protocol.h"
+#include "packet.h"
 
 //=========================== defines ==========================================
 

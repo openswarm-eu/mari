@@ -16,7 +16,7 @@
 
 #include "bl_device.h"
 #include "models.h"
-#include "protocol.h"
+#include "packet.h"
 #include "mac.h"
 #include "scheduler.h"
 #include "association.h"

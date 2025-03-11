@@ -1,7 +1,5 @@
 /**
- * @file
- *
- * @brief       Example on how to use the maclow driver
+ * @brief       Build a blink packets
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
@@ -10,7 +8,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "bl_device.h"
-#include "protocol.h"
+#include "packet.h"
 
 //=========================== prototypes =======================================
 

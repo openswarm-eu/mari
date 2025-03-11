@@ -22,7 +22,7 @@
 #include "association.h"
 #include "bl_radio.h"
 #include "bl_timer_hf.h"
-#include "protocol.h"
+#include "packet.h"
 #include "bl_device.h"
 #if defined(NRF5340_XXAA) && defined(NRF_NETWORK)
 #include "ipc.h"
