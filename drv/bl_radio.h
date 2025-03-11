@@ -41,7 +41,7 @@ typedef enum {
     BL_RADIO_IEEE802154_250Kbit
 } bl_radio_mode_t;
 
-typedef void (*radio_cb_t)(uint8_t *packet, uint8_t length);  ///< get the received packet
+typedef void (*bl_radio_cb_t)(uint8_t *packet, uint8_t length);  ///< get the received packet
 typedef void (*radio_ts_packet_t)(uint32_t ts);  ///< capture timestamp for start/end of packet
 
 //=========================== public ===========================================

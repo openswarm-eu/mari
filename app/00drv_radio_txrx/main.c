@@ -22,10 +22,10 @@
 //=========================== debug ============================================
 
 #include "bl_gpio.h"
-gpio_t pin0 = { .port = 1, .pin = 2 }; // variable names reflect the logic analyzer channels
-gpio_t pin1 = { .port = 1, .pin = 3 };
-gpio_t pin2 = { .port = 1, .pin = 4 };
-gpio_t pin3 = { .port = 1, .pin = 5 };
+bl_gpio_t pin0 = { .port = 1, .pin = 2 }; // variable names reflect the logic analyzer channels
+bl_gpio_t pin1 = { .port = 1, .pin = 3 };
+bl_gpio_t pin2 = { .port = 1, .pin = 4 };
+bl_gpio_t pin3 = { .port = 1, .pin = 5 };
 #define DEBUG_GPIO_TOGGLE(pin) bl_gpio_toggle(pin)
 #define DEBUG_GPIO_SET(pin) bl_gpio_set(pin)
 #define DEBUG_GPIO_CLEAR(pin) bl_gpio_clear(pin)

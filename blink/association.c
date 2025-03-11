@@ -32,10 +32,10 @@
 #ifdef DEBUG
 #include "bl_gpio.h" // for debugging
 // the 4 LEDs of the DK are on port 0, pins 13, 14, 15, 16
-gpio_t led0 = { .port = 0, .pin = 13 };
-gpio_t led1 = { .port = 0, .pin = 14 };
-gpio_t led2 = { .port = 0, .pin = 15 };
-gpio_t led3 = { .port = 0, .pin = 16 };
+bl_gpio_t led0 = { .port = 0, .pin = 13 };
+bl_gpio_t led1 = { .port = 0, .pin = 14 };
+bl_gpio_t led2 = { .port = 0, .pin = 15 };
+bl_gpio_t led3 = { .port = 0, .pin = 16 };
 #define DEBUG_GPIO_TOGGLE(pin) bl_gpio_toggle(pin)
 #define DEBUG_GPIO_SET(pin) bl_gpio_set(pin)
 #define DEBUG_GPIO_CLEAR(pin) bl_gpio_clear(pin)

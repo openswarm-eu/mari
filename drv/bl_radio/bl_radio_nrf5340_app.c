@@ -23,13 +23,13 @@
 
 //=========================== variables ========================================
 
-static radio_cb_t _radio_callback = NULL;
+static bl_radio_cb_t _radio_callback = NULL;
 
 extern volatile __attribute__((section(".shared_data"))) ipc_shared_data_t ipc_shared_data;
 
 //=========================== public ===========================================
 
-void bl_radio_init(radio_cb_t callback, bl_radio_mode_t mode) {
+void bl_radio_init(bl_radio_cb_t callback, bl_radio_mode_t mode) {
     bl_hfclk_init();
 
     // APPMUTEX (address at 0x41030000 => periph ID is 48)
