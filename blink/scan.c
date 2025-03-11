@@ -46,12 +46,6 @@ void bl_scan_add(bl_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel,
             continue;
         }
 
-        // if newest rssi entry is too old, remove it (just set gateway_id = 0)
-        if (_scan_is_too_old(scan_vars.scans[i], ts_scan)) {
-            // scan_vars.scans[i].gateway_id = 0;
-            memset(&scan_vars.scans[i], 0, sizeof(bl_gateway_scan_t));
-        }
-
         // try and save the first empty spot we see
         // if gateway_id == 0, there is an empty spot here, save the index (will only do this once)
         if (scan_vars.scans[i].gateway_id == 0 && empty_spot_idx < 0) {
@@ -125,6 +119,7 @@ bool bl_scan_select(bl_channel_info_t *best_channel_info, uint32_t ts_scan_start
         return false;
     }
     *best_channel_info = _get_channel_info_latest(scan_vars.scans[best_gateway_idx]);
+    // TODO: should probably report the average rssi: best_channel_info->rssi = best_gateway_rssi;
     return true;
 }
 
