@@ -71,12 +71,11 @@ void blink_set_node_type(bl_node_type_t node_type) {
 // -------- gateway ----------
 
 size_t blink_gateway_get_nodes(uint64_t *nodes) {
-    memcpy(nodes, _blink_vars.joined_nodes, _blink_vars.joined_nodes_len * sizeof(uint64_t));
-    return _blink_vars.joined_nodes_len;
+    return bl_scheduler_get_nodes(nodes);
 }
 
 size_t blink_gateway_count_nodes(void) {
-    return _blink_vars.joined_nodes_len;
+    return bl_scheduler_get_nodes_count();
 }
 
 // -------- node ----------
