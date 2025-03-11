@@ -548,9 +548,7 @@ static void fix_drift(uint32_t ts) {
     int32_t clock_drift = ts - expected_ts;
     uint32_t abs_clock_drift = abs(clock_drift);
 
-    if (abs_clock_drift < 5) {
-        // very small corrections can safely be ignored
-    } else if (abs_clock_drift < 80) {
+    if (abs_clock_drift < 100) {
         // drift is acceptable
         // adjust the slot reference
         bl_timer_hf_adjust_periodic_us(
