@@ -1,6 +1,18 @@
 #ifndef __MODELS_H
 #define __MODELS_H
 
+/**
+ * @defgroup    models      common models
+ * @ingroup     blink
+ * @brief       Common models used in the blink protocol
+ *
+ * @{
+ * @file
+ * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
+ * @copyright Inria, 2024-now
+ * @}
+ */
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <nrf.h>

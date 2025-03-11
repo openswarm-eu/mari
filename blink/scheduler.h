@@ -61,6 +61,10 @@ bool bl_scheduler_deassign_uplink_cell(uint64_t node_id);
 
 uint8_t bl_scheduler_remaining_capacity(void);
 
+uint8_t bl_scheduler_get_nodes_count(void);
+
+uint8_t bl_scheduler_get_nodes(uint64_t *nodes);
+
 uint8_t bl_scheduler_get_active_schedule_slot_count(void);
 
 cell_t bl_scheduler_node_peek_slot(uint64_t asn);

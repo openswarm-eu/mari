@@ -1,6 +1,17 @@
 #ifndef __PROTOCOL_H
 #define __PROTOCOL_H
 
+/**
+ * @ingroup     blink
+ * @brief       Packet format and building functions
+ *
+ * @{
+ * @file
+ * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
+ * @copyright Inria, 2024-now
+ * @}
+ */
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <nrf.h>

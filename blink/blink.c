@@ -1,4 +1,15 @@
-#include <nrf.h>
+/**
+ * @file
+ * @ingroup     blink
+ *
+ * @brief       Implementation of the blink protocol
+ *
+ * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
+ *
+ * @copyright Inria, 2024
+ */
+
+ #include <nrf.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -32,10 +43,11 @@ static blink_vars_t _blink_vars = { 0 };
 static void event_callback(bl_event_t event, bl_event_data_t event_data);
 
 //=========================== public ===========================================
+// in this library, user-facing functions begin with blink_*, while internal functions begin with bl_*
 
 // -------- common --------
 
-void bl_init(bl_node_type_t node_type, schedule_t *app_schedule, bl_event_cb_t app_event_callback) {
+void blink_init(bl_node_type_t node_type, schedule_t *app_schedule, bl_event_cb_t app_event_callback) {
     _blink_vars.node_type = node_type;
     _blink_vars.app_event_callback = app_event_callback;
 
@@ -44,44 +56,41 @@ void bl_init(bl_node_type_t node_type, schedule_t *app_schedule, bl_event_cb_t a
     bl_mac_init(node_type, event_callback);
 }
 
-void bl_tx(uint8_t *packet, uint8_t length) {
-    // enqueue for transmission
+void blink_tx(uint8_t *packet, uint8_t length) {
     bl_queue_add(packet, length);
 }
 
-bl_node_type_t bl_get_node_type(void) {
+bl_node_type_t blink_get_node_type(void) {
     return _blink_vars.node_type;
 }
 
-void bl_set_node_type(bl_node_type_t node_type) {
+void blink_set_node_type(bl_node_type_t node_type) {
     _blink_vars.node_type = node_type;
 }
 
 // -------- gateway ----------
 
-size_t bl_gateway_get_nodes(uint64_t *nodes) {
-    memcpy(nodes, _blink_vars.joined_nodes, _blink_vars.joined_nodes_len * sizeof(uint64_t));
-    return _blink_vars.joined_nodes_len;
+size_t blink_gateway_get_nodes(uint64_t *nodes) {
+    return bl_scheduler_get_nodes(nodes);
 }
 
-size_t bl_gateway_count_nodes(void) {
-    return _blink_vars.joined_nodes_len;
+size_t blink_gateway_count_nodes(void) {
+    return bl_scheduler_get_nodes_count();
 }
 
 // -------- node ----------
 
-void bl_node_tx(uint8_t *payload, uint8_t payload_len) {
+void blink_node_tx(uint8_t *payload, uint8_t payload_len) {
     uint8_t packet[BLINK_PACKET_MAX_SIZE];
-    uint8_t len = bl_build_packet_data(packet, bl_node_gateway_id(), payload, payload_len);
-    // enqueue for transmission
+    uint8_t len = bl_build_packet_data(packet, blink_node_gateway_id(), payload, payload_len);
     bl_queue_add(packet, len);
 }
 
-bool bl_node_is_connected(void) {
+bool blink_node_is_connected(void) {
     return bl_assoc_is_joined();
 }
 
-uint64_t bl_node_gateway_id(void) {
+uint64_t blink_node_gateway_id(void) {
     return bl_mac_get_synced_gateway();
 }
 
@@ -95,7 +104,7 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
         return;
     }
 
-    if (bl_get_node_type() == BLINK_GATEWAY) {
+    if (blink_get_node_type() == BLINK_GATEWAY) {
         bool from_joined_node = bl_assoc_gateway_node_is_joined(header->src);
 
         switch (header->type) {
@@ -142,7 +151,7 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
                 break;
         }
 
-    } else if (bl_get_node_type() == BLINK_NODE) {
+    } else if (blink_get_node_type() == BLINK_NODE) {
         bool from_my_gateway = header->src == bl_mac_get_synced_gateway() && bl_assoc_get_state() == JOIN_STATE_JOINED;
 
         switch (header->type) {

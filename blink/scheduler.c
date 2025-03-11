@@ -34,6 +34,8 @@ typedef struct {
     schedule_t *active_schedule_ptr; // pointer to the currently active schedule
     uint32_t slotframe_counter; // used to cycle beacon channels through slotframes (when listening for beacons at uplink slot_durations)
 
+    uint8_t num_assigned_uplink_nodes; // number of nodes with assigned uplink slots
+
     // static data
     schedule_t available_schedules[BLINK_N_SCHEDULES];
     size_t available_schedules_len;
@@ -89,6 +91,7 @@ int16_t bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id) {
         // the node just temporarily lost connection, so we can just re-assign the same cell_id
         if (cell->type == SLOT_TYPE_UPLINK && (cell->assigned_node_id == NULL || cell->assigned_node_id == node_id)) {
             cell->assigned_node_id = node_id;
+            _schedule_vars.num_assigned_uplink_nodes++;
             return i;
         }
     }
@@ -113,13 +116,16 @@ bool bl_scheduler_deassign_uplink_cell(uint64_t node_id) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
         if (cell->type == SLOT_TYPE_UPLINK && cell->assigned_node_id == node_id) {
             cell->assigned_node_id = NULL;
+            _schedule_vars.num_assigned_uplink_nodes--;
             return true;
         }
     }
     return false;
 }
 
+// to be called at the GATEWAY to build a beacon
 uint8_t bl_scheduler_remaining_capacity(void) {
+    // TODO: can be optimized, if we pre-compute the number of uplink slots in a schedule
     uint8_t remaining_capacity = 0;
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
@@ -128,6 +134,22 @@ uint8_t bl_scheduler_remaining_capacity(void) {
         }
     }
     return remaining_capacity;
+}
+
+// to be called at the GATEWAY to build a beacon
+uint8_t bl_scheduler_get_nodes_count(void) {
+    return _schedule_vars.num_assigned_uplink_nodes;
+}
+
+uint8_t bl_scheduler_get_nodes(uint64_t *nodes) {
+    uint8_t count = 0;
+    for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
+        cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
+        if (cell->type == SLOT_TYPE_UPLINK && cell->assigned_node_id != NULL) {
+            nodes[count++] = cell->assigned_node_id;
+        }
+    }
+    return count;
 }
 
 bl_slot_info_t bl_scheduler_tick(uint64_t asn) {

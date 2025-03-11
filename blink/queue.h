@@ -1,6 +1,17 @@
 #ifndef __QUEUE_H
 #define __QUEUE_H
 
+/**
+ * @ingroup     blink
+ * @brief       Queue management
+ *
+ * @{
+ * @file
+ * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
+ * @copyright Inria, 2024-now
+ * @}
+ */
+
 #include <stdint.h>
 #include <stdbool.h>
 

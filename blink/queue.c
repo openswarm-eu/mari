@@ -1,3 +1,14 @@
+/**
+ * @file
+ * @ingroup     queue
+ *
+ * @brief       Packet queue management
+ *
+ * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
+ *
+ * @copyright Inria, 2024
+ */
+
 #include <nrf.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -41,7 +52,7 @@ static queue_vars_t queue_vars = { 0 };
 uint8_t bl_queue_next_packet(slot_type_t slot_type, uint8_t *packet) {
     uint8_t len = 0;
 
-    if (bl_get_node_type() == BLINK_GATEWAY) {
+    if (blink_get_node_type() == BLINK_GATEWAY) {
         if (slot_type == SLOT_TYPE_BEACON) {
             // prepare a beacon packet with current asn, remaining capacity and active schedule id
             len = bl_build_packet_beacon(
@@ -62,7 +73,7 @@ uint8_t bl_queue_next_packet(slot_type_t slot_type, uint8_t *packet) {
                 }
             }
         }
-    } else if (bl_get_node_type() == BLINK_NODE) {
+    } else if (blink_get_node_type() == BLINK_NODE) {
         if (slot_type == SLOT_TYPE_SHARED_UPLINK) {
             if (bl_assoc_node_ready_to_join()) {
                 bl_assoc_set_state(JOIN_STATE_JOINING);
