@@ -45,15 +45,15 @@ int main(void)
     printf("Hello Blink Node\n");
     bl_timer_hf_init(BLINK_APP_TIMER_DEV);
 
-    bl_init(BLINK_NODE, &schedule_minuscule, &blink_event_callback);
+    blink_init(BLINK_NODE, &schedule_minuscule, &blink_event_callback);
 
     while (1) {
         __SEV();
         __WFE();
         __WFE();
 
-        if (bl_node_is_connected()) {
-            bl_node_tx(payload, payload_len);
+        if (blink_node_is_connected()) {
+            blink_node_tx(payload, payload_len);
 
             // sleep for 500 ms
             bl_timer_hf_delay_ms(BLINK_APP_TIMER_DEV, 500);

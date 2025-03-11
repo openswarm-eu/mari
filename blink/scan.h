@@ -1,6 +1,17 @@
 #ifndef __SCAN_H
 #define __SCAN_H
 
+/**
+ * @ingroup     blink
+ * @brief       Scan management
+ *
+ * @{
+ * @file
+ * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
+ * @copyright Inria, 2024-now
+ * @}
+ */
+
 #include <nrf.h>
 #include <stdint.h>
 #include <stdbool.h>

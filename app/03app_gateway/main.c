@@ -46,7 +46,7 @@ int main(void)
     printf("Hello Blink Gateway\n");
     bl_timer_hf_init(BLINK_APP_TIMER_DEV);
 
-    bl_init(BLINK_GATEWAY, &schedule_minuscule, &blink_event_callback);
+    blink_init(BLINK_GATEWAY, &schedule_minuscule, &blink_event_callback);
 
     while (1) {
         __SEV();
@@ -55,19 +55,19 @@ int main(void)
 
         // test: send a broadcast packet
         uint8_t packet_len = bl_build_packet_data(packet, BLINK_BROADCAST_ADDRESS, payload, payload_len);
-        bl_tx(packet, packet_len);
+        blink_tx(packet, packet_len);
 
         // sleep for 500 ms
         bl_timer_hf_delay_ms(BLINK_APP_TIMER_DEV, 500);
 
         // test: enqueue packets to all connected nodes
         uint64_t nodes[BLINK_MAX_NODES] = { 0 };
-        uint8_t nodes_len = bl_gateway_get_nodes(nodes);
+        uint8_t nodes_len = blink_gateway_get_nodes(nodes);
         for (int i = 0; i < nodes_len; i++) {
             printf("Enqueing TX to node %d: %016llX\n", i, nodes[i]);
             payload[0] = i;
             uint8_t packet_len = bl_build_packet_data(packet, nodes[i], payload, payload_len);
-            bl_tx(packet, packet_len);
+            blink_tx(packet, packet_len);
         }
 
         // sleep for 500 ms
@@ -89,13 +89,13 @@ void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
         case BLINK_NODE_JOINED:
             printf("New node joined: %016llX\n", event_data.data.node_info.node_id);
             uint64_t joined_nodes[BLINK_MAX_NODES] = { 0 };
-            uint8_t joined_nodes_len = bl_gateway_get_nodes(joined_nodes);
+            uint8_t joined_nodes_len = blink_gateway_get_nodes(joined_nodes);
             printf("Number of connected nodes: %d\n", joined_nodes_len);
             // TODO: send list of joined_nodes to Edge Gateway via UART
             break;
         case BLINK_NODE_LEFT:
             printf("Node left: %016llX, reason: %u\n", event_data.data.node_info.node_id, event_data.tag);
-            printf("Number of connected nodes: %d\n", bl_gateway_count_nodes());
+            printf("Number of connected nodes: %d\n", blink_gateway_count_nodes());
             break;
         case BLINK_ERROR:
             printf("Error\n");

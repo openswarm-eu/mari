@@ -61,7 +61,7 @@ int main(void) {
 
     print_slot_timing();
 
-    bl_set_node_type(node_type);
+    blink_set_node_type(node_type);
 
     bl_assoc_init(blink_event_callback);
 
