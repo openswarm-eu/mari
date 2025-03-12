@@ -53,7 +53,7 @@ int main(void)
         __WFE();
 
         if (blink_node_is_connected()) {
-            blink_node_tx(payload, payload_len);
+            blink_node_tx_payload(payload, payload_len);
 
             // sleep for 500 ms
             bl_timer_hf_delay_ms(BLINK_APP_TIMER_DEV, 500);
