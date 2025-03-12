@@ -31,7 +31,7 @@ void blink_set_node_type(bl_node_type_t node_type);
 size_t blink_gateway_get_nodes(uint64_t *nodes);
 size_t blink_gateway_count_nodes(void);
 
-void blink_node_tx(uint8_t *payload, uint8_t payload_len);
+void blink_node_tx_payload(uint8_t *payload, uint8_t payload_len);
 bool blink_node_is_connected(void);
 uint64_t blink_node_gateway_id(void);
 

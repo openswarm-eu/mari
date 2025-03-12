@@ -80,7 +80,7 @@ size_t blink_gateway_count_nodes(void) {
 
 // -------- node ----------
 
-void blink_node_tx(uint8_t *payload, uint8_t payload_len) {
+void blink_node_tx_payload(uint8_t *payload, uint8_t payload_len) {
     uint8_t packet[BLINK_PACKET_MAX_SIZE];
     uint8_t len = bl_build_packet_data(packet, blink_node_gateway_id(), payload, payload_len);
     bl_queue_add(packet, len);
