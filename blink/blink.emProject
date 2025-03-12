@@ -8,13 +8,13 @@
   <project Name="01blink">
     <configuration
       Name="Common"
-      project_dependencies="00drv_radio(00drv);00drv_timer_hf(00drv);00drv_gpio(00drv)"
+      project_dependencies="00drv_bl_radio(00drv);00drv_bl_timer_hf(00drv);00drv_bl_gpio(00drv)"
       project_directory="."
       project_type="Library" />
     <configuration
       Name="Debug" />
-    <file file_name="protocol.c" />
-    <file file_name="protocol.h" />
+    <file file_name="packet.c" />
+    <file file_name="packet.h" />
 
     <file file_name="models.h" />
 

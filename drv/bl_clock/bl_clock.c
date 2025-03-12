@@ -10,7 +10,7 @@
  */
 #include <nrf.h>
 #include <stdbool.h>
-#include "clock.h"
+#include "bl_clock.h"
 
 //=========================== defines ==========================================
 
@@ -36,7 +36,7 @@ static clock_state_t _clock_state = {
 
 //=========================== public ===========================================
 
-void db_hfclk_init(void) {
+void bl_hfclk_init(void) {
     if (_clock_state.hf_enabled) {
         // Do nothing if already running
         return;
@@ -64,7 +64,7 @@ void db_hfclk_init(void) {
     _clock_state.hf_enabled = true;
 }
 
-void db_lfclk_init(void) {
+void bl_lfclk_init(void) {
     if (_clock_state.lf_enabled) {
         // Do nothing if already running
         return;

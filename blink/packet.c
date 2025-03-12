@@ -1,7 +1,5 @@
 /**
- * @file
- *
- * @brief       Example on how to use the maclow driver
+ * @brief       Build a blink packets
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
@@ -9,8 +7,8 @@
  */
 #include <stdint.h>
 #include <string.h>
-#include "device.h"
-#include "protocol.h"
+#include "bl_device.h"
+#include "packet.h"
 
 //=========================== prototypes =======================================
 
@@ -41,7 +39,7 @@ size_t bl_build_packet_beacon(uint8_t *buffer, uint64_t asn, uint8_t remaining_c
         .version = BLINK_PROTOCOL_VERSION,
         .type = BLINK_PACKET_BEACON,
         .asn = asn,
-        .src = db_device_id(),
+        .src = bl_device_id(),
         .remaining_capacity = remaining_capacity,
         .active_schedule_id = active_schedule_id,
     };
@@ -52,7 +50,7 @@ size_t bl_build_packet_beacon(uint8_t *buffer, uint64_t asn, uint8_t remaining_c
 //=========================== private ==========================================
 
 static size_t _set_header(uint8_t *buffer, uint64_t dst, bl_packet_type_t packet_type) {
-    uint64_t src = db_device_id();
+    uint64_t src = bl_device_id();
 
     bl_packet_header_t header = {
         .version = BLINK_PROTOCOL_VERSION,

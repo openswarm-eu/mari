@@ -10,7 +10,7 @@
  */
 
 #if defined(NRF5340_XXAA) && defined(NRF_APPLICATION)
-#include "radio_nrf5340_app.c"
+#include "bl_radio_nrf5340_app.c"
 #else
-#include "radio_default.c"
+#include "bl_radio_default.c"
 #endif

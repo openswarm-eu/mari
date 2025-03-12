@@ -11,9 +11,9 @@
 #include <nrf.h>
 #include <stdio.h>
 
-#include "timer_hf.h"
+#include "bl_timer_hf.h"
 #include "blink.h"
-#include "protocol.h"
+#include "packet.h"
 
 //=========================== defines ==========================================
 

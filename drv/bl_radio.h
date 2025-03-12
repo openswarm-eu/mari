@@ -1,5 +1,5 @@
-#ifndef __RADIO_H
-#define __RADIO_H
+#ifndef __BL_RADIO_H
+#define __BL_RADIO_H
 
 /**
  * @defgroup    bsp_radio   Radio support
@@ -29,19 +29,19 @@
 #define DEFAULT_NETWORK_ADDRESS 0x12345678UL  ///< Default network address
 #endif
 
-#define DB_BLE_PAYLOAD_MAX_LENGTH        UINT8_MAX
-#define DB_IEEE802154_PAYLOAD_MAX_LENGTH (125UL)  ///< Total usable payload for IEEE 802.15.4 is 125 octets (PSDU) when CRC is activated
+#define BL_BLE_PAYLOAD_MAX_LENGTH        UINT8_MAX
+#define BL_IEEE802154_PAYLOAD_MAX_LENGTH (125UL)  ///< Total usable payload for IEEE 802.15.4 is 125 octets (PSDU) when CRC is activated
 
 /// Modes supported by the radio
 typedef enum {
-    DB_RADIO_BLE_1MBit,
-    DB_RADIO_BLE_2MBit,
-    DB_RADIO_BLE_LR125Kbit,
-    DB_RADIO_BLE_LR500Kbit,
-    DB_RADIO_IEEE802154_250Kbit
+    BL_RADIO_BLE_1MBit,
+    BL_RADIO_BLE_2MBit,
+    BL_RADIO_BLE_LR125Kbit,
+    BL_RADIO_BLE_LR500Kbit,
+    BL_RADIO_IEEE802154_250Kbit
 } bl_radio_mode_t;
 
-typedef void (*radio_cb_t)(uint8_t *packet, uint8_t length);  ///< get the received packet
+typedef void (*bl_radio_cb_t)(uint8_t *packet, uint8_t length);  ///< get the received packet
 typedef void (*radio_ts_packet_t)(uint32_t ts);  ///< capture timestamp for start/end of packet
 
 //=========================== public ===========================================
@@ -129,4 +129,4 @@ void bl_radio_get_rx_packet(uint8_t *packet, uint8_t *length);
 void bl_radio_tx_prepare(const uint8_t *tx_buffer, uint8_t length);
 void bl_radio_tx_dispatch(void);
 
-#endif
+#endif // __BL_RADIO_H

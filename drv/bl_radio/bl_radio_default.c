@@ -16,9 +16,9 @@
 #include <string.h>
 #include <assert.h>
 
-#include "clock.h"
-#include "timer_hf.h"
-#include "radio.h"
+#include "bl_clock.h"
+#include "bl_timer_hf.h"
+#include "bl_radio.h"
 
 //=========================== defines ==========================================
 
@@ -50,7 +50,7 @@
 typedef struct __attribute__((packed)) {
     uint8_t header;                              ///< PDU header (depends on the type of PDU - advertising physical channel or Data physical channel)
     uint8_t length;                              ///< Length of the payload + MIC (if any)
-    uint8_t payload[DB_BLE_PAYLOAD_MAX_LENGTH];  ///< Payload + MIC (if any) (DB_BLE_PAYLOAD_MAX_LENGTH > DB_IEEE802154_PAYLOAD_MAX_LENGTH)
+    uint8_t payload[BL_BLE_PAYLOAD_MAX_LENGTH];  ///< Payload + MIC (if any) (BL_BLE_PAYLOAD_MAX_LENGTH > BL_IEEE802154_PAYLOAD_MAX_LENGTH)
 } radio_pdu_t;
 
 typedef struct {
@@ -106,7 +106,7 @@ void bl_radio_init(radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb,
 
     // General configuration of the radio.
     radio_vars.mode = mode;  // Set global radio mode
-    if (mode == DB_RADIO_IEEE802154_250Kbit) {
+    if (mode == BL_RADIO_IEEE802154_250Kbit) {
         // Configure IEEE 802.15.4 mode
         NRF_RADIO->MODE = (RADIO_MODE_MODE_Ieee802154_250Kbit << RADIO_MODE_MODE_Pos);
     } else {
@@ -116,14 +116,14 @@ void bl_radio_init(radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb,
 
 #if defined(NRF5340_XXAA)
     // From errata v1.6 - 3.15 [117] RADIO: Changing MODE requires additional configuration
-    if (mode == DB_RADIO_BLE_2MBit) {
+    if (mode == BL_RADIO_BLE_2MBit) {
         *((volatile uint32_t *)0x41008588) = *((volatile uint32_t *)0x01FF0084);
     } else {
         *((volatile uint32_t *)0x41008588) = *((volatile uint32_t *)0x01FF0080);
     }
 #endif
     // Packet configuration of the radio
-    if (mode == DB_RADIO_IEEE802154_250Kbit) {
+    if (mode == BL_RADIO_IEEE802154_250Kbit) {
         NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_0dBm << RADIO_TXPOWER_TXPOWER_Pos);  // Set transmission power to 0dBm
 
         // Packet configuration register 0
@@ -134,13 +134,13 @@ void bl_radio_init(radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb,
                            (RADIO_PCNF0_CRCINC_Exclude << RADIO_PCNF0_CRCINC_Pos);
 
         // // Packet configuration register 1
-        NRF_RADIO->PCNF1 = (DB_IEEE802154_PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |  // Max payload of 127 bytes
+        NRF_RADIO->PCNF1 = (BL_IEEE802154_PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |  // Max payload of 127 bytes
                            (0 << RADIO_PCNF1_STATLEN_Pos) |                                // 0 bytes added to payload length
                            (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos) |         // Little-endian format
                            (0 << RADIO_PCNF1_BALEN_Pos) |                                  // Base address length
                            (RADIO_PCNF1_WHITEEN_Enabled << RADIO_PCNF1_WHITEEN_Pos);       // Enable whitening
 
-    } else if (mode == DB_RADIO_BLE_1MBit || mode == DB_RADIO_BLE_2MBit) {
+    } else if (mode == BL_RADIO_BLE_1MBit || mode == BL_RADIO_BLE_2MBit) {
         NRF_RADIO->TXPOWER = (RADIO_TXPOWER_TXPOWER_0dBm << RADIO_TXPOWER_TXPOWER_Pos);  // 0dBm == 1mW Power output
         NRF_RADIO->PCNF0   = (0 << RADIO_PCNF0_S1LEN_Pos) |                              // S1 field length in bits
                            (1 << RADIO_PCNF0_S0LEN_Pos) |                                // S0 field length in bytes
@@ -148,7 +148,7 @@ void bl_radio_init(radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb,
                            (RADIO_PCNF0_PLEN_8bit << RADIO_PCNF0_PLEN_Pos);              // PREAMBLE length is 1 byte in BLE 1Mbit/s and 2Mbit/s
 
         NRF_RADIO->PCNF1 = (4UL << RADIO_PCNF1_BALEN_Pos) |  // The base address is 4 Bytes long
-                           (DB_BLE_PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |
+                           (BL_BLE_PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos) |
                            (0 << RADIO_PCNF1_STATLEN_Pos) |
                            (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos) |    // Make the on air packet be little endian (this enables some useful features)
                            (RADIO_PCNF1_WHITEEN_Enabled << RADIO_PCNF1_WHITEEN_Pos);  // Enable data whitening feature.
@@ -172,7 +172,7 @@ void bl_radio_init(radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb,
                            (RADIO_PCNF1_ENDIAN_Little << RADIO_PCNF1_ENDIAN_Pos) |
                            (3 << RADIO_PCNF1_BALEN_Pos) |
                            (0 << RADIO_PCNF1_STATLEN_Pos) |
-                           (DB_BLE_PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos);
+                           (BL_BLE_PAYLOAD_MAX_LENGTH << RADIO_PCNF1_MAXLEN_Pos);
     }
 
     // Address configuration
@@ -188,7 +188,7 @@ void bl_radio_init(radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb,
                           (RADIO_MODECNF0_DTX_Center << RADIO_MODECNF0_DTX_Pos);
 
     // CRC Config
-    if (mode == DB_RADIO_IEEE802154_250Kbit) {
+    if (mode == BL_RADIO_IEEE802154_250Kbit) {
         NRF_RADIO->CRCCNF = (RADIO_CRCCNF_LEN_Two << RADIO_CRCCNF_LEN_Pos) |                  // 16-bit (2 bytes) CRC
                             (RADIO_CRCCNF_SKIPADDR_Ieee802154 << RADIO_CRCCNF_SKIPADDR_Pos);  // CRCCNF = 0x202 for IEEE 802.15.4
         NRF_RADIO->CRCINIT = 0;                                                               // The start value used by IEEE 802.15.4 is zero
@@ -200,7 +200,7 @@ void bl_radio_init(radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb,
     }
 
     // Configure pointer to PDU for EasyDMA
-    if (mode == DB_RADIO_IEEE802154_250Kbit) {
+    if (mode == BL_RADIO_IEEE802154_250Kbit) {
         NRF_RADIO->PACKETPTR = (uint32_t)((uint8_t *)&radio_vars.pdu + 1);  // Skip header for IEEE 802.15.4
     } else {
         NRF_RADIO->PACKETPTR = (uint32_t)&radio_vars.pdu;
@@ -212,7 +212,7 @@ void bl_radio_init(radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb,
     radio_vars.state    = RADIO_STATE_IDLE;
 
     // Configure the external High-frequency Clock. (Needed for correct operation)
-    db_hfclk_init();
+    bl_hfclk_init();
 
     // Configure the Interruptions
     NVIC_SetPriority(RADIO_IRQn, RADIO_INTERRUPT_PRIORITY);  // Set priority for Radio interrupts to 1
@@ -227,7 +227,7 @@ void bl_radio_set_frequency(uint8_t freq) {
 
 void bl_radio_set_channel(uint8_t channel) {
     uint8_t freq;
-    if (radio_vars.mode == DB_RADIO_IEEE802154_250Kbit) {
+    if (radio_vars.mode == BL_RADIO_IEEE802154_250Kbit) {
         assert(channel >= 11 && channel <= 26 && "Channel value must be between 11 and 26 for IEEE 802.15.4");
         freq = 5 * (channel - 10);  // Frequency offset in MHz from 2400 MHz
     } else {

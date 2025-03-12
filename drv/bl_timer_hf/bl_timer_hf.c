@@ -14,8 +14,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
-#include "clock.h"
-#include "timer_hf.h"
+#include "bl_clock.h"
+#include "bl_timer_hf.h"
 
 //=========================== define ===========================================
 
@@ -108,7 +108,7 @@ void bl_timer_hf_init(timer_hf_t timer) {
 
 #if !defined(USE_SWARMIT)
     // Configure and start High Frequency clock
-    db_hfclk_init();
+    bl_hfclk_init();
 #endif
 
     // Configure the timer

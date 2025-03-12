@@ -1,5 +1,5 @@
-#ifndef __CLOCK_H
-#define __CLOCK_H
+#ifndef __BL_CLOCK_H
+#define __BL_CLOCK_H
 
 /**
  * @defgroup    bsp_clock   Clock
@@ -24,11 +24,11 @@
 /**
  * @brief Initialize and start the High Frequency clock
  */
-void db_hfclk_init(void);
+void bl_hfclk_init(void);
 
 /**
  * @brief Initialize and start the Low Frequency clock
  */
-void db_lfclk_init(void);
+void bl_lfclk_init(void);
 
-#endif
+#endif /* __BL_CLOCK_H */

@@ -3,7 +3,7 @@
   <project Name="00drv_radio_txrx">
     <configuration
       Name="Common"
-      project_dependencies="00drv_timer_hf(00drv);00drv_radio(00drv);00drv_gpio(00drv);01blink(01blink)"
+      project_dependencies="00drv_bl_timer_hf(00drv);00drv_bl_radio(00drv);00drv_bl_gpio(00drv);01blink(01blink)"
       project_directory="00drv_radio_txrx"
       project_type="Executable" />
     <configuration Name="Debug" linker_printf_fp_enabled="Float" />
@@ -28,7 +28,7 @@
   <project Name="01blink_lists">
     <configuration
       Name="Common"
-      project_dependencies="01blink(01blink);00drv_timer_hf(00drv)"
+      project_dependencies="01blink(01blink);00drv_bl_timer_hf(00drv)"
       project_directory="01blink_lists"
       project_type="Executable" />
     <configuration Name="Debug" linker_printf_fp_enabled="Float" />
@@ -53,7 +53,7 @@
   <project Name="01blink_maclow">
     <configuration
       Name="Common"
-      project_dependencies="01blink(01blink);00drv_timer_hf(00drv)"
+      project_dependencies="01blink(01blink);00drv_bl_timer_hf(00drv)"
       project_directory="01blink_maclow"
       project_type="Executable" />
     <configuration Name="Debug" linker_printf_fp_enabled="Float" />
@@ -78,7 +78,7 @@
   <project Name="01blink_scheduler">
     <configuration
       Name="Common"
-      project_dependencies="01blink(01blink);00drv_timer_hf(00drv)"
+      project_dependencies="01blink(01blink);00drv_bl_timer_hf(00drv)"
       project_directory="01blink_scheduler"
       project_type="Executable" />
     <configuration

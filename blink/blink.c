@@ -14,9 +14,9 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "device.h"
+#include "bl_device.h"
 #include "models.h"
-#include "protocol.h"
+#include "packet.h"
 #include "mac.h"
 #include "scheduler.h"
 #include "association.h"
@@ -99,7 +99,7 @@ uint64_t blink_node_gateway_id(void) {
 void bl_handle_packet(uint8_t *packet, uint8_t length) {
     bl_packet_header_t *header = (bl_packet_header_t *)packet;
 
-    if (header->dst != db_device_id() && header->dst != BLINK_BROADCAST_ADDRESS && header->type != BLINK_PACKET_BEACON) {
+    if (header->dst != bl_device_id() && header->dst != BLINK_BROADCAST_ADDRESS && header->type != BLINK_PACKET_BEACON) {
         // ignore packets that are not for me, not broadcast, and not a beacon
         return;
     }
