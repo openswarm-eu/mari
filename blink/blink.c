@@ -99,6 +99,16 @@ uint64_t blink_node_gateway_id(void) {
 void bl_handle_packet(uint8_t *packet, uint8_t length) {
     bl_packet_header_t *header = (bl_packet_header_t *)packet;
 
+    if (
+        _blink_vars.node_type == BLINK_NODE && bl_assoc_get_state() == JOIN_STATE_JOINING &&
+        !(header->type & (BLINK_PACKET_JOIN_RESPONSE | BLINK_PACKET_BEACON))
+       ) {
+        // if in joining state, should be receiving a join response!
+        // this is an indicator of collision in the join request, so let's update the backoff state
+        bl_assoc_node_register_collision();
+        return;
+    }
+
     if (header->dst != bl_device_id() && header->dst != BLINK_BROADCAST_ADDRESS && header->type != BLINK_PACKET_BEACON) {
         // ignore packets that are not for me, not broadcast, and not a beacon
         return;
@@ -178,6 +188,7 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
                     bl_event_data_t event_data = { .data.gateway_info.gateway_id = header->src };
                     _blink_vars.app_event_callback(BLINK_CONNECTED, event_data);
                     bl_assoc_node_keep_gateway_alive(bl_mac_get_asn()); // initialize the gateway's keep-alive
+                    bl_assoc_node_reset_backoff();
                 } else {
                     _blink_vars.app_event_callback(BLINK_ERROR, (bl_event_data_t){ 0 });
                 }
