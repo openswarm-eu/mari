@@ -132,8 +132,10 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
                 // send the packet to the application
                 bl_event_data_t event_data = {
                     .data.new_packet = {
-                        .packet = packet,
-                        .length = length
+                        .len = length,
+                        .header = header,
+                        .payload = packet + sizeof(bl_packet_header_t),
+                        .payload_len = length - sizeof(bl_packet_header_t)
                     }
                 };
                 _blink_vars.app_event_callback(BLINK_NEW_PACKET, event_data);
@@ -189,8 +191,10 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
                 // send the packet to the application
                 bl_event_data_t event_data = {
                     .data.new_packet = {
-                        .packet = packet,
-                        .length = length
+                        .len = length,
+                        .header = header,
+                        .payload = packet + sizeof(bl_packet_header_t),
+                        .payload_len = length - sizeof(bl_packet_header_t)
                     }
                 };
                 _blink_vars.app_event_callback(BLINK_NEW_PACKET, event_data);
