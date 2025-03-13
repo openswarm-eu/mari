@@ -105,7 +105,7 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
        ) {
         // if in joining state, should be receiving a join response!
         // this is an indicator of collision in the join request, so let's update the backoff state
-        bl_assoc_node_register_collision();
+        bl_assoc_node_register_join_collision();
         return;
     }
 

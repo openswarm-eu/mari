@@ -16,6 +16,7 @@
 
 #include "bl_device.h"
 #include "bl_radio.h"
+#include "bl_rng.h"
 #include "association.h"
 #include "scan.h"
 #include "queue.h"
@@ -63,7 +64,7 @@ typedef struct {
     // node
     uint32_t last_received_from_gateway_asn; ///< Last received packet when in joined state
     int16_t backoff_n;
-    uint8_t backoff_random_time;
+    uint8_t backoff_random_time; ///< Number of slots to wait before re-trying to join
 
     // gateway
     // NOTE: this could be improved by merging with the scheduler table
@@ -152,7 +153,7 @@ void bl_assoc_node_reset_backoff(void) {
     assoc_vars.backoff_random_time = 0;
 }
 
-void bl_assoc_node_register_collision(void) {
+void bl_assoc_node_register_join_collision(void) {
     if (assoc_vars.backoff_n == -1) {
         // initialize backoff
         assoc_vars.backoff_n = BLINK_BACKOFF_N_MIN;
@@ -161,8 +162,9 @@ void bl_assoc_node_register_collision(void) {
         uint8_t new_n = assoc_vars.backoff_n + 1;
         assoc_vars.backoff_n = new_n < BLINK_BACKOFF_N_MAX ? new_n : BLINK_BACKOFF_N_MAX;
     }
-    // choose a random number from [0, 2^n - 1]
-    assoc_vars.backoff_random_time = 0x01; // FIXME
+    // choose a random number from [0, 2^n - 1] and set it as the backoff time
+    uint16_t max = (1 << assoc_vars.backoff_n) - 1;
+    bl_rng_read_range(&assoc_vars.backoff_random_time, 0, max);
 }
 
 // ------------ gateway functions ---------
