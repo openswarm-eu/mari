@@ -18,6 +18,8 @@
 #include <nrf.h>
 #include <stdbool.h>
 
+#include "packet.h"
+
 //=========================== defines =========================================
 
 #define BLINK_N_BLE_REGULAR_CHANNELS 37
@@ -57,11 +59,15 @@ typedef enum {
 } bl_event_tag_t;
 
 typedef struct {
+    uint8_t len;
+    bl_packet_header_t *header;
+    uint8_t *payload;
+    uint8_t payload_len;
+} blink_packet_t;
+
+typedef struct {
     union {
-        struct {
-            uint8_t *packet;
-            uint8_t length;
-        } new_packet;
+        blink_packet_t new_packet;
         struct {
             uint64_t node_id;
         } node_info;

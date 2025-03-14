@@ -65,13 +65,15 @@ int main(void)
 
 static void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
     switch (event) {
-        case BLINK_NEW_PACKET:
-            printf("New data packet, rssi %d, length %d: ", bl_radio_rssi(), event_data.data.new_packet.length);
-            for (int i = 0; i < event_data.data.new_packet.length; i++) {
-                printf("%02X ", event_data.data.new_packet.packet[i]);
+        case BLINK_NEW_PACKET: {
+            blink_packet_t packet = event_data.data.new_packet;
+            printf("%u B: src=%016llX dst=%016llX (rssi %d) payload=", packet.len, packet.header->src, packet.header->dst, bl_radio_rssi());
+            for (int i = 0; i < packet.payload_len; i++) {
+                printf("%02X ", packet.payload[i]);
             }
             printf("\n");
             break;
+        }
         case BLINK_CONNECTED: {
             uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
             printf("Connected to gateway %016llX\n", gateway_id);

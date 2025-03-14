@@ -26,17 +26,17 @@
 typedef struct {
     uint8_t length;
     uint8_t buffer[BLINK_PACKET_MAX_SIZE];
-} blink_packet_t;
+} bl_packet_t;
 
 typedef struct {
     uint8_t         current;                            ///< Current position in the queue
     uint8_t         last;                               ///< Position of the last item added in the queue
-    blink_packet_t  packets[BLINK_PACKET_QUEUE_SIZE];
+    bl_packet_t  packets[BLINK_PACKET_QUEUE_SIZE];
 } blink_packet_queue_t;
 
 typedef struct {
     blink_packet_queue_t    packet_queue;
-    blink_packet_t          join_packet;
+    bl_packet_t          join_packet;
 } queue_vars_t;
 
 //=========================== variables ========================================

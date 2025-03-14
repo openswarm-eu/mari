@@ -11,6 +11,7 @@
 #include <nrf.h>
 #include <stdio.h>
 
+#include "bl_radio.h"
 #include "bl_timer_hf.h"
 #include "blink.h"
 #include "packet.h"
@@ -79,13 +80,15 @@ int main(void)
 
 void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
     switch (event) {
-        case BLINK_NEW_PACKET:
-            printf("Blink received data packet of length %d: ", event_data.data.new_packet.length);
-            for (int i = 0; i < event_data.data.new_packet.length; i++) {
-                printf("%02X ", event_data.data.new_packet.packet[i]);
+        case BLINK_NEW_PACKET: {
+            blink_packet_t packet = event_data.data.new_packet;
+            printf("%u B: src=%016llX dst=%016llX (rssi %d) payload=", packet.len, packet.header->src, packet.header->dst, bl_radio_rssi());
+            for (int i = 0; i < packet.payload_len; i++) {
+                printf("%02X ", packet.payload[i]);
             }
             printf("\n");
             break;
+        }
         case BLINK_NODE_JOINED:
             printf("New node joined: %016llX\n", event_data.data.node_info.node_id);
             uint64_t joined_nodes[BLINK_MAX_NODES] = { 0 };
