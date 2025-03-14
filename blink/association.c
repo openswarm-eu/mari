@@ -136,8 +136,7 @@ bool bl_assoc_is_joined(void) {
 }
 
 bool bl_assoc_node_ready_to_join(void) {
-    // TODO: also call bl_backoff_is_ready() here
-    return assoc_vars.state == JOIN_STATE_SYNCED;
+    return assoc_vars.state == JOIN_STATE_SYNCED && assoc_vars.backoff_random_time == 0;
 }
 
 bool bl_assoc_node_gateway_is_lost(uint32_t asn) {
@@ -153,7 +152,13 @@ void bl_assoc_node_reset_backoff(void) {
     assoc_vars.backoff_random_time = 0;
 }
 
-void bl_assoc_node_register_join_collision(void) {
+void bl_assoc_node_tick_backoff(void) {
+    if (assoc_vars.backoff_random_time > 0) {
+        assoc_vars.backoff_random_time--;
+    }
+}
+
+void bl_assoc_node_register_collision_backoff(void) {
     if (assoc_vars.backoff_n == -1) {
         // initialize backoff
         assoc_vars.backoff_n = BLINK_BACKOFF_N_MIN;

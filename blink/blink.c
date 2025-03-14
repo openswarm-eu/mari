@@ -99,13 +99,14 @@ uint64_t blink_node_gateway_id(void) {
 void bl_handle_packet(uint8_t *packet, uint8_t length) {
     bl_packet_header_t *header = (bl_packet_header_t *)packet;
 
+    // check here if node received a packet other than Join Response (or Beacon) during state JOINING
+    // if so, assume that the Join Request collided with another packet during the last Shared Uplink slot
     if (
         _blink_vars.node_type == BLINK_NODE && bl_assoc_get_state() == JOIN_STATE_JOINING &&
         !(header->type & (BLINK_PACKET_JOIN_RESPONSE | BLINK_PACKET_BEACON))
        ) {
-        // if in joining state, should be receiving a join response!
-        // this is an indicator of collision in the join request, so let's update the backoff state
-        bl_assoc_node_register_join_collision();
+        // assume a collision happened, so update the backoff window accordingly
+        bl_assoc_node_register_collision_backoff();
         return;
     }
 
