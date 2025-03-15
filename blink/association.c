@@ -91,8 +91,10 @@ void bl_assoc_init(bl_event_cb_t event_callback) {
 #endif
 
     assoc_vars.blink_event_callback = event_callback;
-
     bl_assoc_set_state(JOIN_STATE_IDLE);
+
+    // init backoff things
+    bl_rng_init();
     bl_assoc_node_reset_backoff();
 }
 
