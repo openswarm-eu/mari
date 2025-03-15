@@ -14,13 +14,14 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include "scheduler.h"
 #include "bl_device.h"
 #if defined(NRF5340_XXAA) && defined(NRF_NETWORK)
 #include "ipc.h"
 #endif
 
+#include "scheduler.h"
 #include "all_schedules.c"
+#include "association.c"
 
 //=========================== defines ==========================================
 
@@ -166,6 +167,7 @@ bl_slot_info_t bl_scheduler_tick(uint64_t asn) {
         _compute_gateway_action(cell, &slot_info);
     } else {
         _compute_dotbot_action(cell, &slot_info);
+        bl_assoc_node_tick_backoff();
     }
 
     // if the slotframe wrapped, keep track of how many slotframes have passed (used to cycle beacon channels)

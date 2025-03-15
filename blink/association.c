@@ -16,6 +16,7 @@
 
 #include "bl_device.h"
 #include "bl_radio.h"
+#include "bl_rng.h"
 #include "association.h"
 #include "scan.h"
 #include "queue.h"
@@ -48,6 +49,9 @@ bl_gpio_t led3 = { .port = 0, .pin = 16 };
 
 //=========================== defines =========================================
 
+#define BLINK_BACKOFF_N_MIN 5
+#define BLINK_BACKOFF_N_MAX 9
+
 typedef struct {
     uint64_t node_id;
     uint64_t asn;
@@ -57,8 +61,12 @@ typedef struct {
     bl_assoc_state_t state;
     bl_event_cb_t blink_event_callback;
 
+    // node
     uint32_t last_received_from_gateway_asn; ///< Last received packet when in joined state
+    int16_t backoff_n;
+    uint8_t backoff_random_time; ///< Number of slots to wait before re-trying to join
 
+    // gateway
     // NOTE: this could be improved by merging with the scheduler table
     // however, the scheduler table already uses a lot of memory because everything is hardcoded
     bl_received_from_node_t last_received_from_node[BLINK_MAX_NODES];
@@ -83,8 +91,11 @@ void bl_assoc_init(bl_event_cb_t event_callback) {
 #endif
 
     assoc_vars.blink_event_callback = event_callback;
-
     bl_assoc_set_state(JOIN_STATE_IDLE);
+
+    // init backoff things
+    bl_rng_init();
+    bl_assoc_node_reset_backoff();
 }
 
 inline void bl_assoc_set_state(bl_assoc_state_t state) {
@@ -127,8 +138,7 @@ bool bl_assoc_is_joined(void) {
 }
 
 bool bl_assoc_node_ready_to_join(void) {
-    // TODO: also call bl_backoff_is_ready() here
-    return assoc_vars.state == JOIN_STATE_SYNCED;
+    return assoc_vars.state == JOIN_STATE_SYNCED && assoc_vars.backoff_random_time == 0;
 }
 
 bool bl_assoc_node_gateway_is_lost(uint32_t asn) {
@@ -137,6 +147,31 @@ bool bl_assoc_node_gateway_is_lost(uint32_t asn) {
 
 void bl_assoc_node_keep_gateway_alive(uint64_t asn) {
     assoc_vars.last_received_from_gateway_asn = asn;
+}
+
+void bl_assoc_node_reset_backoff(void) {
+    assoc_vars.backoff_n = -1;
+    assoc_vars.backoff_random_time = 0;
+}
+
+void bl_assoc_node_tick_backoff(void) {
+    if (assoc_vars.backoff_random_time > 0) {
+        assoc_vars.backoff_random_time--;
+    }
+}
+
+void bl_assoc_node_register_collision_backoff(void) {
+    if (assoc_vars.backoff_n == -1) {
+        // initialize backoff
+        assoc_vars.backoff_n = BLINK_BACKOFF_N_MIN;
+    } else {
+        // increment the n in [0, 2^n - 1], but only if n is less than the max
+        uint8_t new_n = assoc_vars.backoff_n + 1;
+        assoc_vars.backoff_n = new_n < BLINK_BACKOFF_N_MAX ? new_n : BLINK_BACKOFF_N_MAX;
+    }
+    // choose a random number from [0, 2^n - 1] and set it as the backoff time
+    uint16_t max = (1 << assoc_vars.backoff_n) - 1;
+    bl_rng_read_range(&assoc_vars.backoff_random_time, 0, max);
 }
 
 // ------------ gateway functions ---------

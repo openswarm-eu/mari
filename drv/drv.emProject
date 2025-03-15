@@ -39,4 +39,12 @@
     <file file_name="bl_radio.c" />
     <file file_name="../bl_radio.h" />
   </project>
+  <project Name="00drv_bl_rng">
+    <configuration
+      Name="Common"
+      project_directory="bl_rng"
+      project_type="Library" />
+    <file file_name="bl_rng.c" />
+    <file file_name="../bl_rng.h" />
+  </project>
 </solution>

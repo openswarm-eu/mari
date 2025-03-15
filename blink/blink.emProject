@@ -8,7 +8,7 @@
   <project Name="01blink">
     <configuration
       Name="Common"
-      project_dependencies="00drv_bl_radio(00drv);00drv_bl_timer_hf(00drv);00drv_bl_gpio(00drv)"
+      project_dependencies="00drv_bl_radio(00drv);00drv_bl_timer_hf(00drv);00drv_bl_rng(00drv);00drv_bl_gpio(00drv)"
       project_directory="."
       project_type="Library" />
     <configuration

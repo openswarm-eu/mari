@@ -490,6 +490,12 @@ static void activity_rie1(void) {
     // cancel timer for rx_max (rie2)
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_3);
 
+    if (mac_vars.node_type == BLINK_NODE && mac_vars.current_slot_info.type == SLOT_TYPE_DOWNLINK && bl_assoc_get_state() == JOIN_STATE_JOINING) {
+        // did not receive a packet on downlink but is in state JOINING, which implies we were waiting for a join response.
+        // not receiving the response is an indicator that the join request had a collision, so let's update the backoff state
+        bl_assoc_node_register_collision_backoff();
+    }
+
     end_slot();
 }
 

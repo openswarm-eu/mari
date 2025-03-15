@@ -41,6 +41,8 @@ void bl_assoc_handle_packet(uint8_t *packet, uint8_t length);
 bool bl_assoc_node_ready_to_join(void);
 bool bl_assoc_node_gateway_is_lost(uint32_t asn);
 void bl_assoc_node_keep_gateway_alive(uint64_t asn);
+void bl_assoc_node_register_collision_backoff(void);
+void bl_assoc_node_reset_backoff(void);
 
 bool bl_assoc_gateway_node_is_joined(uint64_t node_id);
 
