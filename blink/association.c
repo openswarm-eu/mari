@@ -19,8 +19,8 @@
 #include "bl_rng.h"
 #include "association.h"
 #include "scan.h"
-#include "queue.h"
 #include "mac.h"
+#include "packet.h"
 #include "blink.h"
 #include "scheduler.h"
 

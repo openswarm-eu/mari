@@ -1,5 +1,5 @@
-#ifndef __PROTOCOL_H
-#define __PROTOCOL_H
+#ifndef __PACKET_H
+#define __PACKET_H
 
 /**
  * @ingroup     blink
