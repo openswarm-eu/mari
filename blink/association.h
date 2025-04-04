@@ -42,6 +42,7 @@ bool bl_assoc_node_ready_to_join(void);
 bool bl_assoc_node_gateway_is_lost(uint32_t asn);
 void bl_assoc_node_keep_gateway_alive(uint64_t asn);
 void bl_assoc_node_register_collision_backoff(void);
+void bl_assoc_node_handle_failed_join(void);
 void bl_assoc_node_reset_backoff(void);
 bool bl_assoc_node_joining_reached_timeout(void);
 

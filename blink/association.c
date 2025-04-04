@@ -184,20 +184,24 @@ void bl_assoc_node_register_collision_backoff(void) {
     bl_rng_read_range(&assoc_vars.backoff_random_time, 0, max);
 }
 
+void bl_assoc_node_handle_failed_join(void) {
+    bl_assoc_node_register_collision_backoff();
+    bl_assoc_set_state(JOIN_STATE_SYNCED);
+}
+
 bool bl_assoc_node_joining_reached_timeout(void) {
-    if (assoc_vars.state != JOIN_STATE_JOINING) {
-        // can only reach join timeout when in JOINING state
+    // join timeout is computed since the time the node synced with the gateway
+    if (!(assoc_vars.state & (JOIN_STATE_SYNCED | JOIN_STATE_JOINING))) {
+        // can only reach join timeout when in synced or joining state
         return false;
     }
 
-    return bl_timer_hf_now(BLINK_TIMER_DEV) - assoc_vars.last_state_change_ts > BLINK_JOIN_TIMEOUT;
+    uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
+    uint32_t synced_ts = bl_mac_get_synced_ts();
+    return now_ts - synced_ts > BLINK_JOIN_TIMEOUT;
 }
 
 // ------------ gateway functions ---------
-
-bool bl_assoc_gateway_pending_join_response(void) {
-    return assoc_vars.state == JOIN_STATE_JOINING;
-}
 
 bool bl_assoc_gateway_node_is_joined(uint64_t node_id) {
     for (size_t i = 0; i < BLINK_MAX_NODES; i++) {
