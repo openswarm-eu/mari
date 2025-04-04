@@ -16,6 +16,7 @@
 
 #include "bl_device.h"
 #include "bl_radio.h"
+#include "bl_timer_hf.h"
 #include "bl_rng.h"
 #include "association.h"
 #include "scan.h"
@@ -52,6 +53,8 @@ bl_gpio_t led3 = { .port = 0, .pin = 16 };
 #define BLINK_BACKOFF_N_MIN 5
 #define BLINK_BACKOFF_N_MAX 9
 
+#define BLINK_JOIN_TIMEOUT 1000 * 1000 * 5 // 5 seconds. after this time, go back to scanning. NOTE: have it be based on slotframe size?
+
 typedef struct {
     uint64_t node_id;
     uint64_t asn;
@@ -60,6 +63,7 @@ typedef struct {
 typedef struct {
     bl_assoc_state_t state;
     bl_event_cb_t blink_event_callback;
+    uint32_t last_state_change_ts; ///< Last time the state changed
 
     // node
     uint32_t last_received_from_gateway_asn; ///< Last received packet when in joined state
@@ -100,6 +104,7 @@ void bl_assoc_init(bl_event_cb_t event_callback) {
 
 inline void bl_assoc_set_state(bl_assoc_state_t state) {
     assoc_vars.state = state;
+    assoc_vars.last_state_change_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
 
 #ifdef DEBUG
     DEBUG_GPIO_SET(&led0); DEBUG_GPIO_SET(&led1); DEBUG_GPIO_SET(&led2); DEBUG_GPIO_SET(&led3);
@@ -142,6 +147,11 @@ bool bl_assoc_node_ready_to_join(void) {
 }
 
 bool bl_assoc_node_gateway_is_lost(uint32_t asn) {
+    if (assoc_vars.state != JOIN_STATE_JOINED) {
+        // can only lose the gateway when already joined
+        return false;
+    }
+
     return (asn - assoc_vars.last_received_from_gateway_asn) > bl_scheduler_get_active_schedule_slot_count() * BLINK_MAX_SLOTFRAMES_NO_RX_LEAVE;
 }
 
@@ -172,6 +182,15 @@ void bl_assoc_node_register_collision_backoff(void) {
     // choose a random number from [0, 2^n - 1] and set it as the backoff time
     uint16_t max = (1 << assoc_vars.backoff_n) - 1;
     bl_rng_read_range(&assoc_vars.backoff_random_time, 0, max);
+}
+
+bool bl_assoc_node_joining_reached_timeout(void) {
+    if (assoc_vars.state != JOIN_STATE_JOINING) {
+        // can only reach join timeout when in JOINING state
+        return false;
+    }
+
+    return bl_timer_hf_now(BLINK_TIMER_DEV) - assoc_vars.last_state_change_ts > BLINK_JOIN_TIMEOUT;
 }
 
 // ------------ gateway functions ---------

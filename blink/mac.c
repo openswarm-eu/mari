@@ -222,13 +222,22 @@ static void new_slot_synced(void) {
     mac_vars.start_slot_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
     DEBUG_GPIO_SET(&pin0); DEBUG_GPIO_CLEAR(&pin0); // debug: show that a new slot started
 
-    // too long without receiving a packet? disconnect
+    // perform timeout checks
     if (mac_vars.node_type == BLINK_GATEWAY) {
+        // too long without receiving a packet from certain nodes? disconnect them
         bl_assoc_gateway_clear_old_nodes(mac_vars.asn);
-    } else if (mac_vars.node_type == BLINK_NODE && bl_assoc_is_joined()) {
+    } else if (mac_vars.node_type == BLINK_NODE) {
         if (bl_assoc_node_gateway_is_lost(mac_vars.asn)) {
+            // too long without receiving a packet? disconnect and back to scanning
             bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway, .tag = BLINK_PEER_LOST };
             mac_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
+            bl_assoc_set_state(JOIN_STATE_IDLE);
+            set_slot_state(STATE_SLEEP);
+            end_slot();
+            start_scan();
+            return;
+        } else if (bl_assoc_node_joining_reached_timeout()) {
+            // too long without receiving a join response? back to scanning
             bl_assoc_set_state(JOIN_STATE_IDLE);
             set_slot_state(STATE_SLEEP);
             end_slot();
@@ -274,6 +283,7 @@ static void start_scan(void) {
     mac_vars.scan_expected_end_ts = mac_vars.scan_started_ts + BLINK_SCAN_MAX_DURATION;
     DEBUG_GPIO_SET(&pin0); // debug: show that a new scan started
     mac_vars.is_scanning = true;
+    bl_assoc_set_state(JOIN_STATE_SCANNING);
 
     // end_scan will be called when the scan is over
     bl_timer_hf_set_oneshot_with_ref_us(
