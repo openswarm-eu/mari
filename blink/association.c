@@ -189,9 +189,9 @@ void bl_assoc_node_handle_failed_join(void) {
     bl_assoc_set_state(JOIN_STATE_SYNCED);
 }
 
-bool bl_assoc_node_joining_reached_timeout(void) {
+bool bl_assoc_node_too_long_without_joining(void) {
     // join timeout is computed since the time the node synced with the gateway
-    if (!(assoc_vars.state & (JOIN_STATE_SYNCED | JOIN_STATE_JOINING))) {
+    if (assoc_vars.state != JOIN_STATE_SYNCED && assoc_vars.state != JOIN_STATE_JOINING) {
         // can only reach join timeout when in synced or joining state
         return false;
     }
@@ -214,13 +214,14 @@ bool bl_assoc_gateway_node_is_joined(uint64_t node_id) {
 
 bool bl_assoc_gateway_keep_node_alive(uint64_t node_id, uint64_t asn) {
     // save the node_id and asn
-    // if the node_id is already in the list, update the asn
-    // otherwise, add it to the first empty spot
+    // FIXME: this should be a circular buffer, so that we don't have to search for the node_id
     for (size_t i = 0; i < BLINK_MAX_NODES; i++) {
         if (assoc_vars.last_received_from_node[i].node_id == node_id) {
             assoc_vars.last_received_from_node[i].asn = asn;
             return true;
         }
+    }
+    for (size_t i = 0; i < BLINK_MAX_NODES; i++) {
         if (assoc_vars.last_received_from_node[i].node_id == 0) {
             assoc_vars.last_received_from_node[i].node_id = node_id;
             assoc_vars.last_received_from_node[i].asn = asn;

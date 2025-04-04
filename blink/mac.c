@@ -240,7 +240,7 @@ static void new_slot_synced(void) {
             end_slot();
             start_scan();
             return;
-        } else if (bl_assoc_node_joining_reached_timeout()) {
+        } else if (bl_assoc_node_too_long_without_joining()) {
             // too long without receiving a join response? back to scanning
             bl_assoc_set_state(JOIN_STATE_IDLE);
             set_slot_state(STATE_SLEEP);
