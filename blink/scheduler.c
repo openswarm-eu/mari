@@ -38,7 +38,7 @@ typedef struct {
     uint8_t num_assigned_uplink_nodes; // number of nodes with assigned uplink slots
 
     // static data
-    schedule_t available_schedules[BLINK_N_SCHEDULES];
+    schedule_t *available_schedules[BLINK_N_SCHEDULES];
     size_t available_schedules_len;
 } schedule_vars_t;
 
@@ -59,25 +59,26 @@ void bl_scheduler_init(bl_node_type_t node_type, schedule_t *application_schedul
 
     if (_schedule_vars.available_schedules_len == BLINK_N_SCHEDULES) return; // FIXME: this is just to simplify debugging (allows calling init multiple times)
 
-    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_only_beacons;
-    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_only_beacons_optimized_scan;
+    // FIXME: schedules only used for debugging
+    //_schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_only_beacons;
+    //_schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_only_beacons_optimized_scan;
 
-    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_minuscule;
-    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_tiny;
-    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_huge;
-    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_small;
-    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_big;
+    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = &schedule_minuscule;
+    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = &schedule_tiny;
+    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = &schedule_huge;
+    //_schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_small;
+    // _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_big;
 
     if (application_schedule != NULL) {
-        _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = *application_schedule;
+        _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = application_schedule;
         _schedule_vars.active_schedule_ptr = application_schedule;
     }
 }
 
 bool bl_scheduler_set_schedule(uint8_t schedule_id) {
     for (size_t i = 0; i < BLINK_N_SCHEDULES; i++) {
-        if (_schedule_vars.available_schedules[i].id == schedule_id) {
-            _schedule_vars.active_schedule_ptr = &_schedule_vars.available_schedules[i];
+        if (_schedule_vars.available_schedules[i]->id == schedule_id) {
+            _schedule_vars.active_schedule_ptr = _schedule_vars.available_schedules[i];
             return true;
         }
     }

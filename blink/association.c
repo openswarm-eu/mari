@@ -57,8 +57,9 @@ bl_gpio_t led3 = { .port = 0, .pin = 16 };
 
 typedef struct {
     uint64_t node_id;
-    uint64_t asn;
-} bl_received_from_node_t;
+    // size_t slot_offset; ///< Slot offset in the schedule
+    uint64_t last_received_asn; ///< ASN marking the last time the node was heard from
+} bl_client_list_t;
 
 typedef struct {
     bl_assoc_state_t state;
@@ -73,7 +74,7 @@ typedef struct {
     // gateway
     // NOTE: this could be improved by merging with the scheduler table
     // however, the scheduler table already uses a lot of memory because everything is hardcoded
-    bl_received_from_node_t last_received_from_node[BLINK_MAX_NODES];
+    bl_client_list_t client_list[BLINK_MAX_NODES];
 } assoc_vars_t;
 
 //=========================== variables =======================================
@@ -205,7 +206,7 @@ bool bl_assoc_node_too_long_without_joining(void) {
 
 bool bl_assoc_gateway_node_is_joined(uint64_t node_id) {
     for (size_t i = 0; i < BLINK_MAX_NODES; i++) {
-        if (assoc_vars.last_received_from_node[i].node_id == node_id) {
+        if (assoc_vars.client_list[i].node_id == node_id) {
             return true;
         }
     }
@@ -216,15 +217,15 @@ bool bl_assoc_gateway_keep_node_alive(uint64_t node_id, uint64_t asn) {
     // save the node_id and asn
     // FIXME: this should be a circular buffer, so that we don't have to search for the node_id
     for (size_t i = 0; i < BLINK_MAX_NODES; i++) {
-        if (assoc_vars.last_received_from_node[i].node_id == node_id) {
-            assoc_vars.last_received_from_node[i].asn = asn;
+        if (assoc_vars.client_list[i].node_id == node_id) {
+            assoc_vars.client_list[i].last_received_asn = asn;
             return true;
         }
     }
     for (size_t i = 0; i < BLINK_MAX_NODES; i++) {
-        if (assoc_vars.last_received_from_node[i].node_id == 0) {
-            assoc_vars.last_received_from_node[i].node_id = node_id;
-            assoc_vars.last_received_from_node[i].asn = asn;
+        if (assoc_vars.client_list[i].node_id == 0) {
+            assoc_vars.client_list[i].node_id = node_id;
+            assoc_vars.client_list[i].last_received_asn = asn;
             return true;
         }
     }
@@ -237,14 +238,14 @@ void bl_assoc_gateway_clear_old_nodes(uint64_t asn) {
     // also deassign the cells from the scheduler
     uint64_t max_asn_old = bl_scheduler_get_active_schedule_slot_count() * BLINK_MAX_SLOTFRAMES_NO_RX_LEAVE;
     for (size_t i = 0; i < BLINK_MAX_NODES; i++) {
-        bl_received_from_node_t *node = &assoc_vars.last_received_from_node[i];
-        if (node->node_id != 0 && asn - node->asn > max_asn_old) {
+        bl_client_list_t *node = &assoc_vars.client_list[i];
+        if (node->node_id != 0 && asn - node->last_received_asn > max_asn_old) {
             bl_event_data_t event_data = (bl_event_data_t){ .data.node_info.node_id = node->node_id, .tag = BLINK_PEER_LOST };
             // deassign the cell
             bl_scheduler_deassign_uplink_cell(node->node_id);
             // clear the node
             node->node_id = 0;
-            node->asn = 0;
+            node->last_received_asn = 0;
             // inform the application
             assoc_vars.blink_event_callback(BLINK_NODE_LEFT, event_data);
         }
