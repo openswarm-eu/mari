@@ -78,6 +78,7 @@ extern bl_slot_durations_t slot_durations;
 //=========================== prototypes ==========================================
 
 void bl_mac_init(bl_node_type_t node_type, bl_event_cb_t event_callback);
+uint64_t bl_mac_get_synced_ts(void);
 uint64_t bl_mac_get_synced_gateway(void);
 uint64_t bl_mac_get_asn(void);
 

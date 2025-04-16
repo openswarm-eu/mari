@@ -105,8 +105,7 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
         _blink_vars.node_type == BLINK_NODE && bl_assoc_get_state() == JOIN_STATE_JOINING &&
         !(header->type & (BLINK_PACKET_JOIN_RESPONSE | BLINK_PACKET_BEACON))
        ) {
-        // assume a collision happened, so update the backoff window accordingly
-        bl_assoc_node_register_collision_backoff();
+        bl_assoc_node_handle_failed_join();
         return;
     }
 
