@@ -56,12 +56,6 @@ bl_gpio_t led3 = { .port = 0, .pin = 16 };
 #define BLINK_JOIN_TIMEOUT 1000 * 1000 * 5 // 5 seconds. after this time, go back to scanning. NOTE: have it be based on slotframe size?
 
 typedef struct {
-    uint64_t node_id;
-    // size_t slot_offset; ///< Slot offset in the schedule
-    uint64_t last_received_asn; ///< ASN marking the last time the node was heard from
-} bl_client_list_t;
-
-typedef struct {
     bl_assoc_state_t state;
     bl_event_cb_t blink_event_callback;
     uint32_t last_state_change_ts; ///< Last time the state changed
@@ -70,11 +64,6 @@ typedef struct {
     uint32_t last_received_from_gateway_asn; ///< Last received packet when in joined state
     int16_t backoff_n;
     uint8_t backoff_random_time; ///< Number of slots to wait before re-trying to join
-
-    // gateway
-    // NOTE: this could be improved by merging with the scheduler table
-    // however, the scheduler table already uses a lot of memory because everything is hardcoded
-    bl_client_list_t client_list[BLINK_MAX_NODES];
 } assoc_vars_t;
 
 //=========================== variables =======================================
@@ -205,8 +194,14 @@ bool bl_assoc_node_too_long_without_joining(void) {
 // ------------ gateway functions ---------
 
 bool bl_assoc_gateway_node_is_joined(uint64_t node_id) {
-    for (size_t i = 0; i < BLINK_MAX_NODES; i++) {
-        if (assoc_vars.client_list[i].node_id == node_id) {
+    schedule_t *schedule = bl_scheduler_get_active_schedule_ptr();
+    for (size_t i = 0; i < schedule->n_cells; i++) {
+        if (schedule->cells[i].type != SLOT_TYPE_UPLINK) {
+            // we only care about uplink cells
+            continue;
+        }
+        if (schedule->cells[i].assigned_node_id == node_id) {
+            // this node is assigned to a cell, so it is joined
             return true;
         }
     }
@@ -214,19 +209,16 @@ bool bl_assoc_gateway_node_is_joined(uint64_t node_id) {
 }
 
 bool bl_assoc_gateway_keep_node_alive(uint64_t node_id, uint64_t asn) {
-    // save the node_id and asn
-    // FIXME: this should be a circular buffer, so that we don't have to search for the node_id
-    for (size_t i = 0; i < BLINK_MAX_NODES; i++) {
-        if (assoc_vars.client_list[i].node_id == node_id) {
-            assoc_vars.client_list[i].last_received_asn = asn;
-            return true;
+    // save the asn of the last packet received from a certain node_id
+    schedule_t *schedule = bl_scheduler_get_active_schedule_ptr();
+    for (size_t i = 0; i < schedule->n_cells; i++) {
+        if (schedule->cells[i].type != SLOT_TYPE_UPLINK) {
+            // we only care about uplink cells
+            continue;
         }
-    }
-    for (size_t i = 0; i < BLINK_MAX_NODES; i++) {
-        if (assoc_vars.client_list[i].node_id == 0) {
-            assoc_vars.client_list[i].node_id = node_id;
-            assoc_vars.client_list[i].last_received_asn = asn;
-            return true;
+        if (schedule->cells[i].assigned_node_id == node_id) {
+            // save the asn so we know this node is alive
+            schedule->cells[i].last_received_asn = asn;
         }
     }
     // should never reach here
@@ -237,15 +229,21 @@ void bl_assoc_gateway_clear_old_nodes(uint64_t asn) {
     // clear all nodes that have not been heard from in the last N asn
     // also deassign the cells from the scheduler
     uint64_t max_asn_old = bl_scheduler_get_active_schedule_slot_count() * BLINK_MAX_SLOTFRAMES_NO_RX_LEAVE;
-    for (size_t i = 0; i < BLINK_MAX_NODES; i++) {
-        bl_client_list_t *node = &assoc_vars.client_list[i];
-        if (node->node_id != 0 && asn - node->last_received_asn > max_asn_old) {
-            bl_event_data_t event_data = (bl_event_data_t){ .data.node_info.node_id = node->node_id, .tag = BLINK_PEER_LOST };
-            // deassign the cell
-            bl_scheduler_deassign_uplink_cell(node->node_id);
-            // clear the node
-            node->node_id = 0;
-            node->last_received_asn = 0;
+
+    schedule_t *schedule = bl_scheduler_get_active_schedule_ptr();
+    for (size_t i = 0; i < schedule->n_cells; i++) {
+        if (schedule->cells[i].type != SLOT_TYPE_UPLINK) {
+            // we only care about uplink cells
+            continue;
+        }
+        cell_t *cell = &schedule->cells[i]; // FIXME DBG rename back to cell
+        if (cell->assigned_node_id != 0 && asn - cell->last_received_asn > max_asn_old) {
+            bl_event_data_t event_data = (bl_event_data_t){ .data.node_info.node_id = cell->assigned_node_id, .tag = BLINK_PEER_LOST };
+            // inform the scheduler
+            bl_scheduler_deassign_uplink_cell(cell->assigned_node_id);
+            // clear the cell
+            cell->assigned_node_id = NULL;
+            cell->last_received_asn = 0;
             // inform the application
             assoc_vars.blink_event_callback(BLINK_NODE_LEFT, event_data);
         }

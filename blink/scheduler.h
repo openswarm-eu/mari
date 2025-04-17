@@ -50,7 +50,7 @@ bl_slot_info_t bl_scheduler_tick(uint64_t asn);
  */
 bool bl_scheduler_set_schedule(uint8_t schedule_id);
 
-int16_t bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id);
+int16_t bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id, uint64_t asn);
 
 bool bl_scheduler_assign_myself_to_cell(uint16_t cell_index);
 
@@ -61,6 +61,8 @@ uint8_t bl_scheduler_remaining_capacity(void);
 uint8_t bl_scheduler_get_nodes_count(void);
 
 uint8_t bl_scheduler_get_nodes(uint64_t *nodes);
+
+schedule_t *bl_scheduler_get_active_schedule_ptr(void);
 
 uint8_t bl_scheduler_get_active_schedule_slot_count(void);
 

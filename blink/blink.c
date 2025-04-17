@@ -124,11 +124,10 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
                     return;
                 }
                 // try to assign a cell to the node
-                int16_t cell_id = bl_scheduler_assign_next_available_uplink_cell(header->src);
+                int16_t cell_id = bl_scheduler_assign_next_available_uplink_cell(header->src, bl_mac_get_asn()); // the asn-based keep-alive is also initialized
                 if (cell_id >= 0) {
-                    bl_queue_set_join_response(header->src, (uint8_t)cell_id);
+                    bl_queue_set_join_response(header->src, (uint8_t)cell_id); // at the packet level, max_nodes is limited to 256 (using uint8_t)
                     _blink_vars.app_event_callback(BLINK_NODE_JOINED, (bl_event_data_t){ .data.node_info.node_id = header->src });
-                    bl_assoc_gateway_keep_node_alive(header->src, bl_mac_get_asn()); // initialize this node's keep-alive
                 } else {
                     _blink_vars.app_event_callback(BLINK_ERROR, (bl_event_data_t){ 0 });
                 }

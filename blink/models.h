@@ -101,6 +101,7 @@ typedef struct {
     slot_type_t type;
     uint8_t channel_offset;
     uint64_t assigned_node_id;
+    uint64_t last_received_asn; ///< ASN marking the last time the node was heard from
 } cell_t;
 
 typedef struct {
