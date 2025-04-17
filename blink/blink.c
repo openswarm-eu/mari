@@ -71,11 +71,11 @@ void blink_set_node_type(bl_node_type_t node_type) {
 // -------- gateway ----------
 
 size_t blink_gateway_get_nodes(uint64_t *nodes) {
-    return bl_scheduler_get_nodes(nodes);
+    return bl_scheduler_gateway_get_nodes(nodes);
 }
 
 size_t blink_gateway_count_nodes(void) {
-    return bl_scheduler_get_nodes_count();
+    return bl_scheduler_gateway_get_nodes_count();
 }
 
 // -------- node ----------
@@ -124,11 +124,10 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
                     return;
                 }
                 // try to assign a cell to the node
-                int16_t cell_id = bl_scheduler_assign_next_available_uplink_cell(header->src);
+                int16_t cell_id = bl_scheduler_gateway_assign_next_available_uplink_cell(header->src, bl_mac_get_asn()); // the asn-based keep-alive is also initialized
                 if (cell_id >= 0) {
-                    bl_queue_set_join_response(header->src, (uint8_t)cell_id);
+                    bl_queue_set_join_response(header->src, (uint8_t)cell_id); // at the packet level, max_nodes is limited to 256 (using uint8_t)
                     _blink_vars.app_event_callback(BLINK_NODE_JOINED, (bl_event_data_t){ .data.node_info.node_id = header->src });
-                    bl_assoc_gateway_keep_node_alive(header->src, bl_mac_get_asn()); // initialize this node's keep-alive
                 } else {
                     _blink_vars.app_event_callback(BLINK_ERROR, (bl_event_data_t){ 0 });
                 }
@@ -183,7 +182,7 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
                 }
                 // the first byte after the header contains the cell_id
                 uint8_t cell_id = packet[sizeof(bl_packet_header_t)];
-                if (bl_scheduler_assign_myself_to_cell(cell_id)) {
+                if (bl_scheduler_node_assign_myself_to_cell(cell_id)) {
                     bl_assoc_set_state(JOIN_STATE_JOINED);
                     bl_event_data_t event_data = { .data.gateway_info.gateway_id = header->src };
                     _blink_vars.app_event_callback(BLINK_CONNECTED, event_data);

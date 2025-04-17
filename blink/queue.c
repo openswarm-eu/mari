@@ -56,7 +56,7 @@ uint8_t bl_queue_next_packet(slot_type_t slot_type, uint8_t *packet) {
             len = bl_build_packet_beacon(
                 packet,
                 bl_mac_get_asn(),
-                bl_scheduler_remaining_capacity(),
+                bl_scheduler_gateway_remaining_capacity(),
                 bl_scheduler_get_active_schedule_id()
             );
         } else if (slot_type == SLOT_TYPE_DOWNLINK) {

@@ -38,7 +38,7 @@ typedef struct {
     uint8_t num_assigned_uplink_nodes; // number of nodes with assigned uplink slots
 
     // static data
-    schedule_t available_schedules[BLINK_N_SCHEDULES];
+    schedule_t *available_schedules[BLINK_N_SCHEDULES];
     size_t available_schedules_len;
 } schedule_vars_t;
 
@@ -59,48 +59,36 @@ void bl_scheduler_init(bl_node_type_t node_type, schedule_t *application_schedul
 
     if (_schedule_vars.available_schedules_len == BLINK_N_SCHEDULES) return; // FIXME: this is just to simplify debugging (allows calling init multiple times)
 
-    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_only_beacons;
-    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_only_beacons_optimized_scan;
+    // FIXME: schedules only used for debugging
+    //_schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_only_beacons;
+    //_schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_only_beacons_optimized_scan;
 
-    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_minuscule;
-    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_tiny;
-    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_huge;
-    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_small;
-    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_big;
+    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = &schedule_minuscule;
+    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = &schedule_tiny;
+    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = &schedule_huge;
+    //_schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_small;
+    // _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_big;
 
     if (application_schedule != NULL) {
-        _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = *application_schedule;
+        _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = application_schedule;
         _schedule_vars.active_schedule_ptr = application_schedule;
     }
 }
 
 bool bl_scheduler_set_schedule(uint8_t schedule_id) {
     for (size_t i = 0; i < BLINK_N_SCHEDULES; i++) {
-        if (_schedule_vars.available_schedules[i].id == schedule_id) {
-            _schedule_vars.active_schedule_ptr = &_schedule_vars.available_schedules[i];
+        if (_schedule_vars.available_schedules[i]->id == schedule_id) {
+            _schedule_vars.active_schedule_ptr = _schedule_vars.available_schedules[i];
             return true;
         }
     }
     return false;
 }
 
-// to be called at the GATEWAY when processing a JOIN_REQUEST
-int16_t bl_scheduler_assign_next_available_uplink_cell(uint64_t node_id) {
-    for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
-        cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
-        // normally the cell is available if empty, but it may also be that case that
-        // the node just temporarily lost connection, so we can just re-assign the same cell_id
-        if (cell->type == SLOT_TYPE_UPLINK && (cell->assigned_node_id == NULL || cell->assigned_node_id == node_id)) {
-            cell->assigned_node_id = node_id;
-            _schedule_vars.num_assigned_uplink_nodes++;
-            return i;
-        }
-    }
-    return -1;
-}
+// ------------ node functions ------------
 
 // to be called at the NODE when processing a JOIN_RESPONSE
-bool bl_scheduler_assign_myself_to_cell(uint16_t cell_index) {
+bool bl_scheduler_node_assign_myself_to_cell(uint16_t cell_index) {
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
         if (cell->type == SLOT_TYPE_UPLINK && i == cell_index) {
@@ -111,21 +99,31 @@ bool bl_scheduler_assign_myself_to_cell(uint16_t cell_index) {
     return false;
 }
 
-// to be called at the GATEWAY when a node leaves
-bool bl_scheduler_deassign_uplink_cell(uint64_t node_id) {
+// ------------ gateway functions ---------
+
+// to be called at the GATEWAY when processing a JOIN_REQUEST
+int16_t bl_scheduler_gateway_assign_next_available_uplink_cell(uint64_t node_id, uint64_t asn) {
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
-        if (cell->type == SLOT_TYPE_UPLINK && cell->assigned_node_id == node_id) {
-            cell->assigned_node_id = NULL;
-            _schedule_vars.num_assigned_uplink_nodes--;
-            return true;
+        // normally the cell is available if empty, but it may also be that case that
+        // the node just temporarily lost connection, so we can just re-assign the same cell_id
+        if (cell->type == SLOT_TYPE_UPLINK && (cell->assigned_node_id == NULL || cell->assigned_node_id == node_id)) {
+            cell->assigned_node_id = node_id;
+            cell->last_received_asn = asn;
+            _schedule_vars.num_assigned_uplink_nodes++;
+            return i;
         }
     }
-    return false;
+    return -1;
+}
+
+// to be called at the GATEWAY when a node leaves
+inline void bl_scheduler_gateway_decrease_nodes_counter(void) {
+    _schedule_vars.num_assigned_uplink_nodes--;
 }
 
 // to be called at the GATEWAY to build a beacon
-uint8_t bl_scheduler_remaining_capacity(void) {
+uint8_t bl_scheduler_gateway_remaining_capacity(void) {
     // TODO: can be optimized, if we pre-compute the number of uplink slots in a schedule
     uint8_t remaining_capacity = 0;
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
@@ -138,11 +136,11 @@ uint8_t bl_scheduler_remaining_capacity(void) {
 }
 
 // to be called at the GATEWAY to build a beacon
-uint8_t bl_scheduler_get_nodes_count(void) {
+uint8_t bl_scheduler_gateway_get_nodes_count(void) {
     return _schedule_vars.num_assigned_uplink_nodes;
 }
 
-uint8_t bl_scheduler_get_nodes(uint64_t *nodes) {
+uint8_t bl_scheduler_gateway_get_nodes(uint64_t *nodes) {
     uint8_t count = 0;
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
@@ -152,6 +150,8 @@ uint8_t bl_scheduler_get_nodes(uint64_t *nodes) {
     }
     return count;
 }
+
+// ------------ general functions ---------
 
 bl_slot_info_t bl_scheduler_tick(uint64_t asn) {
     // get the current cell
@@ -197,6 +197,10 @@ uint8_t bl_scheduler_get_channel(slot_type_t slot_type, uint64_t asn, uint8_t ch
         //   frequency = F {(ASN + channelOffset) mod nFreq}
         return (asn + channel_offset) % BLINK_N_BLE_REGULAR_CHANNELS;
     }
+}
+
+schedule_t *bl_scheduler_get_active_schedule_ptr(void) {
+    return _schedule_vars.active_schedule_ptr;
 }
 
 uint8_t bl_scheduler_get_active_schedule_id(void) {
