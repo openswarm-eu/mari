@@ -49,10 +49,10 @@ int main(void) {
             bl_timer_hf_delay_us(BLINK_TIMER_DEV, SLOT);
         }
         puts(".");
-        if (j == 0 && bl_scheduler_assign_next_available_uplink_cell(bl_device_id()) < 0) { // try to assign at the end of first slotframe
+        if (j == 0 && bl_scheduler_gateway_assign_next_available_uplink_cell(bl_device_id()) < 0) { // try to assign at the end of first slotframe
             printf("Failed to assign uplink cell\n");
             return 1;
-        } else if (j == n_slotframes-2 && !bl_scheduler_deassign_uplink_cell(bl_device_id())) { // try to deassign at the end of the second-to-last slotframe
+        } else if (j == n_slotframes-2 && !bl_scheduler_gateway_deassign_uplink_cell(bl_device_id())) { // try to deassign at the end of the second-to-last slotframe
             printf("Failed to deassign uplink cell\n");
             return 1;
         }

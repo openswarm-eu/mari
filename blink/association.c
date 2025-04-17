@@ -236,11 +236,11 @@ void bl_assoc_gateway_clear_old_nodes(uint64_t asn) {
             // we only care about uplink cells
             continue;
         }
-        cell_t *cell = &schedule->cells[i]; // FIXME DBG rename back to cell
+        cell_t *cell = &schedule->cells[i];
         if (cell->assigned_node_id != 0 && asn - cell->last_received_asn > max_asn_old) {
             bl_event_data_t event_data = (bl_event_data_t){ .data.node_info.node_id = cell->assigned_node_id, .tag = BLINK_PEER_LOST };
             // inform the scheduler
-            bl_scheduler_deassign_uplink_cell(cell->assigned_node_id);
+            bl_scheduler_gateway_decrease_nodes_counter();
             // clear the cell
             cell->assigned_node_id = NULL;
             cell->last_received_asn = 0;
