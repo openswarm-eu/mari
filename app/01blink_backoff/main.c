@@ -9,8 +9,6 @@
 
 #define BLINK_APP_TIMER_DEV 1
 
-//=========================== prototypes =======================================
-
 //============================ main ============================================
 
 int main(void) {
@@ -19,19 +17,7 @@ int main(void) {
 
     bl_assoc_init(NULL);
 
-    // warm up rng
-    for (size_t i = 0; i < 5; i++) {
-        uint32_t start_ts = bl_timer_hf_now(BLINK_APP_TIMER_DEV);
-
-         //bl_assoc_node_register_collision_backoff();
-        uint8_t val;
-        bl_rng_read_range(&val, 0, 255);
-
-        uint32_t end_ts = bl_timer_hf_now(BLINK_APP_TIMER_DEV);
-        uint32_t elapsed = end_ts - start_ts;
-        printf("Warm up collision backoff %d: %d\n", i, elapsed);
-    }
-
+    // test backoff re-schedule execution time (depends on rng)
     size_t n_runs = 10;
     uint32_t max_elapsed = 0;
     uint32_t sum_elapsed = 0;
