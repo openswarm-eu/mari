@@ -171,7 +171,9 @@ void bl_assoc_node_register_collision_backoff(void) {
     }
     // choose a random number from [0, 2^n - 1] and set it as the backoff time
     uint16_t max = (1 << assoc_vars.backoff_n) - 1;
-    bl_rng_read_range(&assoc_vars.backoff_random_time, 0, max);
+    uint8_t raw;
+    bl_rng_read(&raw);
+    assoc_vars.backoff_random_time = (raw % (max + 1));
 }
 
 void bl_assoc_node_handle_failed_join(void) {
