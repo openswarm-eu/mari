@@ -38,13 +38,21 @@ bool bl_assoc_is_joined(void);
 void bl_assoc_handle_beacon(uint8_t *packet, uint8_t length, uint8_t channel, uint32_t ts);
 void bl_assoc_handle_packet(uint8_t *packet, uint8_t length);
 
+void bl_assoc_node_handle_synced(void);
 bool bl_assoc_node_ready_to_join(void);
+void bl_assoc_node_start_joining(void);
+void bl_assoc_node_handle_joined(uint64_t gateway_id);
+void bl_assoc_node_handle_failed_join(void);
+bool bl_assoc_node_too_long_waiting_for_join_response(void);
+bool bl_assoc_node_too_long_synced_without_joining(void);
+void bl_assoc_node_handle_give_up_joining(void);
+void bl_assoc_node_handle_disconnect(void);
+
+void bl_assoc_node_register_collision_backoff(void);
+void bl_assoc_node_reset_backoff(void);
+
 bool bl_assoc_node_gateway_is_lost(uint32_t asn);
 void bl_assoc_node_keep_gateway_alive(uint64_t asn);
-void bl_assoc_node_register_collision_backoff(void);
-void bl_assoc_node_handle_failed_join(void);
-void bl_assoc_node_reset_backoff(void);
-bool bl_assoc_node_too_long_without_joining(void);
 
 bool bl_assoc_gateway_node_is_joined(uint64_t node_id);
 

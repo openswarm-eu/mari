@@ -232,16 +232,18 @@ static void new_slot_synced(void) {
         bl_assoc_gateway_clear_old_nodes(mac_vars.asn);
     } else if (mac_vars.node_type == BLINK_NODE) {
         if (bl_assoc_node_gateway_is_lost(mac_vars.asn)) {
-            // too long without receiving a packet? disconnect and back to scanning
-            bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway, .tag = BLINK_PEER_LOST };
-            mac_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
-            bl_assoc_set_state(JOIN_STATE_IDLE);
+            // too long without receiving a packet from gateway? disconnect and back to scanning
+            bl_assoc_node_handle_disconnect();
             set_slot_state(STATE_SLEEP);
             end_slot();
             start_scan();
             return;
-        } else if (bl_assoc_node_too_long_without_joining()) {
-            // too long without receiving a join response? back to scanning
+        } else if (bl_assoc_node_too_long_waiting_for_join_response()) {
+            // too long without receiving a join response? notify the association module which will backfoff
+            bl_assoc_node_handle_failed_join();
+        } else if (bl_assoc_node_too_long_synced_without_joining()) {
+            // too long synced without being able to join? back to scanning
+            bl_assoc_node_handle_give_up_joining();
             bl_assoc_set_state(JOIN_STATE_IDLE);
             set_slot_state(STATE_SLEEP);
             end_slot();
@@ -318,7 +320,7 @@ static void end_scan(void) {
 
     if (select_gateway_and_sync()) {
         // found a gateway and synchronized to it
-        bl_assoc_set_state(JOIN_STATE_SYNCED);
+        bl_assoc_node_handle_synced();
         bl_queue_set_join_request(mac_vars.synced_gateway);
     } else {
         // no gateway found, back to scanning
@@ -370,7 +372,7 @@ static void end_background_scan(void) {
 
         if (select_gateway_and_sync()) {
             // found a gateway and synchronized to it
-            bl_assoc_set_state(JOIN_STATE_SYNCED);
+            bl_assoc_node_handle_synced();
             bl_queue_set_join_request(mac_vars.synced_gateway);
         }
     }
@@ -504,12 +506,6 @@ static void activity_rie1(void) {
     // cancel timer for rx_max (rie2)
     bl_timer_hf_cancel(BLINK_TIMER_DEV, BLINK_TIMER_CHANNEL_3);
 
-    if (mac_vars.node_type == BLINK_NODE && mac_vars.current_slot_info.type == SLOT_TYPE_DOWNLINK && bl_assoc_get_state() == JOIN_STATE_JOINING) {
-        // did not receive a packet on downlink but is in state JOINING, which implies we were waiting for a join response.
-        // not receiving the response is an indicator that the join request had a collision, so let's update the backoff state
-        bl_assoc_node_handle_failed_join();
-    }
-
     end_slot();
 }
 
@@ -636,6 +632,7 @@ static bool select_gateway_and_sync(void) {
         // a handover is going to happen, notify application about network disconnection
         bl_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway, .tag = BLINK_HANDOVER };
         mac_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
+        // NOTE: should we `bl_assoc_set_state(JOIN_STATE_IDLE);` here?
         // during handover, we don't want the inter slot timer to tick again before we finish sync, so just set if far away in the future
         bl_timer_hf_set_periodic_us(
             BLINK_TIMER_DEV,

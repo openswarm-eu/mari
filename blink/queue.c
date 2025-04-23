@@ -74,7 +74,7 @@ uint8_t bl_queue_next_packet(slot_type_t slot_type, uint8_t *packet) {
     } else if (blink_get_node_type() == BLINK_NODE) {
         if (slot_type == SLOT_TYPE_SHARED_UPLINK) {
             if (bl_assoc_node_ready_to_join()) {
-                bl_assoc_set_state(JOIN_STATE_JOINING);
+                bl_assoc_node_start_joining();
                 len = bl_queue_get_join_packet(packet);
             }
         } else if (slot_type == SLOT_TYPE_UPLINK) {
@@ -135,6 +135,8 @@ bool bl_queue_has_join_packet(void) {
     return queue_vars.join_packet.length > 0;
 }
 
+// if used by the node, gets it a join request packet
+// if used by the gateway, gets it a join response packet
 uint8_t bl_queue_get_join_packet(uint8_t *packet) {
     memcpy(packet, queue_vars.join_packet.buffer, queue_vars.join_packet.length);
     uint8_t len = queue_vars.join_packet.length;

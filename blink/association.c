@@ -53,7 +53,12 @@ bl_gpio_t led3 = { .port = 0, .pin = 16 };
 #define BLINK_BACKOFF_N_MIN 5
 #define BLINK_BACKOFF_N_MAX 9
 
-#define BLINK_JOIN_TIMEOUT 1000 * 1000 * 5 // 5 seconds. after this time, go back to scanning. NOTE: have it be based on slotframe size?
+#define BLINK_JOIN_TIMEOUT_SINCE_SYNCED (1000 * 1000 * 5) // 5 seconds. after this time, go back to scanning. NOTE: have it be based on slotframe size?
+
+// after this amount of time, consider that a join request failed (very likely due to a collision during the shared uplink slot)
+// currently set to 3 slot durations -- enough when the schedule always have a shared-uplink followed by a downlink,
+// and the gateway prioritizes join responses over all other downstream packets
+#define BLINK_JOINING_STATE_TIMEOUT (BLINK_WHOLE_SLOT_DURATION * 3)
 
 typedef struct {
     bl_assoc_state_t state;
@@ -64,6 +69,7 @@ typedef struct {
     uint32_t last_received_from_gateway_asn; ///< Last received packet when in joined state
     int16_t backoff_n;
     uint8_t backoff_random_time; ///< Number of slots to wait before re-trying to join
+    uint32_t join_response_timeout_ts; ///< Time when the node will give up joining
 } assoc_vars_t;
 
 //=========================== variables =======================================
@@ -122,8 +128,6 @@ inline void bl_assoc_set_state(bl_assoc_state_t state) {
 #endif
 }
 
-// ------------ node functions ------------
-
 bl_assoc_state_t bl_assoc_get_state(void) {
     return assoc_vars.state;
 }
@@ -132,21 +136,63 @@ bool bl_assoc_is_joined(void) {
     return assoc_vars.state == JOIN_STATE_JOINED;
 }
 
+// ------------ node functions ------------
+
+void bl_assoc_node_handle_synced(void) {
+    bl_assoc_set_state(JOIN_STATE_SYNCED);
+    bl_assoc_node_reset_backoff();
+}
+
 bool bl_assoc_node_ready_to_join(void) {
     return assoc_vars.state == JOIN_STATE_SYNCED && assoc_vars.backoff_random_time == 0;
 }
 
-bool bl_assoc_node_gateway_is_lost(uint32_t asn) {
-    if (assoc_vars.state != JOIN_STATE_JOINED) {
-        // can only lose the gateway when already joined
+void bl_assoc_node_start_joining(void) {
+    uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
+    assoc_vars.join_response_timeout_ts = now_ts + BLINK_JOINING_STATE_TIMEOUT;
+    bl_assoc_set_state(JOIN_STATE_JOINING);
+}
+
+void bl_assoc_node_handle_joined(uint64_t gateway_id) {
+    bl_assoc_set_state(JOIN_STATE_JOINED);
+    bl_event_data_t event_data = { .data.gateway_info.gateway_id = gateway_id };
+    assoc_vars.blink_event_callback(BLINK_CONNECTED, event_data);
+    bl_assoc_node_keep_gateway_alive(bl_mac_get_asn()); // initialize the gateway's keep-alive
+    bl_assoc_node_reset_backoff();
+}
+
+void bl_assoc_node_handle_failed_join(void) {
+    bl_assoc_set_state(JOIN_STATE_SYNCED);
+    bl_assoc_node_register_collision_backoff();
+}
+
+void bl_assoc_node_handle_give_up_joining(void) {
+    bl_assoc_set_state(JOIN_STATE_IDLE);
+    bl_assoc_node_reset_backoff();
+}
+
+bool bl_assoc_node_too_long_waiting_for_join_response(void) {
+    // joining state timeout is computed since the time the node sent a join request
+    if (assoc_vars.state != JOIN_STATE_JOINING) {
+        // can only reach timeout when in synced or joining state
         return false;
     }
 
-    return (asn - assoc_vars.last_received_from_gateway_asn) > bl_scheduler_get_active_schedule_slot_count() * BLINK_MAX_SLOTFRAMES_NO_RX_LEAVE;
+    uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
+    return now_ts > assoc_vars.join_response_timeout_ts;
 }
 
-void bl_assoc_node_keep_gateway_alive(uint64_t asn) {
-    assoc_vars.last_received_from_gateway_asn = asn;
+bool bl_assoc_node_too_long_synced_without_joining(void) {
+    // timeout is computed since the time the node synced with the gateway
+    // this encompasses potentially many join attempts, including time spent waiting due to backoff
+    if (assoc_vars.state != JOIN_STATE_SYNCED && assoc_vars.state != JOIN_STATE_JOINING) {
+        // can only reach join timeout when in synced or joining state
+        return false;
+    }
+
+    uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
+    uint32_t synced_ts = bl_mac_get_synced_ts();
+    return now_ts - synced_ts > BLINK_JOIN_TIMEOUT_SINCE_SYNCED;
 }
 
 void bl_assoc_node_reset_backoff(void) {
@@ -185,21 +231,23 @@ void bl_assoc_node_register_collision_backoff(void) {
     assoc_vars.backoff_random_time = (raw % (max + 1));
 }
 
-void bl_assoc_node_handle_failed_join(void) {
-    bl_assoc_node_register_collision_backoff();
-    bl_assoc_set_state(JOIN_STATE_SYNCED);
-}
-
-bool bl_assoc_node_too_long_without_joining(void) {
-    // join timeout is computed since the time the node synced with the gateway
-    if (assoc_vars.state != JOIN_STATE_SYNCED && assoc_vars.state != JOIN_STATE_JOINING) {
-        // can only reach join timeout when in synced or joining state
+bool bl_assoc_node_gateway_is_lost(uint32_t asn) {
+    if (assoc_vars.state != JOIN_STATE_JOINED) {
+        // can only lose the gateway when already joined
         return false;
     }
 
-    uint32_t now_ts = bl_timer_hf_now(BLINK_TIMER_DEV);
-    uint32_t synced_ts = bl_mac_get_synced_ts();
-    return now_ts - synced_ts > BLINK_JOIN_TIMEOUT;
+    return (asn - assoc_vars.last_received_from_gateway_asn) > bl_scheduler_get_active_schedule_slot_count() * BLINK_MAX_SLOTFRAMES_NO_RX_LEAVE;
+}
+
+void bl_assoc_node_keep_gateway_alive(uint64_t asn) {
+    assoc_vars.last_received_from_gateway_asn = asn;
+}
+
+void bl_assoc_node_handle_disconnect(void) {
+    bl_assoc_set_state(JOIN_STATE_IDLE);
+    bl_event_data_t event_data = { .data.gateway_info.gateway_id = bl_mac_get_synced_gateway(), .tag = BLINK_PEER_LOST };
+    assoc_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
 }
 
 // ------------ gateway functions ---------
