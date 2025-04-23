@@ -321,7 +321,6 @@ static void end_scan(void) {
     if (select_gateway_and_sync()) {
         // found a gateway and synchronized to it
         bl_assoc_node_handle_synced();
-        bl_queue_set_join_request(mac_vars.synced_gateway);
     } else {
         // no gateway found, back to scanning
         start_scan();
@@ -373,7 +372,6 @@ static void end_background_scan(void) {
         if (select_gateway_and_sync()) {
             // found a gateway and synchronized to it
             bl_assoc_node_handle_synced();
-            bl_queue_set_join_request(mac_vars.synced_gateway);
         }
     }
 }

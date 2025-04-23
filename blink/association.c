@@ -24,6 +24,7 @@
 #include "packet.h"
 #include "blink.h"
 #include "scheduler.h"
+#include "queue.h"
 
 //=========================== debug ============================================
 
@@ -56,9 +57,9 @@ bl_gpio_t led3 = { .port = 0, .pin = 16 };
 #define BLINK_JOIN_TIMEOUT_SINCE_SYNCED (1000 * 1000 * 5) // 5 seconds. after this time, go back to scanning. NOTE: have it be based on slotframe size?
 
 // after this amount of time, consider that a join request failed (very likely due to a collision during the shared uplink slot)
-// currently set to 3 slot durations -- enough when the schedule always have a shared-uplink followed by a downlink,
+// currently set to 2 slot durations -- enough when the schedule always have a shared-uplink followed by a downlink,
 // and the gateway prioritizes join responses over all other downstream packets
-#define BLINK_JOINING_STATE_TIMEOUT (BLINK_WHOLE_SLOT_DURATION * 3)
+#define BLINK_JOINING_STATE_TIMEOUT ((BLINK_WHOLE_SLOT_DURATION * (2-1)) + (BLINK_WHOLE_SLOT_DURATION / 2)) // apply a half-slot duration just so that the timeout happens before the slot boundary
 
 typedef struct {
     bl_assoc_state_t state;
@@ -141,6 +142,7 @@ bool bl_assoc_is_joined(void) {
 void bl_assoc_node_handle_synced(void) {
     bl_assoc_set_state(JOIN_STATE_SYNCED);
     bl_assoc_node_reset_backoff();
+    bl_queue_set_join_request(bl_mac_get_synced_gateway());
 }
 
 bool bl_assoc_node_ready_to_join(void) {
@@ -164,6 +166,7 @@ void bl_assoc_node_handle_joined(uint64_t gateway_id) {
 void bl_assoc_node_handle_failed_join(void) {
     bl_assoc_set_state(JOIN_STATE_SYNCED);
     bl_assoc_node_register_collision_backoff();
+    bl_queue_set_join_request(bl_mac_get_synced_gateway());
 }
 
 void bl_assoc_node_handle_give_up_joining(void) {
