@@ -171,7 +171,18 @@ void bl_assoc_node_register_collision_backoff(void) {
     }
     // choose a random number from [0, 2^n - 1] and set it as the backoff time
     uint16_t max = (1 << assoc_vars.backoff_n) - 1;
-    bl_rng_read_range(&assoc_vars.backoff_random_time, 0, max);
+
+    // read 2 bytes from the RNG
+    uint8_t raw_low, raw_high;
+    bl_rng_read(&raw_low);
+    bl_rng_read(&raw_high);
+    // combine the two bytes into a 16-bit number (we need 16 bits because BLINK_BACKOFF_N_MAX > 8)
+    uint16_t raw = ((uint16_t)raw_high << 8) | (uint16_t)raw_low;
+
+    // now, make sure random number is in the interval [0, max]
+    // using modulo does not give perfect uniformity,
+    // but it is much faster than an exhaustive search, and good enough for our purpose
+    assoc_vars.backoff_random_time = (raw % (max + 1));
 }
 
 void bl_assoc_node_handle_failed_join(void) {
