@@ -249,6 +249,7 @@ void bl_assoc_node_keep_gateway_alive(uint64_t asn) {
 
 void bl_assoc_node_handle_disconnect(void) {
     bl_assoc_set_state(JOIN_STATE_IDLE);
+    bl_scheduler_node_deassign_myself_from_schedule();
     bl_event_data_t event_data = { .data.gateway_info.gateway_id = bl_mac_get_synced_gateway(), .tag = BLINK_PEER_LOST };
     assoc_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
 }

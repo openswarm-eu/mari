@@ -100,7 +100,7 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
     bl_packet_header_t *header = (bl_packet_header_t *)packet;
 
     if (header->dst != bl_device_id() && header->dst != BLINK_BROADCAST_ADDRESS && header->type != BLINK_PACKET_BEACON) {
-        // ignore packets that are not for me, not broadcast, and not a beacon
+        // ignore packets that are not for me, and not broadcast, and not a beacon
         return;
     }
 
@@ -168,6 +168,10 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
             case BLINK_PACKET_JOIN_RESPONSE: {
                 if (bl_assoc_get_state() != JOIN_STATE_JOINING) {
                     // ignore if not in the JOINING state
+                    return;
+                }
+                if (header->dst != bl_device_id()) {
+                    // ignore if not for me
                     return;
                 }
                 // the first byte after the header contains the cell_id
