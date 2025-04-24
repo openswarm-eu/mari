@@ -1,3 +1,13 @@
+/**
+ * @file
+ * @ingroup     app
+ *
+ * @brief       Blink Gateway application example
+ *
+ * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
+ *
+ * @copyright Inria, 2025
+ */
 #include <nrf.h>
 #include <stdio.h>
 
