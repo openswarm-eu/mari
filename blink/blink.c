@@ -119,7 +119,7 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
                     bl_queue_set_join_response(header->src, (uint8_t)cell_id); // at the packet level, max_nodes is limited to 256 (using uint8_t)
                     _blink_vars.app_event_callback(BLINK_NODE_JOINED, (bl_event_data_t){ .data.node_info.node_id = header->src });
                 } else {
-                    _blink_vars.app_event_callback(BLINK_ERROR, (bl_event_data_t){ 0 });
+                    _blink_vars.app_event_callback(BLINK_ERROR, (bl_event_data_t){ .tag = BLINK_GATEWAY_FULL });
                 }
                 break;
             }
