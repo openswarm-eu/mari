@@ -116,7 +116,7 @@ void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
 //=========================== private ========================================
 
 void _debug_print_schedule(void) {
-    return; // skip printing, just enable when really debugging
+    //return; // skip printing, just enable when really debugging
 
     uint8_t schedule_len = schedule_minuscule.n_cells;
     printf("Schedule cells: ");
