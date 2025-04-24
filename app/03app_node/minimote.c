@@ -34,7 +34,7 @@ void board_init(void) {
     bl_gpio_init(&_r_led_pin, BL_GPIO_OUT);
     bl_gpio_init(&_g_led_pin, BL_GPIO_OUT);
     bl_gpio_init(&_b_led_pin, BL_GPIO_OUT);
-    board_set_rgb(OFF);
+    board_set_rgb(BLUE);
 
     bl_gpio_t _reg_pin = { .port = 0, .pin = 30 };
     // Turn ON the DotBot board regulator if provided

@@ -13,6 +13,7 @@
 #include <stdbool.h>
 
 #include "bl_gpio.h"
+#include "bl_device.h"
 #include "bl_radio.h"
 #include "bl_timer_hf.h"
 #include "blink.h"
@@ -45,7 +46,7 @@ static void blink_event_callback(bl_event_t event, bl_event_data_t event_data);
 
 int main(void)
 {
-    printf("Hello Blink Node\n");
+    printf("Hello Blink Node %016llX\n", bl_device_id());
     bl_timer_hf_init(BLINK_APP_TIMER_DEV);
 
     board_init();

@@ -95,18 +95,18 @@ void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
             break;
         }
         case BLINK_NODE_JOINED:
-            //printf("New node joined: %016llX\n", event_data.data.node_info.node_id);
+            printf("New node joined: %016llX\n", event_data.data.node_info.node_id);
             //uint64_t joined_nodes[BLINK_MAX_NODES] = { 0 };
             //uint8_t joined_nodes_len = blink_gateway_get_nodes(joined_nodes);
             //printf("Number of connected nodes: %d\n", joined_nodes_len);
             // TODO: send list of joined_nodes to Edge Gateway via UART
             break;
         case BLINK_NODE_LEFT:
-            //printf("Node left: %016llX, reason: %u\n", event_data.data.node_info.node_id, event_data.tag);
+            printf("Node left: %016llX, reason: %u\n", event_data.data.node_info.node_id, event_data.tag);
             //printf("Number of connected nodes: %d\n", blink_gateway_count_nodes());
             break;
         case BLINK_ERROR:
-            printf("Error\n");
+            printf("Error, reason: %u\n", event_data.tag);
             break;
         default:
             break;
