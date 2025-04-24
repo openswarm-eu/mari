@@ -240,11 +240,21 @@ static void new_slot_synced(void) {
             return;
         } else if (bl_assoc_node_too_long_waiting_for_join_response()) {
             // too long without receiving a join response? notify the association module which will backfoff
-            bl_assoc_node_handle_failed_join();
+            bool keep_trying_to_join = bl_assoc_node_handle_failed_join();
+            if (!keep_trying_to_join) {
+                mac_vars.synced_gateway = 0;
+                mac_vars.synced_ts = 0;
+                set_slot_state(STATE_SLEEP);
+                end_slot();
+                start_scan();
+                return;
+            }
         } else if (bl_assoc_node_too_long_synced_without_joining()) {
-            // too long synced without being able to join? back to scanning
+            // too long synced without being able to join? give up and go back to scanning
             bl_assoc_node_handle_give_up_joining();
-            bl_assoc_set_state(JOIN_STATE_IDLE);
+
+            mac_vars.synced_gateway = 0;
+            mac_vars.synced_ts = 0;
             set_slot_state(STATE_SLEEP);
             end_slot();
             start_scan();

@@ -54,6 +54,8 @@ int16_t bl_scheduler_gateway_assign_next_available_uplink_cell(uint64_t node_id,
 
 bool bl_scheduler_node_assign_myself_to_cell(uint16_t cell_index);
 
+void bl_scheduler_node_deassign_myself_from_schedule(void);
+
 void bl_scheduler_gateway_decrease_nodes_counter(void);
 
 uint8_t bl_scheduler_gateway_remaining_capacity(void);

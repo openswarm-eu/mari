@@ -99,6 +99,16 @@ bool bl_scheduler_node_assign_myself_to_cell(uint16_t cell_index) {
     return false;
 }
 
+void bl_scheduler_node_deassign_myself_from_schedule(void) {
+    for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
+        cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
+        if (cell->type == SLOT_TYPE_UPLINK && cell->assigned_node_id == bl_device_id()) {
+            cell->assigned_node_id = NULL;
+            cell->last_received_asn = 0;
+        }
+    }
+}
+
 // ------------ gateway functions ---------
 
 // to be called at the GATEWAY when processing a JOIN_REQUEST

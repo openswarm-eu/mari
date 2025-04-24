@@ -42,7 +42,7 @@ void bl_assoc_node_handle_synced(void);
 bool bl_assoc_node_ready_to_join(void);
 void bl_assoc_node_start_joining(void);
 void bl_assoc_node_handle_joined(uint64_t gateway_id);
-void bl_assoc_node_handle_failed_join(void);
+bool bl_assoc_node_handle_failed_join(void);
 bool bl_assoc_node_too_long_waiting_for_join_response(void);
 bool bl_assoc_node_too_long_synced_without_joining(void);
 void bl_assoc_node_handle_give_up_joining(void);

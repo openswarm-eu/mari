@@ -56,6 +56,7 @@ typedef enum {
     BLINK_HANDOVER = 1,
     BLINK_OUT_OF_SYNC = 2,
     BLINK_PEER_LOST = 3,
+    BLINK_GATEWAY_FULL = 4,
 } bl_event_tag_t;
 
 typedef struct {

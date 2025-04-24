@@ -6,16 +6,20 @@
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
- * @copyright Inria, 2024
+ * @copyright Inria, 2025
  */
 #include <nrf.h>
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "bl_gpio.h"
+#include "bl_device.h"
 #include "bl_radio.h"
 #include "bl_timer_hf.h"
 #include "blink.h"
 #include "packet.h"
+
+#include "minimote.h"
 
 //=========================== defines ==========================================
 
@@ -42,8 +46,10 @@ static void blink_event_callback(bl_event_t event, bl_event_data_t event_data);
 
 int main(void)
 {
-    printf("Hello Blink Node\n");
+    printf("Hello Blink Node %016llX\n", bl_device_id());
     bl_timer_hf_init(BLINK_APP_TIMER_DEV);
+
+    board_init();
 
     blink_init(BLINK_NODE, &schedule_minuscule, &blink_event_callback);
 
@@ -77,11 +83,13 @@ static void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
         case BLINK_CONNECTED: {
             uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
             printf("Connected to gateway %016llX\n", gateway_id);
+            board_set_rgb(GREEN);
             break;
         }
         case BLINK_DISCONNECTED: {
             uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
             printf("Disconnected from gateway %016llX, reason: %u\n", gateway_id, event_data.tag);
+            board_set_rgb(RED);
             break;
         }
         case BLINK_ERROR:

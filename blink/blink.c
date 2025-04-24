@@ -100,7 +100,7 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
     bl_packet_header_t *header = (bl_packet_header_t *)packet;
 
     if (header->dst != bl_device_id() && header->dst != BLINK_BROADCAST_ADDRESS && header->type != BLINK_PACKET_BEACON) {
-        // ignore packets that are not for me, not broadcast, and not a beacon
+        // ignore packets that are not for me, and not broadcast, and not a beacon
         return;
     }
 
@@ -119,7 +119,7 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
                     bl_queue_set_join_response(header->src, (uint8_t)cell_id); // at the packet level, max_nodes is limited to 256 (using uint8_t)
                     _blink_vars.app_event_callback(BLINK_NODE_JOINED, (bl_event_data_t){ .data.node_info.node_id = header->src });
                 } else {
-                    _blink_vars.app_event_callback(BLINK_ERROR, (bl_event_data_t){ 0 });
+                    _blink_vars.app_event_callback(BLINK_ERROR, (bl_event_data_t){ .tag = BLINK_GATEWAY_FULL });
                 }
                 break;
             }
@@ -153,21 +153,19 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
         }
 
     } else if (blink_get_node_type() == BLINK_NODE) {
-        bool from_my_gateway = header->src == bl_mac_get_synced_gateway() && bl_assoc_get_state() == JOIN_STATE_JOINED;
+        bool from_my_joined_gateway = header->src == bl_mac_get_synced_gateway() && bl_assoc_get_state() == JOIN_STATE_JOINED;
 
         switch (header->type) {
             case BLINK_PACKET_BEACON:
-                // bl_assoc_handle_beacon(packet, length, BLINK_FIXED_SCAN_CHANNEL, bl_mac_get_asn());
-                if (from_my_gateway) {
-                    bl_assoc_handle_beacon(packet, length, BLINK_FIXED_SCAN_CHANNEL, bl_mac_get_asn());
-                    bl_assoc_node_keep_gateway_alive(bl_mac_get_asn());
-                } else {
-                    bl_assoc_handle_beacon(packet, length, BLINK_FIXED_SCAN_CHANNEL, bl_mac_get_asn());
-                }
+                bl_assoc_handle_beacon(packet, length, BLINK_FIXED_SCAN_CHANNEL, bl_mac_get_asn());
                 break;
             case BLINK_PACKET_JOIN_RESPONSE: {
                 if (bl_assoc_get_state() != JOIN_STATE_JOINING) {
                     // ignore if not in the JOINING state
+                    return;
+                }
+                if (header->dst != bl_device_id()) {
+                    // ignore if not for me
                     return;
                 }
                 // the first byte after the header contains the cell_id
@@ -180,7 +178,7 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
                 break;
             }
             case BLINK_PACKET_DATA: {
-                if (!from_my_gateway) {
+                if (!from_my_joined_gateway) {
                     // ignore data packets from other gateways
                     return;
                 }
@@ -198,7 +196,7 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
                 break;
             }
             case BLINK_PACKET_KEEPALIVE:
-                if (!from_my_gateway) {
+                if (!from_my_joined_gateway) {
                     // ignore keep-alives from other gateways
                     return;
                 }
