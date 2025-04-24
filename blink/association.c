@@ -71,6 +71,7 @@ typedef struct {
     int16_t backoff_n;
     uint8_t backoff_random_time; ///< Number of slots to wait before re-trying to join
     uint32_t join_response_timeout_ts; ///< Time when the node will give up joining
+    uint16_t synced_gateway_remaining_capacity; ///< Number of nodes that my gateway can still accept
 } assoc_vars_t;
 
 //=========================== variables =======================================
@@ -163,10 +164,17 @@ void bl_assoc_node_handle_joined(uint64_t gateway_id) {
     bl_assoc_node_reset_backoff();
 }
 
-void bl_assoc_node_handle_failed_join(void) {
-    bl_assoc_set_state(JOIN_STATE_SYNCED);
-    bl_assoc_node_register_collision_backoff();
-    bl_queue_set_join_request(bl_mac_get_synced_gateway());
+bool bl_assoc_node_handle_failed_join(void) {
+    if (assoc_vars.synced_gateway_remaining_capacity > 0) {
+        bl_assoc_set_state(JOIN_STATE_SYNCED);
+        bl_assoc_node_register_collision_backoff();
+        bl_queue_set_join_request(bl_mac_get_synced_gateway()); // put a join request packet back on queue
+        return true;
+    } else {
+        // no more capacity, go back to scanning
+        bl_assoc_node_handle_give_up_joining();
+        return false;
+    }
 }
 
 void bl_assoc_node_handle_give_up_joining(void) {
@@ -328,6 +336,17 @@ void bl_assoc_handle_beacon(uint8_t *packet, uint8_t length, uint8_t channel, ui
     if (beacon->version != BLINK_PROTOCOL_VERSION) {
         // ignore packet with different protocol version
         return;
+    }
+
+    bool from_my_gateway = beacon->src == bl_mac_get_synced_gateway();
+    if (from_my_gateway && bl_assoc_is_joined()) {
+        bl_assoc_node_keep_gateway_alive(bl_mac_get_asn());
+        // TODO: get the bloom filter from beacon, and test if I am still in the list
+    }
+
+    if (from_my_gateway && assoc_vars.state >= JOIN_STATE_SYNCED) {
+        // save the remaining capacity of my gateway
+        assoc_vars.synced_gateway_remaining_capacity = beacon->remaining_capacity;
     }
 
     if (beacon->remaining_capacity == 0) { // TODO: what if I am joined to this gateway? add a check for it.
