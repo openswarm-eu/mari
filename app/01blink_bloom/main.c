@@ -19,7 +19,7 @@
 
 //=========================== defines ==========================================
 
-#define BLOOM_M_BITS 256
+#define BLOOM_M_BITS 1024
 #define BLOOM_M_BYTES (BLOOM_M_BITS / 8)
 #define BLOOM_K_HASHES 3
 
@@ -82,22 +82,27 @@ static inline __attribute__((unused)) uint64_t mix64(uint64_t x) {
 }
 
 void bl_scheduler_gateway_gen_bloom_from_list(uint64_t *nodes, size_t count, uint8_t *bloom_output) {
+    (void)bloom_output;
     //memset(bloom_output, 0, BLOOM_M_BITS / 8);
-    uint32_t now_ts, elapsed_ts;
-    (void)now_ts;(void)elapsed_ts;
+    uint32_t now_ts, elapsed_ts; (void)now_ts;(void)elapsed_ts;
+
+    uint64_t idx=0; (void)idx;
 
     bl_gpio_set(&pin2);
     for (size_t i = 0; i < count; i++) {
         uint64_t id = nodes[i];
+        (void)id;
 
         bl_gpio_set(&pin3);
         uint64_t h1 = fnv1a64(id);
         uint64_t h2 = fnv1a64(id ^ 0x5bd1e995);
+        (void)h1;(void)h2;
         bl_gpio_clear(&pin3);
 
         bl_gpio_set(&pin3);
         for (int k = 0; k < BLOOM_K_HASHES; k++) {
-            uint64_t idx = (h1 + k * h2) % BLOOM_M_BITS;
+            //uint64_t idx = (h1 + k * h2) % BLOOM_M_BITS;
+            idx = (h1 + k * h2) & (BLOOM_M_BITS - 1); // Fast bitmask instead of division
             bloom_output[idx / 8] |= (1 << (idx % 8));
         }
         bl_gpio_clear(&pin3);
@@ -134,12 +139,13 @@ int main(void) {
     elapsed_ts = bl_timer_hf_now(BLINK_APP_TIMER_DEV) - now_ts;
     printf("Bloom of %d bytes generated in %d us\n", BLOOM_M_BYTES, elapsed_ts);
 
-     for (size_t i = 0; i < NODES_LEN; i++) {
+    size_t len_test = 10;//NODES_LEN
+     for (size_t i = 0; i < len_test; i++) {
          now_ts = bl_timer_hf_now(BLINK_APP_TIMER_DEV);
          bool found = bl_scheduler_node_bloom_contains(nodes[i], bloom);
          elapsed_ts = bl_timer_hf_now(BLINK_APP_TIMER_DEV) - now_ts;
-         printf("Bloom tested in %d us\n", elapsed_ts);
-         printf("Node 0x%llX is %s in bloom\n", nodes[i], found ? "likely" : "not");
+         //printf("Bloom tested in %d us\n", elapsed_ts);
+         printf("Node %d = 0x%llX is %s in bloom  |  %d us\n", i, nodes[i], found ? "likely" : "NOT", elapsed_ts);
      }
 
      // Try a fake node
@@ -147,8 +153,8 @@ int main(void) {
      now_ts = bl_timer_hf_now(BLINK_APP_TIMER_DEV);
      bool found = bl_scheduler_node_bloom_contains(fake_node, bloom);
      elapsed_ts = bl_timer_hf_now(BLINK_APP_TIMER_DEV) - now_ts;
-     printf("Bloom tested in %d us\n", elapsed_ts);
-     printf("Fake node 0x%llX is %s in bloom\n", fake_node, found ? "likely" : "not");
+     //printf("Bloom tested in %d us\n", elapsed_ts);
+     printf("Fake node 0x%llX is %s in bloom  |  %d us\n", fake_node, found ? "likely" : "NOT", elapsed_ts);
 
 
     // main loop
