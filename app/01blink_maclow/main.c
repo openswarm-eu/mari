@@ -13,12 +13,14 @@
 #include <stdlib.h>
 
 #include "bl_device.h"
+#include "association.h"
 #include "mac.h"
 #include "scheduler.h"
 #include "queue.h"
+#include "blink.h"
 
 /* Very simple test schedule */
-schedule_t schedule_test = {
+schedule_t schedule_test_app = {
     .id = 32, // make sure it doesn't collide
     .max_nodes = 0,
     .backoff_n_min = 5,
@@ -81,9 +83,9 @@ int main(void) {
 void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
     switch (event) {
         case BLINK_NEW_PACKET:
-            printf("Blink received data packet of length %d: ", event_data.data.new_packet.length);
-            for (int i = 0; i < event_data.data.new_packet.length; i++) {
-                printf("%02X ", event_data.data.new_packet.packet[i]);
+            printf("Blink received data packet of length %d: ", event_data.data.new_packet.payload_len);
+            for (int i = 0; i < event_data.data.new_packet.payload_len; i++) {
+                printf("%02X ", event_data.data.new_packet.payload[i]);
             }
             printf("\n");
             break;
