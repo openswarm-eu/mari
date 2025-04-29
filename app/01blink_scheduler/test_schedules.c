@@ -1,7 +1,7 @@
 #include "scheduler.h"
 
 /* Very simple test schedule */
-schedule_t schedule_test = {
+schedule_t schedule_test_app = {
     .id = 10, // make sure it doesn't collide
     .max_nodes = 2,
     .backoff_n_min = 5,
