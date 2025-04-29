@@ -83,29 +83,45 @@ static inline __attribute__((unused)) uint64_t mix64(uint64_t x) {
 
 void bl_scheduler_gateway_gen_bloom_from_list(uint64_t *nodes, size_t count, uint8_t *bloom_output) {
     (void)bloom_output;
-    //memset(bloom_output, 0, BLOOM_M_BITS / 8);
-    uint32_t now_ts, elapsed_ts; (void)now_ts;(void)elapsed_ts;
+    bl_gpio_set(&pin2);
+    memset(bloom_output, 0, BLOOM_M_BYTES);
+    bl_gpio_clear(&pin2);
 
+    // f*ck off warnings!
     uint64_t idx=0; (void)idx;
+    uint64_t id, h1, h2; (void)id;(void)h1;(void)h2;
 
+    // benchmark the differnt steps, separately
+    id = nodes[0];
+    bl_gpio_set(&pin3);
+    h1 = fnv1a64(id);
+    h2 = fnv1a64(id ^ 0x5bd1e995);
+    (void)h1;(void)h2;
+    bl_gpio_clear(&pin3);
+
+    bl_gpio_set(&pin3);
+    for (int k = 0; k < BLOOM_K_HASHES; k++) {
+        //uint64_t idx = (h1 + k * h2) % BLOOM_M_BITS;
+        idx = (h1 + k * h2) & (BLOOM_M_BITS - 1); // Fast bitmask instead of division
+        bloom_output[idx / 8] |= (1 << (idx % 8));
+    }
+    bl_gpio_clear(&pin3);
+
+    // benchmark the whole loop
     bl_gpio_set(&pin2);
     for (size_t i = 0; i < count; i++) {
-        uint64_t id = nodes[i];
+        id = nodes[i];
         (void)id;
 
-        bl_gpio_set(&pin3);
-        uint64_t h1 = fnv1a64(id);
-        uint64_t h2 = fnv1a64(id ^ 0x5bd1e995);
+        h1 = fnv1a64(id);
+        h2 = fnv1a64(id ^ 0x5bd1e995);
         (void)h1;(void)h2;
-        bl_gpio_clear(&pin3);
 
-        bl_gpio_set(&pin3);
         for (int k = 0; k < BLOOM_K_HASHES; k++) {
             //uint64_t idx = (h1 + k * h2) % BLOOM_M_BITS;
             idx = (h1 + k * h2) & (BLOOM_M_BITS - 1); // Fast bitmask instead of division
             bloom_output[idx / 8] |= (1 << (idx % 8));
         }
-        bl_gpio_clear(&pin3);
     }
     bl_gpio_clear(&pin2);
 }
