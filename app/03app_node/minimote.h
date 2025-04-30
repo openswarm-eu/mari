@@ -14,6 +14,7 @@ typedef enum {
     RED,
     GREEN,
     BLUE,
+    OTHER,
 } led_color_t;
 
 void board_init(void);

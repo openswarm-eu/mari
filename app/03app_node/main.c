@@ -83,7 +83,11 @@ static void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
         case BLINK_CONNECTED: {
             uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
             printf("Connected to gateway %016llX\n", gateway_id);
-            board_set_rgb(GREEN);
+            if (gateway_id == 0xCEA467E20BACC0AB) {
+                board_set_rgb(GREEN);
+            } else {
+                board_set_rgb(OTHER);
+            }
             break;
         }
         case BLINK_DISCONNECTED: {

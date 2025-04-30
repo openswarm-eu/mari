@@ -11,7 +11,7 @@
 #include <nrf.h>
 #include <stdio.h>
 
-#include "bl_radio.h"
+#include "bl_device.h"
 #include "bl_timer_hf.h"
 #include "blink.h"
 #include "packet.h"
@@ -45,7 +45,7 @@ void _debug_print_schedule(void);
 
 int main(void)
 {
-    printf("Hello Blink Gateway\n");
+    printf("Hello Blink Gateway %016llX\n", bl_device_id());
     bl_timer_hf_init(BLINK_APP_TIMER_DEV);
 
     blink_init(BLINK_GATEWAY, &schedule_minuscule, &blink_event_callback);

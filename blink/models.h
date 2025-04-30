@@ -53,10 +53,13 @@ typedef enum {
 } bl_event_t;
 
 typedef enum {
+    BLINK_NONE = 0,
     BLINK_HANDOVER = 1,
     BLINK_OUT_OF_SYNC = 2,
     BLINK_PEER_LOST = 3,
     BLINK_GATEWAY_FULL = 4,
+    BLINK_PEER_LOST_TIMEOUT = 5,
+    BLINK_PEER_LOST_BLOOM = 6,
 } bl_event_tag_t;
 
 typedef struct {
