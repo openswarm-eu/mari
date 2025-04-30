@@ -120,8 +120,12 @@ void bl_handle_packet(uint8_t *packet, uint8_t length) {
                 // try to assign a cell to the node
                 int16_t cell_id = bl_scheduler_gateway_assign_next_available_uplink_cell(header->src, bl_mac_get_asn()); // the asn-based keep-alive is also initialized
                 if (cell_id >= 0) {
-                    bl_queue_set_join_response(header->src, (uint8_t)cell_id); // at the packet level, max_nodes is limited to 256 (using uint8_t)
-                    bl_bloom_gateway_set_dirty();
+                    // at the packet level, max_nodes is limited to 256 (using uint8_t cell_id)
+                    bl_queue_set_join_response(header->src, (uint8_t)cell_id);
+                    // having an updated bloom filter ASAP is important, because otherwise
+                    // the node might receive an outdated bloom and think it's already left the gateway.
+                    // hence we compute it immediately instead of just setting the dirty flag
+                    bl_bloom_gateway_compute();
                     _blink_vars.app_event_callback(BLINK_NODE_JOINED, (bl_event_data_t){ .data.node_info.node_id = header->src });
                 } else {
                     _blink_vars.app_event_callback(BLINK_ERROR, (bl_event_data_t){ .tag = BLINK_GATEWAY_FULL });

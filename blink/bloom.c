@@ -55,12 +55,13 @@ bool bl_bloom_gateway_is_dirty(void) {
     return bloom_vars.is_dirty;
 }
 
-bool bl_bloom_gateway_get(uint8_t *bloom) {
-    if (bloom_vars.is_available) {
-        return false; // bloom filter is not available
-    }
-    memcpy(bloom, bloom_vars.bloom, BLINK_BLOOM_M_BYTES);
-    return true;
+bool bl_bloom_gateway_is_available(void) {
+    return bloom_vars.is_available;
+}
+
+uint8_t bl_bloom_gateway_copy(uint8_t *output) {
+    memcpy(output, bloom_vars.bloom, BLINK_BLOOM_M_BYTES);
+    return BLINK_BLOOM_M_BYTES;
 }
 
 void bl_bloom_gateway_compute(void) {

@@ -32,7 +32,8 @@ void bl_bloom_gateway_init(void);
 void bl_bloom_gateway_set_dirty(void);
 void bl_bloom_gateway_set_clean(void);
 bool bl_bloom_gateway_is_dirty(void);
-bool bl_bloom_gateway_get(uint8_t *bloom);
+bool bl_bloom_gateway_is_available(void);
+uint8_t bl_bloom_gateway_copy(uint8_t *output);
 void bl_bloom_gateway_compute(void);
 void bl_bloom_gateway_event_loop(void);
 

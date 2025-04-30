@@ -24,6 +24,7 @@
 #include "packet.h"
 #include "blink.h"
 #include "scheduler.h"
+#include "bloom.h"
 #include "queue.h"
 
 //=========================== debug ============================================
@@ -340,8 +341,14 @@ void bl_assoc_handle_beacon(uint8_t *packet, uint8_t length, uint8_t channel, ui
 
     bool from_my_gateway = beacon->src == bl_mac_get_synced_gateway();
     if (from_my_gateway && bl_assoc_is_joined()) {
+        bool still_joined = bl_bloom_node_contains(bl_device_id(), packet + sizeof(bl_beacon_packet_header_t));
+        if (!still_joined) {
+            // I am no longer joined to this gateway, so I need to leave
+            // TODO bl_assoc_node_handle_disconnect();
+            return;
+        }
+
         bl_assoc_node_keep_gateway_alive(bl_mac_get_asn());
-        // TODO: get the bloom filter from beacon, and test if I am still in the list
     }
 
     if (from_my_gateway && assoc_vars.state >= JOIN_STATE_SYNCED) {
