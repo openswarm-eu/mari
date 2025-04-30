@@ -567,7 +567,7 @@ static void activity_rie2(void) {
 }
 
 static void fix_drift(uint32_t ts) {
-    uint32_t time_cpu_periph = 47; // got this value by looking at the logic analyzer
+    uint32_t time_cpu_periph = 78; // got this value by looking at the logic analyzer
 
     uint32_t expected_ts = mac_vars.start_slot_ts + slot_durations.tx_offset + time_cpu_periph;
     int32_t clock_drift = ts - expected_ts;
@@ -666,7 +666,7 @@ static bool select_gateway_and_sync(void) {
         time_to_skip_one_slot = slot_durations.whole_slot;
     }
 
-    uint64_t time_cpu_and_toa = 398; // magic number: measured using the logic analyzer
+    uint64_t time_cpu_and_toa = 445; // magic number: measured using the logic analyzer
     if (is_handover) {
         time_cpu_and_toa += 116; // magic number: measured using the logic analyzer (why??)
     }
