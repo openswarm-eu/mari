@@ -24,6 +24,7 @@
 //=========================== prototypes ==========================================
 
 void blink_init(bl_node_type_t node_type, schedule_t *app_schedule, bl_event_cb_t app_event_callback);
+void blink_event_loop(void);
 void blink_tx(uint8_t *packet, uint8_t length);
 bl_node_type_t blink_get_node_type(void);
 void blink_set_node_type(bl_node_type_t node_type);

@@ -54,6 +54,7 @@ int main(void)
         __SEV();
         __WFE();
         __WFE();
+        blink_event_loop();
 
         // for debug only, print the schedule, which includes the list of joined nodes
         _debug_print_schedule();
