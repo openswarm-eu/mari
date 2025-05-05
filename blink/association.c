@@ -24,6 +24,7 @@
 #include "packet.h"
 #include "blink.h"
 #include "scheduler.h"
+#include "bloom.h"
 #include "queue.h"
 
 //=========================== debug ============================================
@@ -72,6 +73,7 @@ typedef struct {
     uint8_t backoff_random_time; ///< Number of slots to wait before re-trying to join
     uint32_t join_response_timeout_ts; ///< Time when the node will give up joining
     uint16_t synced_gateway_remaining_capacity; ///< Number of nodes that my gateway can still accept
+    bl_event_tag_t is_pending_disconnect; ///< Whether the node is pending a disconnect
 } assoc_vars_t;
 
 //=========================== variables =======================================
@@ -160,6 +162,7 @@ void bl_assoc_node_handle_joined(uint64_t gateway_id) {
     bl_assoc_set_state(JOIN_STATE_JOINED);
     bl_event_data_t event_data = { .data.gateway_info.gateway_id = gateway_id };
     assoc_vars.blink_event_callback(BLINK_CONNECTED, event_data);
+    assoc_vars.is_pending_disconnect = BLINK_NONE; // reset the pending disconnect flag
     bl_assoc_node_keep_gateway_alive(bl_mac_get_asn()); // initialize the gateway's keep-alive
     bl_assoc_node_reset_backoff();
 }
@@ -242,13 +245,25 @@ void bl_assoc_node_register_collision_backoff(void) {
     assoc_vars.backoff_random_time = (raw % (max + 1));
 }
 
-bool bl_assoc_node_gateway_is_lost(uint32_t asn) {
+bool bl_assoc_node_should_leave(uint32_t asn) {
     if (assoc_vars.state != JOIN_STATE_JOINED) {
         // can only lose the gateway when already joined
         return false;
     }
 
-    return (asn - assoc_vars.last_received_from_gateway_asn) > bl_scheduler_get_active_schedule_slot_count() * BLINK_MAX_SLOTFRAMES_NO_RX_LEAVE;
+    if (assoc_vars.is_pending_disconnect != BLINK_NONE) {
+        // anything other than BLINK_NONE means that the node is pending a disconnect
+        return true;
+    }
+
+    bool gateway_is_lost = (asn - assoc_vars.last_received_from_gateway_asn) > bl_scheduler_get_active_schedule_slot_count() * BLINK_MAX_SLOTFRAMES_NO_RX_LEAVE;
+    if (gateway_is_lost) {
+        // too long since last received from the gateway, consider it lost
+        assoc_vars.is_pending_disconnect = BLINK_PEER_LOST_TIMEOUT;
+        return true;
+    }
+
+    return false;
 }
 
 void bl_assoc_node_keep_gateway_alive(uint64_t asn) {
@@ -258,7 +273,10 @@ void bl_assoc_node_keep_gateway_alive(uint64_t asn) {
 void bl_assoc_node_handle_disconnect(void) {
     bl_assoc_set_state(JOIN_STATE_IDLE);
     bl_scheduler_node_deassign_myself_from_schedule();
-    bl_event_data_t event_data = { .data.gateway_info.gateway_id = bl_mac_get_synced_gateway(), .tag = BLINK_PEER_LOST };
+    bl_event_data_t event_data = {
+        .data.gateway_info.gateway_id = bl_mac_get_synced_gateway(),
+        .tag = assoc_vars.is_pending_disconnect
+    };
     assoc_vars.blink_event_callback(BLINK_DISCONNECTED, event_data);
 }
 
@@ -340,8 +358,14 @@ void bl_assoc_handle_beacon(uint8_t *packet, uint8_t length, uint8_t channel, ui
 
     bool from_my_gateway = beacon->src == bl_mac_get_synced_gateway();
     if (from_my_gateway && bl_assoc_is_joined()) {
+        bool still_joined = bl_bloom_node_contains(bl_device_id(), packet + sizeof(bl_beacon_packet_header_t));
+        if (!still_joined) {
+            // node no longer joined to this gateway, so need to leave
+            assoc_vars.is_pending_disconnect = BLINK_PEER_LOST_BLOOM;
+            return;
+        }
+
         bl_assoc_node_keep_gateway_alive(bl_mac_get_asn());
-        // TODO: get the bloom filter from beacon, and test if I am still in the list
     }
 
     if (from_my_gateway && assoc_vars.state >= JOIN_STATE_SYNCED) {

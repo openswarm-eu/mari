@@ -57,6 +57,12 @@ void board_set_rgb(led_color_t color) {
             bl_gpio_set(&_b_led_pin);
             break;
 
+        case OTHER:
+            bl_gpio_set(&_r_led_pin);
+            bl_gpio_clear(&_g_led_pin);
+            bl_gpio_clear(&_b_led_pin);
+            break;
+
         case BLUE:
             bl_gpio_set(&_r_led_pin);
             bl_gpio_set(&_g_led_pin);

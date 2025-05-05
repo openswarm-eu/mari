@@ -65,7 +65,7 @@
     c_preprocessor_definitions="NDEBUG"
     gcc_debugging_level="Level 2"
     gcc_omit_frame_pointer="Yes"
-    gcc_optimization_level="Level 2 balanced" />
+    gcc_optimization_level="Level 2" />
   <import file_name="drv/drv.emProject" />
   <import file_name="blink/blink.emProject" />
   <import file_name="app/app-drv-blink.emProject" />

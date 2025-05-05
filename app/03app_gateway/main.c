@@ -6,12 +6,12 @@
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
- * @copyright Inria, 2024
+ * @copyright Inria, 2025
  */
 #include <nrf.h>
 #include <stdio.h>
 
-#include "bl_radio.h"
+#include "bl_device.h"
 #include "bl_timer_hf.h"
 #include "blink.h"
 #include "packet.h"
@@ -34,7 +34,9 @@ uint8_t packet[BLINK_PACKET_MAX_SIZE] = { 0 };
 uint8_t payload[] = { 0xFA, 0xFA, 0xFA, 0xFA, 0xFA };
 uint8_t payload_len = 5;
 
-extern schedule_t schedule_minuscule, schedule_tiny, schedule_small, schedule_huge, schedule_only_beacons, schedule_only_beacons_optimized_scan;
+extern schedule_t schedule_minuscule, schedule_tiny, schedule_huge;
+
+schedule_t *schedule_app = &schedule_minuscule;
 
 //=========================== prototypes =======================================
 
@@ -45,15 +47,16 @@ void _debug_print_schedule(void);
 
 int main(void)
 {
-    printf("Hello Blink Gateway\n");
+    printf("Hello Blink Gateway %016llX\n", bl_device_id());
     bl_timer_hf_init(BLINK_APP_TIMER_DEV);
 
-    blink_init(BLINK_GATEWAY, &schedule_minuscule, &blink_event_callback);
+    blink_init(BLINK_GATEWAY, schedule_app, &blink_event_callback);
 
     while (1) {
         __SEV();
         __WFE();
         __WFE();
+        blink_event_loop();
 
         // for debug only, print the schedule, which includes the list of joined nodes
         _debug_print_schedule();
@@ -84,6 +87,7 @@ int main(void)
 
 void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
     (void)event_data;
+    uint32_t not_ts_s = bl_timer_hf_now(BLINK_APP_TIMER_DEV) / 1000 / 1000;
     switch (event) {
         case BLINK_NEW_PACKET: {
             //blink_packet_t packet = event_data.data.new_packet;
@@ -95,15 +99,14 @@ void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
             break;
         }
         case BLINK_NODE_JOINED:
-            printf("New node joined: %016llX\n", event_data.data.node_info.node_id);
+            printf("%d New node joined: %016llX  (%d nodes connected)\n", not_ts_s, event_data.data.node_info.node_id, blink_gateway_count_nodes());
             //uint64_t joined_nodes[BLINK_MAX_NODES] = { 0 };
             //uint8_t joined_nodes_len = blink_gateway_get_nodes(joined_nodes);
             //printf("Number of connected nodes: %d\n", joined_nodes_len);
             // TODO: send list of joined_nodes to Edge Gateway via UART
             break;
         case BLINK_NODE_LEFT:
-            printf("Node left: %016llX, reason: %u\n", event_data.data.node_info.node_id, event_data.tag);
-            //printf("Number of connected nodes: %d\n", blink_gateway_count_nodes());
+            printf("%d Node left: %016llX, reason: %u  (%d nodes connected)\n", not_ts_s, event_data.data.node_info.node_id, event_data.tag, blink_gateway_count_nodes());
             break;
         case BLINK_ERROR:
             printf("Error, reason: %u\n", event_data.tag);
@@ -116,12 +119,12 @@ void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
 //=========================== private ========================================
 
 void _debug_print_schedule(void) {
-    //return; // skip printing, just enable when really debugging
+    return; // skip printing, just enable when really debugging
 
-    uint8_t schedule_len = schedule_minuscule.n_cells;
+    uint8_t schedule_len = schedule_app->n_cells;
     printf("Schedule cells: ");
     for (int i = 0; i < schedule_len; i++) {
-        cell_t cell = schedule_minuscule.cells[i];
+        cell_t cell = schedule_app->cells[i];
         if (cell.type == SLOT_TYPE_UPLINK) {
             printf("%d-U-%016llX ", i, cell.assigned_node_id);
         } else if (cell.type == SLOT_TYPE_DOWNLINK) {

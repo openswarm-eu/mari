@@ -116,6 +116,7 @@ static inline void set_slot_state(bl_mac_state_t state);
 
 static void new_slot_synced(void);
 static void end_slot(void);
+static void node_back_to_scanning(void);
 static void disable_radio_and_intra_slot_timers(void);
 
 static void activity_ti1(void);
@@ -199,6 +200,10 @@ uint64_t bl_mac_get_synced_gateway(void) {
     return mac_vars.synced_gateway;
 }
 
+inline bool bl_mac_node_is_synced(void) {
+    return mac_vars.synced_gateway != 0;
+}
+
 //=========================== private ==========================================
 
 static void set_slot_state(bl_mac_state_t state) {
@@ -231,33 +236,22 @@ static void new_slot_synced(void) {
         // too long without receiving a packet from certain nodes? disconnect them
         bl_assoc_gateway_clear_old_nodes(mac_vars.asn);
     } else if (mac_vars.node_type == BLINK_NODE) {
-        if (bl_assoc_node_gateway_is_lost(mac_vars.asn)) {
-            // too long without receiving a packet from gateway? disconnect and back to scanning
+        if (bl_assoc_node_should_leave(mac_vars.asn)) {
+            // assoc module determined that the node should leave, so disconnect and back to scanning
             bl_assoc_node_handle_disconnect();
-            set_slot_state(STATE_SLEEP);
-            end_slot();
-            start_scan();
+            node_back_to_scanning();
             return;
         } else if (bl_assoc_node_too_long_waiting_for_join_response()) {
             // too long without receiving a join response? notify the association module which will backfoff
             bool keep_trying_to_join = bl_assoc_node_handle_failed_join();
             if (!keep_trying_to_join) {
-                mac_vars.synced_gateway = 0;
-                mac_vars.synced_ts = 0;
-                set_slot_state(STATE_SLEEP);
-                end_slot();
-                start_scan();
+                node_back_to_scanning();
                 return;
             }
         } else if (bl_assoc_node_too_long_synced_without_joining()) {
             // too long synced without being able to join? give up and go back to scanning
             bl_assoc_node_handle_give_up_joining();
-
-            mac_vars.synced_gateway = 0;
-            mac_vars.synced_ts = 0;
-            set_slot_state(STATE_SLEEP);
-            end_slot();
-            start_scan();
+            node_back_to_scanning();
             return;
         }
     }
@@ -279,7 +273,19 @@ static void new_slot_synced(void) {
     }
 }
 
+static void node_back_to_scanning(void) {
+    mac_vars.synced_gateway = 0;
+    mac_vars.synced_ts = 0;
+    set_slot_state(STATE_SLEEP);
+    end_slot();
+    start_scan();
+}
+
 static void end_slot(void) {
+    if (!bl_mac_node_is_synced()) {
+        // not synced, so we are not in a slot
+        return;
+    }
     disable_radio_and_intra_slot_timers();
 }
 

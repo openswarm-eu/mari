@@ -36,7 +36,9 @@ node_vars_t node_vars = { 0 };
 uint8_t payload[] = { 0xF0, 0xF0, 0xF0, 0xF0, 0xF0 };
 uint8_t payload_len = 5;
 
-extern schedule_t schedule_minuscule, schedule_tiny, schedule_small, schedule_huge, schedule_only_beacons, schedule_only_beacons_optimized_scan;
+extern schedule_t schedule_minuscule, schedule_tiny, schedule_huge;
+
+schedule_t *schedule_app = &schedule_minuscule;
 
 //=========================== prototypes =======================================
 
@@ -51,7 +53,7 @@ int main(void)
 
     board_init();
 
-    blink_init(BLINK_NODE, &schedule_minuscule, &blink_event_callback);
+    blink_init(BLINK_NODE, schedule_app, &blink_event_callback);
 
     while (1) {
         __SEV();
@@ -83,7 +85,11 @@ static void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
         case BLINK_CONNECTED: {
             uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
             printf("Connected to gateway %016llX\n", gateway_id);
-            board_set_rgb(GREEN);
+            if (gateway_id == 0xCEA467E20BACC0AB) {
+                board_set_rgb(GREEN);
+            } else {
+                board_set_rgb(OTHER);
+            }
             break;
         }
         case BLINK_DISCONNECTED: {

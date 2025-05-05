@@ -28,6 +28,9 @@
     <file file_name="all_schedules.c" />
     <file file_name="scheduler.h" />
 
+    <file file_name="bloom.c" />
+    <file file_name="bloom.h" />
+
     <file file_name="association.c" />
     <file file_name="association.h" />
 

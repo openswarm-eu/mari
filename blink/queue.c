@@ -18,6 +18,7 @@
 #include "mac.h"
 #include "scheduler.h"
 #include "association.h"
+#include "bloom.h"
 #include "blink.h"
 #include "queue.h"
 
@@ -59,6 +60,9 @@ uint8_t bl_queue_next_packet(slot_type_t slot_type, uint8_t *packet) {
                 bl_scheduler_gateway_remaining_capacity(),
                 bl_scheduler_get_active_schedule_id()
             );
+            if (bl_bloom_gateway_is_available()) {
+                len += bl_bloom_gateway_copy(packet + sizeof(bl_beacon_packet_header_t));
+            }
         } else if (slot_type == SLOT_TYPE_DOWNLINK) {
             if (bl_queue_has_join_packet()) {
                 len = bl_queue_get_join_packet(packet);
