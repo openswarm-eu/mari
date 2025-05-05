@@ -36,7 +36,9 @@ node_vars_t node_vars = { 0 };
 uint8_t payload[] = { 0xF0, 0xF0, 0xF0, 0xF0, 0xF0 };
 uint8_t payload_len = 5;
 
-extern schedule_t schedule_minuscule, schedule_tiny, schedule_small, schedule_huge, schedule_only_beacons, schedule_only_beacons_optimized_scan;
+extern schedule_t schedule_minuscule, schedule_tiny, schedule_huge;
+
+schedule_t *schedule_app = &schedule_minuscule;
 
 //=========================== prototypes =======================================
 
@@ -51,7 +53,7 @@ int main(void)
 
     board_init();
 
-    blink_init(BLINK_NODE, &schedule_minuscule, &blink_event_callback);
+    blink_init(BLINK_NODE, schedule_app, &blink_event_callback);
 
     while (1) {
         __SEV();

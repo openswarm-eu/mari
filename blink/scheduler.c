@@ -60,14 +60,11 @@ void bl_scheduler_init(bl_node_type_t node_type, schedule_t *application_schedul
     if (_schedule_vars.available_schedules_len == BLINK_N_SCHEDULES) return; // FIXME: this is just to simplify debugging (allows calling init multiple times)
 
     // FIXME: schedules only used for debugging
-    //_schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_only_beacons;
-    //_schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_only_beacons_optimized_scan;
+    //_schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_test;
 
     _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = &schedule_minuscule;
     _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = &schedule_tiny;
     _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = &schedule_huge;
-    //_schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_small;
-    // _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_big;
 
     if (application_schedule != NULL) {
         _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = application_schedule;
