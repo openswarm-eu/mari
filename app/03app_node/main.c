@@ -43,6 +43,7 @@ schedule_t *schedule_app = &schedule_minuscule;
 //=========================== prototypes =======================================
 
 static void blink_event_callback(bl_event_t event, bl_event_data_t event_data);
+static void tx_if_connected(void);
 
 //=========================== main =============================================
 
@@ -50,6 +51,9 @@ int main(void)
 {
     printf("Hello Blink Node %016llX\n", bl_device_id());
     bl_timer_hf_init(BLINK_APP_TIMER_DEV);
+
+    // bl_timer_hf_set_periodic_us(BLINK_APP_TIMER_DEV, 0, 1000 * 500, &tx_if_connected);
+    bl_timer_hf_set_oneshot_us(BLINK_APP_TIMER_DEV, 0, 0, &tx_if_connected); // do not tx
 
     board_init();
 
@@ -60,12 +64,7 @@ int main(void)
         __WFE();
         __WFE();
 
-        if (blink_node_is_connected()) {
-            blink_node_tx_payload(payload, payload_len);
-
-            // sleep for 500 ms
-            bl_timer_hf_delay_ms(BLINK_APP_TIMER_DEV, 500);
-        }
+        blink_event_loop();
     }
 }
 
@@ -80,6 +79,7 @@ static void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
                 printf("%02X ", packet.payload[i]);
             }
             printf("\n");
+            blink_node_tx_payload(payload, payload_len);
             break;
         }
         case BLINK_CONNECTED: {
@@ -103,5 +103,13 @@ static void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
             break;
         default:
             break;
+    }
+}
+
+//=========================== private =========================================
+
+static void tx_if_connected(void) {
+    if (blink_node_is_connected()) {
+        blink_node_tx_payload(payload, payload_len);
     }
 }
