@@ -8,43 +8,43 @@
   <project Name="00drv_clock">
     <configuration
       Name="Common"
-      project_directory="bl_clock"
+      project_directory="mr_clock"
       project_type="Library" />
-    <file file_name="bl_clock.c" />
-    <file file_name="../bl_clock.h" />
+    <file file_name="mr_clock.c" />
+    <file file_name="../mr_clock.h" />
   </project>
-  <project Name="00drv_bl_gpio">
+  <project Name="00drv_mr_gpio">
     <configuration
       Name="Common"
-      project_directory="bl_gpio"
+      project_directory="mr_gpio"
       project_type="Library" />
-    <file file_name="bl_gpio.c" />
-    <file file_name="../bl_gpio.h" />
+    <file file_name="mr_gpio.c" />
+    <file file_name="../mr_gpio.h" />
   </project>
-  <project Name="00drv_bl_timer_hf">
+  <project Name="00drv_mr_timer_hf">
     <configuration
       Name="Common"
       project_dependencies="00drv_clock"
-      project_directory="bl_timer_hf"
+      project_directory="mr_timer_hf"
       project_type="Library" />
-    <file file_name="bl_timer_hf.c" />
-    <file file_name="../bl_timer_hf.h" />
+    <file file_name="mr_timer_hf.c" />
+    <file file_name="../mr_timer_hf.h" />
   </project>
-  <project Name="00drv_bl_radio">
+  <project Name="00drv_mr_radio">
     <configuration
       Name="Common"
-      project_dependencies="00drv_clock(00drv);00drv_bl_timer_hf(00drv)"
-      project_directory="bl_radio"
+      project_dependencies="00drv_clock(00drv);00drv_mr_timer_hf(00drv)"
+      project_directory="mr_radio"
       project_type="Library" />
-    <file file_name="bl_radio.c" />
-    <file file_name="../bl_radio.h" />
+    <file file_name="mr_radio.c" />
+    <file file_name="../mr_radio.h" />
   </project>
-  <project Name="00drv_bl_rng">
+  <project Name="00drv_mr_rng">
     <configuration
       Name="Common"
-      project_directory="bl_rng"
+      project_directory="mr_rng"
       project_type="Library" />
-    <file file_name="bl_rng.c" />
-    <file file_name="../bl_rng.h" />
+    <file file_name="mr_rng.c" />
+    <file file_name="../mr_rng.h" />
   </project>
 </solution>

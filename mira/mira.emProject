@@ -1,0 +1,43 @@
+<!DOCTYPE CrossStudio_Project_File>
+<solution Name="01mira" target="8" version="2">
+  <configuration
+    Name="Common"
+    build_output_directory="Output/$(BuildTarget)/$(Configuration)/Obj"
+    build_output_file_name="$(OutDir)/$(ProjectName)-$(BuildTarget)$(LIB)"
+    c_user_include_directories="$(SolutionDir);$(SolutionDir)/../drv;$(PackagesDir)/nRF/Device/Include;$(PackagesDir)/CMSIS_5/CMSIS/Core/Include" />
+  <project Name="01mira">
+    <configuration
+      Name="Common"
+      project_dependencies="00drv_mr_radio(00drv);00drv_mr_timer_hf(00drv);00drv_mr_rng(00drv);00drv_mr_gpio(00drv)"
+      project_directory="."
+      project_type="Library" />
+    <configuration
+      Name="Debug" />
+    <file file_name="packet.c" />
+    <file file_name="packet.h" />
+
+    <file file_name="models.h" />
+
+    <file file_name="scan.c" />
+    <file file_name="scan.h" />
+
+    <file file_name="queue.c" />
+    <file file_name="queue.h" />
+
+    <file file_name="scheduler.c" />
+    <file file_name="all_schedules.c" />
+    <file file_name="scheduler.h" />
+
+    <file file_name="bloom.c" />
+    <file file_name="bloom.h" />
+
+    <file file_name="association.c" />
+    <file file_name="association.h" />
+
+    <file file_name="mac.c" />
+    <file file_name="mac.h" />
+
+    <file file_name="mira.c" />
+    <file file_name="mira.h" />
+  </project>
+</solution>

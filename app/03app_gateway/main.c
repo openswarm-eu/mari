@@ -2,7 +2,7 @@
  * @file
  * @ingroup     app
  *
- * @brief       Blink Gateway application example
+ * @brief       Mira Gateway application example
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
@@ -11,15 +11,15 @@
 #include <nrf.h>
 #include <stdio.h>
 
-#include "bl_device.h"
-#include "bl_radio.h"
-#include "bl_timer_hf.h"
-#include "blink.h"
+#include "mr_device.h"
+#include "mr_radio.h"
+#include "mr_timer_hf.h"
+#include "mira.h"
 #include "packet.h"
 
 //=========================== defines ==========================================
 
-#define BLINK_APP_TIMER_DEV 1
+#define MIRA_APP_TIMER_DEV 1
 
 #define DATA_LEN 4
 
@@ -38,7 +38,7 @@ gateway_vars_t gateway_vars = { 0 };
 
 stats_vars_t stats_vars = { 0 };
 
-uint8_t packet[BLINK_PACKET_MAX_SIZE] = { 0 };
+uint8_t packet[MIRA_PACKET_MAX_SIZE] = { 0 };
 uint8_t payload[] = { 0xFA, 0xFA, 0xFA, 0xFA, 0xFA };
 uint8_t payload_len = 5;
 
@@ -48,7 +48,7 @@ schedule_t *schedule_app = &schedule_huge;
 
 //=========================== prototypes =======================================
 
-void blink_event_callback(bl_event_t event, bl_event_data_t event_data);
+void mira_event_callback(mr_event_t event, mr_event_data_t event_data);
 void tx_to_all_connected(void);
 void stats_register(uint8_t type);
 void _debug_print_stats(void);
@@ -58,51 +58,51 @@ void _debug_print_schedule(void);
 
 int main(void)
 {
-    printf("Hello Blink Gateway %016llX\n", bl_device_id());
-    bl_timer_hf_init(BLINK_APP_TIMER_DEV);
+    printf("Hello Mira Gateway %016llX\n", mr_device_id());
+    mr_timer_hf_init(MIRA_APP_TIMER_DEV);
 
-    bl_timer_hf_set_periodic_us(BLINK_APP_TIMER_DEV, 0, 1000 * 750, &tx_to_all_connected);
+    mr_timer_hf_set_periodic_us(MIRA_APP_TIMER_DEV, 0, 1000 * 750, &tx_to_all_connected);
 
-    bl_timer_hf_set_periodic_us(BLINK_APP_TIMER_DEV, 1, 1000 * 1005, &_debug_print_stats);
+    mr_timer_hf_set_periodic_us(MIRA_APP_TIMER_DEV, 1, 1000 * 1005, &_debug_print_stats);
 
-    blink_init(BLINK_GATEWAY, schedule_app, &blink_event_callback);
+    mira_init(MIRA_GATEWAY, schedule_app, &mira_event_callback);
 
     while (1) {
         __SEV();
         __WFE();
         __WFE();
 
-        blink_event_loop();
+        mira_event_loop();
     }
 }
 
 //=========================== callbacks ========================================
 
-void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
+void mira_event_callback(mr_event_t event, mr_event_data_t event_data) {
     (void)event_data;
-    uint32_t now_ts_s = bl_timer_hf_now(BLINK_APP_TIMER_DEV) / 1000 / 1000;
+    uint32_t now_ts_s = mr_timer_hf_now(MIRA_APP_TIMER_DEV) / 1000 / 1000;
     switch (event) {
-        case BLINK_NEW_PACKET: {
+        case MIRA_NEW_PACKET: {
             stats_register('U');
-            // blink_packet_t packet = event_data.data.new_packet;
-            // printf("RX %u B: src=%016llX dst=%016llX (rssi %d) payload=", packet.len, packet.header->src, packet.header->dst, bl_radio_rssi());
+            // mira_packet_t packet = event_data.data.new_packet;
+            // printf("RX %u B: src=%016llX dst=%016llX (rssi %d) payload=", packet.len, packet.header->src, packet.header->dst, mr_radio_rssi());
             // for (int i = 0; i < packet.payload_len; i++) {
             //     printf("%02X ", packet.payload[i]);
             // }
             // printf("\n");
             break;
         }
-        case BLINK_NODE_JOINED:
-            printf("%d New node joined: %016llX  (%d nodes connected)\n", now_ts_s, event_data.data.node_info.node_id, blink_gateway_count_nodes());
-            //uint64_t joined_nodes[BLINK_MAX_NODES] = { 0 };
-            //uint8_t joined_nodes_len = blink_gateway_get_nodes(joined_nodes);
+        case MIRA_NODE_JOINED:
+            printf("%d New node joined: %016llX  (%d nodes connected)\n", now_ts_s, event_data.data.node_info.node_id, mira_gateway_count_nodes());
+            //uint64_t joined_nodes[MIRA_MAX_NODES] = { 0 };
+            //uint8_t joined_nodes_len = mira_gateway_get_nodes(joined_nodes);
             //printf("Number of connected nodes: %d\n", joined_nodes_len);
             // TODO: send list of joined_nodes to Edge Gateway via UART
             break;
-        case BLINK_NODE_LEFT:
-            printf("%d Node left: %016llX, reason: %u  (%d nodes connected)\n", now_ts_s, event_data.data.node_info.node_id, event_data.tag, blink_gateway_count_nodes());
+        case MIRA_NODE_LEFT:
+            printf("%d Node left: %016llX, reason: %u  (%d nodes connected)\n", now_ts_s, event_data.data.node_info.node_id, event_data.tag, mira_gateway_count_nodes());
             break;
-        case BLINK_ERROR:
+        case MIRA_ERROR:
             printf("Error, reason: %u\n", event_data.tag);
             break;
         default:
@@ -113,13 +113,13 @@ void blink_event_callback(bl_event_t event, bl_event_data_t event_data) {
 //=========================== private ========================================
 
 void tx_to_all_connected(void) {
-    uint64_t nodes[BLINK_MAX_NODES] = { 0 };
-    uint8_t nodes_len = blink_gateway_get_nodes(nodes);
+    uint64_t nodes[MIRA_MAX_NODES] = { 0 };
+    uint8_t nodes_len = mira_gateway_get_nodes(nodes);
     for (int i = 0; i < nodes_len; i++) {
         // printf("Enqueing TX to node %d: %016llX\n", i, nodes[i]);
         payload[0] = i;
-        uint8_t packet_len = bl_build_packet_data(packet, nodes[i], payload, payload_len);
-        blink_tx(packet, packet_len);
+        uint8_t packet_len = mr_build_packet_data(packet, nodes[i], payload, payload_len);
+        mira_tx(packet, packet_len);
         stats_register('D');
     }
 }
@@ -133,7 +133,7 @@ void stats_register(uint8_t type) {
 }
 
 void _debug_print_stats(void) {
-    uint32_t now_ts_ms = bl_timer_hf_now(BLINK_APP_TIMER_DEV) / 1000;
+    uint32_t now_ts_ms = mr_timer_hf_now(MIRA_APP_TIMER_DEV) / 1000;
     uint32_t now_ts_s = now_ts_ms / 1000;
     // calculate success rate
     float rate = (float)stats_vars.n_uplink / (float)stats_vars.n_downlink * 100.0;

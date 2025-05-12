@@ -1,1 +1,1 @@
-# Blink Scheduler
+# Mira Scheduler
