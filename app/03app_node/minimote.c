@@ -2,7 +2,7 @@
  * @file
  * @ingroup     app
  *
- * @brief       Blink Node application example
+ * @brief       Mira Node application example
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
@@ -10,13 +10,13 @@
  */
 
 #include <nrf.h>
-#include "bl_gpio.h"
+#include "mr_gpio.h"
 
 #include "minimote.h"
 
-bl_gpio_t _r_led_pin = { .port = 0, .pin = 28 };
-bl_gpio_t _g_led_pin = { .port = 0, .pin = 2 };
-bl_gpio_t _b_led_pin = { .port = 0, .pin = 3 };
+mr_gpio_t _r_led_pin = { .port = 0, .pin = 28 };
+mr_gpio_t _g_led_pin = { .port = 0, .pin = 2 };
+mr_gpio_t _b_led_pin = { .port = 0, .pin = 3 };
 
 void board_init(void) {
     // Make sure the mini-mote is running at 3.0v
@@ -31,54 +31,54 @@ void board_init(void) {
         while (NRF_NVMC->READY == NVMC_READY_READY_Busy) {
         }
     }
-    bl_gpio_init(&_r_led_pin, BL_GPIO_OUT);
-    bl_gpio_init(&_g_led_pin, BL_GPIO_OUT);
-    bl_gpio_init(&_b_led_pin, BL_GPIO_OUT);
+    mr_gpio_init(&_r_led_pin, MR_GPIO_OUT);
+    mr_gpio_init(&_g_led_pin, MR_GPIO_OUT);
+    mr_gpio_init(&_b_led_pin, MR_GPIO_OUT);
     board_set_rgb(BLUE);
 
-    bl_gpio_t _reg_pin = { .port = 0, .pin = 30 };
+    mr_gpio_t _reg_pin = { .port = 0, .pin = 30 };
     // Turn ON the DotBot board regulator if provided
-    bl_gpio_init(&_reg_pin, BL_GPIO_OUT);
-    bl_gpio_set(&_reg_pin);
+    mr_gpio_init(&_reg_pin, MR_GPIO_OUT);
+    mr_gpio_set(&_reg_pin);
 }
 
 
 void board_set_rgb(led_color_t color) {
     switch (color) {
         case RED:
-            bl_gpio_clear(&_r_led_pin);
-            bl_gpio_set(&_g_led_pin);
-            bl_gpio_set(&_b_led_pin);
+            mr_gpio_clear(&_r_led_pin);
+            mr_gpio_set(&_g_led_pin);
+            mr_gpio_set(&_b_led_pin);
             break;
 
         case GREEN:
-            bl_gpio_set(&_r_led_pin);
-            bl_gpio_clear(&_g_led_pin);
-            bl_gpio_set(&_b_led_pin);
+            mr_gpio_set(&_r_led_pin);
+            mr_gpio_clear(&_g_led_pin);
+            mr_gpio_set(&_b_led_pin);
             break;
 
         case OTHER:
-            bl_gpio_set(&_r_led_pin);
-            bl_gpio_clear(&_g_led_pin);
-            bl_gpio_clear(&_b_led_pin);
+            mr_gpio_set(&_r_led_pin);
+            mr_gpio_clear(&_g_led_pin);
+            mr_gpio_clear(&_b_led_pin);
             break;
 
         case BLUE:
-            bl_gpio_set(&_r_led_pin);
-            bl_gpio_set(&_g_led_pin);
-            bl_gpio_clear(&_b_led_pin);
+            mr_gpio_set(&_r_led_pin);
+            mr_gpio_set(&_g_led_pin);
+            mr_gpio_clear(&_b_led_pin);
             break;
 
         case OFF:
-            bl_gpio_set(&_r_led_pin);
-            bl_gpio_set(&_g_led_pin);
-            bl_gpio_set(&_b_led_pin);
+            mr_gpio_set(&_r_led_pin);
+            mr_gpio_set(&_g_led_pin);
+            mr_gpio_set(&_b_led_pin);
             break;
 
         default:
-            bl_gpio_set(&_r_led_pin);
-            bl_gpio_set(&_g_led_pin);
-            bl_gpio_set(&_b_led_pin);
+            mr_gpio_set(&_r_led_pin);
+            mr_gpio_set(&_g_led_pin);
+            mr_gpio_set(&_b_led_pin);
             break;
     }
 }

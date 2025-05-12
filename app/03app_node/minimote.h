@@ -2,7 +2,7 @@
  * @file
  * @ingroup     app
  *
- * @brief       Blink Node application example
+ * @brief       Mira Node application example
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
