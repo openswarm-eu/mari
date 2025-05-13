@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: clang-format
+        name: clang-format on C/H files
+        entry: bash -c 'for file in "$@"; do clang-format -i "$file"; done'
+        language: system
+        types: [c]
+        files: ^(app|drv|mira)/.*\.(c|h)$
+        pass_filenames: true
