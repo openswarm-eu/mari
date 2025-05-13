@@ -1,10 +1,8 @@
 repos:
   - repo: local
     hooks:
-      - id: clang-format
-        name: clang-format on C/H files
-        entry: bash -c 'for file in "$@"; do clang-format -i "$file"; done'
+      - id: clang-format-check
+        name: Check formatting with clang-format (dry-run)
+        entry: bash -c 'find app drv mira \( -name "*.c" -o -name "*.h" \) -exec clang-format --dry-run --Werror {} +'
         language: system
-        types: [c]
-        files: ^(app|drv|mira)/.*\.(c|h)$
-        pass_filenames: true
+        pass_filenames: false
