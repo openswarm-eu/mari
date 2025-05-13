@@ -1,0 +1,38 @@
+name: Check Clang Format
+
+on:
+    push:
+      branches:
+        - main
+      tags:
+        - '*'
+    pull_request:
+  
+jobs:
+  check-format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install clang-format
+        run: sudo apt install clang-format
+
+      - name: Check C code formatting (skip the nRF folder)
+        run: |
+          FILES=$(find app drv mira \( -name "*.c" -o -name "*.h" \))
+          UNFORMATTED=""
+          for file in $FILES; do
+            if ! clang-format --dry-run --Werror "$file"; then
+              UNFORMATTED+="$file\n"
+            fi
+          done
+
+          if [ -n "$UNFORMATTED" ]; then
+            echo -e "❌ The following files are not formatted:"
+            echo -e "$UNFORMATTED"
+            echo "Run: clang-format -i <file> to fix."
+            exit 1
+          else
+            echo "✅ All files are properly formatted."
+          fi
