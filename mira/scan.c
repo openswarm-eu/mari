@@ -27,10 +27,10 @@ scan_vars_t scan_vars = { 0 };
 
 //=========================== prototypes ======================================
 
-void _save_rssi(size_t idx, mr_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts_scan, uint64_t asn_scan);
-uint32_t _get_ts_latest(mr_gateway_scan_t scan);
+void              _save_rssi(size_t idx, mr_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts_scan, uint64_t asn_scan);
+uint32_t          _get_ts_latest(mr_gateway_scan_t scan);
 mr_channel_info_t _get_channel_info_latest(mr_gateway_scan_t scan);
-bool _scan_is_too_old(mr_gateway_scan_t scan, uint32_t ts_scan);
+bool              _scan_is_too_old(mr_gateway_scan_t scan, uint32_t ts_scan);
 
 //=========================== public ===========================================
 
@@ -44,10 +44,10 @@ bool _scan_is_too_old(mr_gateway_scan_t scan, uint32_t ts_scan);
 // 3. Look for empty spots, in case the gateway_id is not yet in the list.
 // 4. Save the oldest reading, to be overwritten, in case there are no empty spots.
 void mr_scan_add(mr_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts_scan, uint64_t asn_scan) {
-    uint64_t gateway_id = beacon.src;
-    bool found = false;
-    int16_t empty_spot_idx = -1;
-    uint32_t ts_oldest_all = ts_scan;
+    uint64_t gateway_id        = beacon.src;
+    bool     found             = false;
+    int16_t  empty_spot_idx    = -1;
+    uint32_t ts_oldest_all     = ts_scan;
     uint32_t ts_oldest_all_idx = 0;
     for (size_t i = 0; i < MIRA_MAX_SCAN_LIST_SIZE; i++) {
         // if found this gateway_id, update its respective rssi entry and mark as found.
@@ -65,7 +65,7 @@ void mr_scan_add(mr_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel,
 
         uint32_t ts_cmp = _get_ts_latest(scan_vars.scans[i]);
         if (scan_vars.scans[i].gateway_id != 0 && ts_cmp < ts_oldest_all) {
-            ts_oldest_all = ts_cmp;
+            ts_oldest_all     = ts_cmp;
             ts_oldest_all_idx = i;
         }
     }
@@ -75,7 +75,7 @@ void mr_scan_add(mr_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel,
     } else {
         // if not, find an optimal spot for saving this new rssi reading
         //   either save it onto an empty spot, or override the oldest one
-        if (empty_spot_idx >= 0) { // there is an empty spot
+        if (empty_spot_idx >= 0) {  // there is an empty spot
             scan_vars.scans[empty_spot_idx].gateway_id = gateway_id;
             _save_rssi(empty_spot_idx, beacon, rssi, channel, ts_scan, asn_scan);
         } else {
@@ -102,16 +102,16 @@ bool mr_scan_select(mr_channel_info_t *best_channel_info, uint32_t ts_scan_start
         }
         // compute average rssi, only including the rssi readings that are not too old
         int8_t avg_rssi = 0;
-        int8_t n_rssi = 0;
+        int8_t n_rssi   = 0;
         for (size_t j = 0; j < MIRA_N_BLE_ADVERTISING_CHANNELS; j++) {
-            if (scan_vars.scans[i].channel_info[j].timestamp == 0) { // no scan info reading here
+            if (scan_vars.scans[i].channel_info[j].timestamp == 0) {  // no scan info reading here
                 continue;
             }
             // check twice for old scans: scans from before this scan started, and scans older than the mira configuration
-            if (scan_vars.scans[i].channel_info[j].timestamp < ts_scan_started) { // scan info is too old
+            if (scan_vars.scans[i].channel_info[j].timestamp < ts_scan_started) {  // scan info is too old
                 continue;
             }
-            if (ts_scan_ended - scan_vars.scans[i].channel_info[j].timestamp > MIRA_SCAN_OLD_US) { // scan info is is too old
+            if (ts_scan_ended - scan_vars.scans[i].channel_info[j].timestamp > MIRA_SCAN_OLD_US) {  // scan info is is too old
                 continue;
             }
             avg_rssi += scan_vars.scans[i].channel_info[j].rssi;
@@ -123,7 +123,7 @@ bool mr_scan_select(mr_channel_info_t *best_channel_info, uint32_t ts_scan_start
         avg_rssi /= n_rssi;
         if (avg_rssi > best_gateway_rssi) {
             best_gateway_rssi = avg_rssi;
-            best_gateway_idx = i;
+            best_gateway_idx  = i;
         }
     }
     if (best_gateway_idx < 0) {
@@ -137,11 +137,11 @@ bool mr_scan_select(mr_channel_info_t *best_channel_info, uint32_t ts_scan_start
 //=========================== private ==========================================
 
 inline void _save_rssi(size_t idx, mr_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts_scan, uint64_t asn_scan) {
-    size_t channel_idx = channel % MIRA_N_BLE_REGULAR_CHANNELS;
-    scan_vars.scans[idx].channel_info[channel_idx].rssi = rssi;
-    scan_vars.scans[idx].channel_info[channel_idx].timestamp = ts_scan;
+    size_t channel_idx                                          = channel % MIRA_N_BLE_REGULAR_CHANNELS;
+    scan_vars.scans[idx].channel_info[channel_idx].rssi         = rssi;
+    scan_vars.scans[idx].channel_info[channel_idx].timestamp    = ts_scan;
     scan_vars.scans[idx].channel_info[channel_idx].captured_asn = asn_scan;
-    scan_vars.scans[idx].channel_info[channel_idx].beacon = beacon;
+    scan_vars.scans[idx].channel_info[channel_idx].beacon       = beacon;
 }
 
 inline bool _scan_is_too_old(mr_gateway_scan_t scan, uint32_t ts_scan) {

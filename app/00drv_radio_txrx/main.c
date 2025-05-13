@@ -22,13 +22,13 @@
 //=========================== debug ============================================
 
 #include "mr_gpio.h"
-mr_gpio_t pin0 = { .port = 1, .pin = 2 }; // variable names reflect the logic analyzer channels
+mr_gpio_t pin0 = { .port = 1, .pin = 2 };  // variable names reflect the logic analyzer channels
 mr_gpio_t pin1 = { .port = 1, .pin = 3 };
 mr_gpio_t pin2 = { .port = 1, .pin = 4 };
 mr_gpio_t pin3 = { .port = 1, .pin = 5 };
 #define DEBUG_GPIO_TOGGLE(pin) mr_gpio_toggle(pin)
-#define DEBUG_GPIO_SET(pin) mr_gpio_set(pin)
-#define DEBUG_GPIO_CLEAR(pin) mr_gpio_clear(pin)
+#define DEBUG_GPIO_SET(pin)    mr_gpio_set(pin)
+#define DEBUG_GPIO_CLEAR(pin)  mr_gpio_clear(pin)
 
 //=========================== defines =========================================
 
@@ -62,7 +62,7 @@ int main(void) {
 
     printf("MIRA_FIXED_SCAN_CHANNEL = %d\n", MIRA_FIXED_SCAN_CHANNEL);
 
-    mr_timer_hf_set_periodic_us(MIRA_TIMER_DEV, 0, 5000, send_beacon_prepare); // 5 ms
+    mr_timer_hf_set_periodic_us(MIRA_TIMER_DEV, 0, 5000, send_beacon_prepare);  // 5 ms
 
     while (1) {
         __WFE();
@@ -74,7 +74,7 @@ int main(void) {
 static void send_beacon_prepare(void) {
     printf("Sending beacon from %llx\n", mr_device_id());
     uint8_t packet[MIRA_PACKET_MAX_SIZE] = { 0 };
-    size_t len = mr_build_packet_beacon(packet, txrx_vars.asn++, 10, schedule_huge.id);
+    size_t  len                          = mr_build_packet_beacon(packet, txrx_vars.asn++, 10, schedule_huge.id);
     mr_radio_disable();
     mr_radio_tx_prepare(packet, len);
     DEBUG_GPIO_SET(&pin0);
@@ -100,7 +100,7 @@ static void isr_radio_end_frame(uint32_t ts) {
     DEBUG_GPIO_CLEAR(&pin1);
     printf("End frame at %d\n", ts);
 
-    if (mr_radio_pending_rx_read()) { // interrupt came from RX
+    if (mr_radio_pending_rx_read()) {  // interrupt came from RX
         uint8_t packet[MIRA_PACKET_MAX_SIZE];
         uint8_t length;
         mr_radio_get_rx_packet(packet, &length);
@@ -109,7 +109,7 @@ static void isr_radio_end_frame(uint32_t ts) {
             printf("%02x ", packet[i]);
         }
         puts("");
-    } else { // interrupt came from TX
+    } else {  // interrupt came from TX
         // handle, if needed
     }
 }

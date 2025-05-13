@@ -31,4 +31,4 @@ void mr_rng_read(uint8_t *value);
 
 void mr_rng_read_range(uint8_t *value, uint8_t min, uint8_t max);
 
-#endif // __MR_RNG_H
+#endif  // __MR_RNG_H

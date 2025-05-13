@@ -23,9 +23,9 @@ typedef struct {
 } gpio_event_t;
 
 typedef struct {
-    uint8_t       gpiote_pin_idx;
+    uint8_t          gpiote_pin_idx;
     mr_gpio_t const *gpiote_pins[GPIOTE_MAX_CHANNELS];
-    gpio_event_t  events[GPIOTE_MAX_CHANNELS];
+    gpio_event_t     events[GPIOTE_MAX_CHANNELS];
 } gpio_vars_t;
 
 //=========================== variables ========================================

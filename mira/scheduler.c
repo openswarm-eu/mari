@@ -25,21 +25,20 @@
 
 //=========================== defines ==========================================
 
-
 //=========================== variables ========================================
 
 typedef struct {
-    mr_node_type_t node_type; // whether the node is a gateway or a dotbot
+    mr_node_type_t node_type;  // whether the node is a gateway or a dotbot
 
     // counters and indexes
-    schedule_t *active_schedule_ptr; // pointer to the currently active schedule
-    uint32_t slotframe_counter; // used to cycle beacon channels through slotframes (when listening for beacons at uplink slot_durations)
+    schedule_t *active_schedule_ptr;  // pointer to the currently active schedule
+    uint32_t    slotframe_counter;    // used to cycle beacon channels through slotframes (when listening for beacons at uplink slot_durations)
 
-    uint8_t num_assigned_uplink_nodes; // number of nodes with assigned uplink slots
+    uint8_t num_assigned_uplink_nodes;  // number of nodes with assigned uplink slots
 
     // static data
     schedule_t *available_schedules[MIRA_N_SCHEDULES];
-    size_t available_schedules_len;
+    size_t      available_schedules_len;
 } schedule_vars_t;
 
 static schedule_vars_t _schedule_vars = { 0 };
@@ -57,7 +56,8 @@ void _compute_dotbot_action(cell_t cell, mr_slot_info_t *slot_info);
 void mr_scheduler_init(mr_node_type_t node_type, schedule_t *application_schedule) {
     _schedule_vars.node_type = node_type;
 
-    if (_schedule_vars.available_schedules_len == MIRA_N_SCHEDULES) return; // FIXME: this is just to simplify debugging (allows calling init multiple times)
+    if (_schedule_vars.available_schedules_len == MIRA_N_SCHEDULES)
+        return;  // FIXME: this is just to simplify debugging (allows calling init multiple times)
 
     // FIXME: schedules only used for debugging
     //_schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_test;
@@ -68,7 +68,7 @@ void mr_scheduler_init(mr_node_type_t node_type, schedule_t *application_schedul
 
     if (application_schedule != NULL) {
         _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = application_schedule;
-        _schedule_vars.active_schedule_ptr = application_schedule;
+        _schedule_vars.active_schedule_ptr                                           = application_schedule;
     }
 }
 
@@ -100,7 +100,7 @@ void mr_scheduler_node_deassign_myself_from_schedule(void) {
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
         if (cell->type == SLOT_TYPE_UPLINK && cell->assigned_node_id == mr_device_id()) {
-            cell->assigned_node_id = NULL;
+            cell->assigned_node_id  = NULL;
             cell->last_received_asn = 0;
         }
     }
@@ -115,7 +115,7 @@ int16_t mr_scheduler_gateway_assign_next_available_uplink_cell(uint64_t node_id,
         // normally the cell is available if empty, but it may also be that case that
         // the node just temporarily lost connection, so we can just re-assign the same cell_id
         if (cell->type == SLOT_TYPE_UPLINK && (cell->assigned_node_id == NULL || cell->assigned_node_id == node_id)) {
-            cell->assigned_node_id = node_id;
+            cell->assigned_node_id  = node_id;
             cell->last_received_asn = asn;
             _schedule_vars.num_assigned_uplink_nodes++;
             return i;
@@ -163,12 +163,12 @@ uint8_t mr_scheduler_gateway_get_nodes(uint64_t *nodes) {
 mr_slot_info_t mr_scheduler_tick(uint64_t asn) {
     // get the current cell
     size_t cell_index = asn % (_schedule_vars.active_schedule_ptr)->n_cells;
-    cell_t cell = (_schedule_vars.active_schedule_ptr)->cells[cell_index];
+    cell_t cell       = (_schedule_vars.active_schedule_ptr)->cells[cell_index];
 
     mr_slot_info_t slot_info = {
         .radio_action = MIRA_RADIO_ACTION_SLEEP,
-        .channel = mr_scheduler_get_channel(cell.type, asn, cell.channel_offset),
-        .type = cell.type, // FIXME: only for debugging, remove before merge
+        .channel      = mr_scheduler_get_channel(cell.type, asn, cell.channel_offset),
+        .type         = cell.type,  // FIXME: only for debugging, remove before merge
     };
     if (_schedule_vars.node_type == MIRA_GATEWAY) {
         _compute_gateway_action(cell, &slot_info);
@@ -186,7 +186,7 @@ mr_slot_info_t mr_scheduler_tick(uint64_t asn) {
 }
 
 uint8_t mr_scheduler_get_channel(slot_type_t slot_type, uint64_t asn, uint8_t channel_offset) {
-#if(MIRA_FIXED_CHANNEL != 0)
+#if (MIRA_FIXED_CHANNEL != 0)
     (void)slot_type;
     (void)asn;
     (void)channel_offset;
@@ -220,7 +220,7 @@ uint8_t mr_scheduler_get_active_schedule_slot_count(void) {
 
 cell_t mr_scheduler_node_peek_slot(uint64_t asn) {
     size_t cell_index = (asn) % (_schedule_vars.active_schedule_ptr)->n_cells;
-    cell_t cell = (_schedule_vars.active_schedule_ptr)->cells[cell_index];
+    cell_t cell       = (_schedule_vars.active_schedule_ptr)->cells[cell_index];
 
     return cell;
 }

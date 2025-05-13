@@ -23,29 +23,29 @@
 //=========================== variables ========================================
 
 typedef enum {
-    MIRA_PACKET_BEACON = 1,
-    MIRA_PACKET_JOIN_REQUEST = 2,
+    MIRA_PACKET_BEACON        = 1,
+    MIRA_PACKET_JOIN_REQUEST  = 2,
     MIRA_PACKET_JOIN_RESPONSE = 4,
-    MIRA_PACKET_KEEPALIVE = 8,
-    MIRA_PACKET_DATA = 16,
+    MIRA_PACKET_KEEPALIVE     = 8,
+    MIRA_PACKET_DATA          = 16,
 } mr_packet_type_t;
 
 // general packet header
 typedef struct __attribute__((packed)) {
-    uint8_t           version;
-    mr_packet_type_t  type;
-    uint64_t          dst;
-    uint64_t          src;
+    uint8_t          version;
+    mr_packet_type_t type;
+    uint64_t         dst;
+    uint64_t         src;
 } mr_packet_header_t;
 
 // beacon packet
 typedef struct __attribute__((packed)) {
-    uint8_t           version;
-    mr_packet_type_t  type;
-    uint64_t          asn;
-    uint64_t          src;
-    uint8_t           remaining_capacity;
-    uint8_t           active_schedule_id;
+    uint8_t          version;
+    mr_packet_type_t type;
+    uint64_t         asn;
+    uint64_t         src;
+    uint8_t          remaining_capacity;
+    uint8_t          active_schedule_id;
 } mr_beacon_packet_header_t;
 
 //=========================== prototypes =======================================

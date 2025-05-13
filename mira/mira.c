@@ -9,7 +9,7 @@
  * @copyright Inria, 2024
  */
 
- #include <nrf.h>
+#include <nrf.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -27,12 +27,12 @@
 //=========================== defines ==========================================
 
 typedef struct {
-    mr_node_type_t          node_type;
-    mr_event_cb_t           app_event_callback;
+    mr_node_type_t node_type;
+    mr_event_cb_t  app_event_callback;
 
     // gateway only
-    uint64_t                joined_nodes[MIRA_MAX_NODES];
-    uint8_t                 joined_nodes_len;
+    uint64_t joined_nodes[MIRA_MAX_NODES];
+    uint8_t  joined_nodes_len;
 } mira_vars_t;
 
 //=========================== variables ========================================
@@ -49,7 +49,7 @@ static void event_callback(mr_event_t event, mr_event_data_t event_data);
 // -------- common --------
 
 void mira_init(mr_node_type_t node_type, schedule_t *app_schedule, mr_event_cb_t app_event_callback) {
-    _mira_vars.node_type = node_type;
+    _mira_vars.node_type          = node_type;
     _mira_vars.app_event_callback = app_event_callback;
 
     mr_assoc_init(event_callback);
@@ -86,7 +86,7 @@ size_t mira_gateway_count_nodes(void) {
 
 void mira_node_tx_payload(uint8_t *payload, uint8_t payload_len) {
     uint8_t packet[MIRA_PACKET_MAX_SIZE] = { 0 };
-    uint8_t len = mr_build_packet_data(packet, mira_node_gateway_id(), payload, payload_len);
+    uint8_t len                          = mr_build_packet_data(packet, mira_node_gateway_id(), payload, payload_len);
     mr_queue_add(packet, len);
 }
 
@@ -112,13 +112,14 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
         bool from_joined_node = mr_assoc_gateway_node_is_joined(header->src);
 
         switch (header->type) {
-            case MIRA_PACKET_JOIN_REQUEST: {
+            case MIRA_PACKET_JOIN_REQUEST:
+            {
                 if (from_joined_node) {
                     // already joined, ignore
                     return;
                 }
                 // try to assign a cell to the node
-                int16_t cell_id = mr_scheduler_gateway_assign_next_available_uplink_cell(header->src, mr_mac_get_asn()); // the asn-based keep-alive is also initialized
+                int16_t cell_id = mr_scheduler_gateway_assign_next_available_uplink_cell(header->src, mr_mac_get_asn());  // the asn-based keep-alive is also initialized
                 if (cell_id >= 0) {
                     // at the packet level, max_nodes is limited to 256 (using uint8_t cell_id)
                     mr_queue_set_join_response(header->src, (uint8_t)cell_id);
@@ -132,7 +133,8 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
                 }
                 break;
             }
-            case MIRA_PACKET_DATA: {
+            case MIRA_PACKET_DATA:
+            {
                 if (!from_joined_node) {
                     // ignore packets from nodes that are not joined
                     return;
@@ -140,14 +142,13 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
                 // send the packet to the application
                 mr_event_data_t event_data = {
                     .data.new_packet = {
-                        .len = length,
-                        .header = header,
-                        .payload = packet + sizeof(mr_packet_header_t),
-                        .payload_len = length - sizeof(mr_packet_header_t)
-                    }
+                        .len         = length,
+                        .header      = header,
+                        .payload     = packet + sizeof(mr_packet_header_t),
+                        .payload_len = length - sizeof(mr_packet_header_t) }
                 };
                 _mira_vars.app_event_callback(MIRA_NEW_PACKET, event_data);
-                mr_assoc_gateway_keep_node_alive(header->src, mr_mac_get_asn()); // keep track of when the last packet was received
+                mr_assoc_gateway_keep_node_alive(header->src, mr_mac_get_asn());  // keep track of when the last packet was received
                 break;
             }
             case MIRA_PACKET_KEEPALIVE:
@@ -155,7 +156,7 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
                     // ignore packets from nodes that are not joined
                     return;
                 }
-                mr_assoc_gateway_keep_node_alive(header->src, mr_mac_get_asn()); // keep track of when the last packet was received
+                mr_assoc_gateway_keep_node_alive(header->src, mr_mac_get_asn());  // keep track of when the last packet was received
                 break;
             default:
                 break;
@@ -168,7 +169,8 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
             case MIRA_PACKET_BEACON:
                 mr_assoc_handle_beacon(packet, length, MIRA_FIXED_SCAN_CHANNEL, mr_mac_get_asn());
                 break;
-            case MIRA_PACKET_JOIN_RESPONSE: {
+            case MIRA_PACKET_JOIN_RESPONSE:
+            {
                 if (mr_assoc_get_state() != JOIN_STATE_JOINING) {
                     // ignore if not in the JOINING state
                     return;
@@ -186,7 +188,8 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
                 }
                 break;
             }
-            case MIRA_PACKET_DATA: {
+            case MIRA_PACKET_DATA:
+            {
                 if (!from_my_joined_gateway) {
                     // ignore data packets from other gateways
                     return;
@@ -194,11 +197,10 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
                 // send the packet to the application
                 mr_event_data_t event_data = {
                     .data.new_packet = {
-                        .len = length,
-                        .header = header,
-                        .payload = packet + sizeof(mr_packet_header_t),
-                        .payload_len = length - sizeof(mr_packet_header_t)
-                    }
+                        .len         = length,
+                        .header      = header,
+                        .payload     = packet + sizeof(mr_packet_header_t),
+                        .payload_len = length - sizeof(mr_packet_header_t) }
                 };
                 _mira_vars.app_event_callback(MIRA_NEW_PACKET, event_data);
                 mr_assoc_node_keep_gateway_alive(mr_mac_get_asn());
@@ -232,7 +234,7 @@ void mira_event_loop(void) {
 
 static void event_callback(mr_event_t event, mr_event_data_t event_data) {
     // handle some events internally
-    switch(event) {
+    switch (event) {
         case MIRA_NODE_LEFT:
             mr_bloom_gateway_set_dirty();
             break;

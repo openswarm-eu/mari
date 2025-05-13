@@ -162,8 +162,8 @@ void mr_timer_hf_set_oneshot_with_ref_us(timer_hf_t timer, uint8_t channel, uint
     // assert(channel >= 0 && channel < _devs[timer].cc_num + 1);  // Make sure the required channel is correct
     // assert(cb);                                                 // Make sure the callback function is valid
 
-    uint32_t now = mr_timer_hf_now(timer);
-    uint32_t period_us = us + (now - base_us);
+    uint32_t now                                            = mr_timer_hf_now(timer);
+    uint32_t period_us                                      = us + (now - base_us);
     _timer_hf_vars[timer].timer_callback[channel].period_us = period_us;
     _timer_hf_vars[timer].timer_callback[channel].one_shot  = true;
     _timer_hf_vars[timer].timer_callback[channel].callback  = cb;
@@ -176,8 +176,8 @@ void mr_timer_hf_set_oneshot_with_ref_diff_us(timer_hf_t timer, uint8_t channel,
     // assert(channel >= 0 && channel < _devs[timer].cc_num + 1);  // Make sure the required channel is correct
     // assert(cb);                                                 // Make sure the callback function is valid
 
-    uint32_t now = mr_timer_hf_now(timer);
-    uint32_t period_us = us - (now - base_us);
+    uint32_t now                                            = mr_timer_hf_now(timer);
+    uint32_t period_us                                      = us - (now - base_us);
     _timer_hf_vars[timer].timer_callback[channel].period_us = period_us;
     _timer_hf_vars[timer].timer_callback[channel].one_shot  = true;
     _timer_hf_vars[timer].timer_callback[channel].callback  = cb;
@@ -191,10 +191,10 @@ void mr_timer_hf_cancel(timer_hf_t timer, uint8_t channel) {
 
     // clear the variables
     _timer_hf_vars[timer].timer_callback[channel].period_us = 0;
-    _timer_hf_vars[timer].timer_callback[channel].callback = NULL;
+    _timer_hf_vars[timer].timer_callback[channel].callback  = NULL;
 
     // disable the interrupt and clear the event flag
-    _devs[timer].p->INTENCLR =              (1 << (TIMER_INTENCLR_COMPARE0_Pos + channel));
+    _devs[timer].p->INTENCLR                = (1 << (TIMER_INTENCLR_COMPARE0_Pos + channel));
     _devs[timer].p->EVENTS_COMPARE[channel] = 0;
     _devs[timer].p->CC[channel]             = 0;
 }

@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: clang-format-check
+        name: Check formatting with clang-format (dry-run)
+        entry: bash -c 'find app drv mira \( -name "*.c" -o -name "*.h" \) -exec clang-format --dry-run --Werror {} +'
+        language: system
+        pass_filenames: false

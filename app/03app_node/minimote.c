@@ -42,7 +42,6 @@ void board_init(void) {
     mr_gpio_set(&_reg_pin);
 }
 
-
 void board_set_rgb(led_color_t color) {
     switch (color) {
         case RED:

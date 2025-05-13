@@ -29,51 +29,51 @@
 
 //=========================== debug ============================================
 
-#ifndef DEBUG // FIXME: remove before merge. Just to make VS Code enable code behind `#ifdef DEBUG`
+#ifndef DEBUG  // FIXME: remove before merge. Just to make VS Code enable code behind `#ifdef DEBUG`
 #define DEBUG
 #endif
 
 #ifdef DEBUG
-#include "mr_gpio.h" // for debugging
+#include "mr_gpio.h"  // for debugging
 // the 4 LEDs of the DK are on port 0, pins 13, 14, 15, 16
 mr_gpio_t led0 = { .port = 0, .pin = 13 };
 mr_gpio_t led1 = { .port = 0, .pin = 14 };
 mr_gpio_t led2 = { .port = 0, .pin = 15 };
 mr_gpio_t led3 = { .port = 0, .pin = 16 };
 #define DEBUG_GPIO_TOGGLE(pin) mr_gpio_toggle(pin)
-#define DEBUG_GPIO_SET(pin) mr_gpio_set(pin)
-#define DEBUG_GPIO_CLEAR(pin) mr_gpio_clear(pin)
+#define DEBUG_GPIO_SET(pin)    mr_gpio_set(pin)
+#define DEBUG_GPIO_CLEAR(pin)  mr_gpio_clear(pin)
 #else
 // No-op when DEBUG is not defined
 #define DEBUG_GPIO_TOGGLE(pin) ((void)0))
 #define DEBUG_GPIO_SET(pin) ((void)0))
 #define DEBUG_GPIO_CLEAR(pin) ((void)0))
-#endif // DEBUG
+#endif  // DEBUG
 
 //=========================== defines =========================================
 
 #define MIRA_BACKOFF_N_MIN 5
 #define MIRA_BACKOFF_N_MAX 9
 
-#define MIRA_JOIN_TIMEOUT_SINCE_SYNCED (1000 * 1000 * 5) // 5 seconds. after this time, go back to scanning. NOTE: have it be based on slotframe size?
+#define MIRA_JOIN_TIMEOUT_SINCE_SYNCED (1000 * 1000 * 5)  // 5 seconds. after this time, go back to scanning. NOTE: have it be based on slotframe size?
 
 // after this amount of time, consider that a join request failed (very likely due to a collision during the shared uplink slot)
 // currently set to 2 slot durations -- enough when the schedule always have a shared-uplink followed by a downlink,
 // and the gateway prioritizes join responses over all other downstream packets
-#define MIRA_JOINING_STATE_TIMEOUT ((MIRA_WHOLE_SLOT_DURATION * (2-1)) + (MIRA_WHOLE_SLOT_DURATION / 2)) // apply a half-slot duration just so that the timeout happens before the slot boundary
+#define MIRA_JOINING_STATE_TIMEOUT ((MIRA_WHOLE_SLOT_DURATION * (2 - 1)) + (MIRA_WHOLE_SLOT_DURATION / 2))  // apply a half-slot duration just so that the timeout happens before the slot boundary
 
 typedef struct {
     mr_assoc_state_t state;
-    mr_event_cb_t mira_event_callback;
-    uint32_t last_state_change_ts; ///< Last time the state changed
+    mr_event_cb_t    mira_event_callback;
+    uint32_t         last_state_change_ts;  ///< Last time the state changed
 
     // node
-    uint32_t last_received_from_gateway_asn; ///< Last received packet when in joined state
-    int16_t backoff_n;
-    uint8_t backoff_random_time; ///< Number of slots to wait before re-trying to join
-    uint32_t join_response_timeout_ts; ///< Time when the node will give up joining
-    uint16_t synced_gateway_remaining_capacity; ///< Number of nodes that my gateway can still accept
-    mr_event_tag_t is_pending_disconnect; ///< Whether the node is pending a disconnect
+    uint32_t       last_received_from_gateway_asn;  ///< Last received packet when in joined state
+    int16_t        backoff_n;
+    uint8_t        backoff_random_time;                ///< Number of slots to wait before re-trying to join
+    uint32_t       join_response_timeout_ts;           ///< Time when the node will give up joining
+    uint16_t       synced_gateway_remaining_capacity;  ///< Number of nodes that my gateway can still accept
+    mr_event_tag_t is_pending_disconnect;              ///< Whether the node is pending a disconnect
 } assoc_vars_t;
 
 //=========================== variables =======================================
@@ -81,7 +81,6 @@ typedef struct {
 assoc_vars_t assoc_vars = { 0 };
 
 //=========================== prototypes ======================================
-
 
 //=========================== public ==========================================
 
@@ -103,11 +102,14 @@ void mr_assoc_init(mr_event_cb_t event_callback) {
 }
 
 inline void mr_assoc_set_state(mr_assoc_state_t state) {
-    assoc_vars.state = state;
+    assoc_vars.state                = state;
     assoc_vars.last_state_change_ts = mr_timer_hf_now(MIRA_TIMER_DEV);
 
 #ifdef DEBUG
-    DEBUG_GPIO_SET(&led0); DEBUG_GPIO_SET(&led1); DEBUG_GPIO_SET(&led2); DEBUG_GPIO_SET(&led3);
+    DEBUG_GPIO_SET(&led0);
+    DEBUG_GPIO_SET(&led1);
+    DEBUG_GPIO_SET(&led2);
+    DEBUG_GPIO_SET(&led3);
     switch (state) {
         case JOIN_STATE_IDLE:
             // DEBUG_GPIO_CLEAR(&pin1);
@@ -153,7 +155,7 @@ bool mr_assoc_node_ready_to_join(void) {
 }
 
 void mr_assoc_node_start_joining(void) {
-    uint32_t now_ts = mr_timer_hf_now(MIRA_TIMER_DEV);
+    uint32_t now_ts                     = mr_timer_hf_now(MIRA_TIMER_DEV);
     assoc_vars.join_response_timeout_ts = now_ts + MIRA_JOINING_STATE_TIMEOUT;
     mr_assoc_set_state(JOIN_STATE_JOINING);
 }
@@ -162,8 +164,8 @@ void mr_assoc_node_handle_joined(uint64_t gateway_id) {
     mr_assoc_set_state(JOIN_STATE_JOINED);
     mr_event_data_t event_data = { .data.gateway_info.gateway_id = gateway_id };
     assoc_vars.mira_event_callback(MIRA_CONNECTED, event_data);
-    assoc_vars.is_pending_disconnect = MIRA_NONE; // reset the pending disconnect flag
-    mr_assoc_node_keep_gateway_alive(mr_mac_get_asn()); // initialize the gateway's keep-alive
+    assoc_vars.is_pending_disconnect = MIRA_NONE;        // reset the pending disconnect flag
+    mr_assoc_node_keep_gateway_alive(mr_mac_get_asn());  // initialize the gateway's keep-alive
     mr_assoc_node_reset_backoff();
 }
 
@@ -171,7 +173,7 @@ bool mr_assoc_node_handle_failed_join(void) {
     if (assoc_vars.synced_gateway_remaining_capacity > 0) {
         mr_assoc_set_state(JOIN_STATE_SYNCED);
         mr_assoc_node_register_collision_backoff();
-        mr_queue_set_join_request(mr_mac_get_synced_gateway()); // put a join request packet back on queue
+        mr_queue_set_join_request(mr_mac_get_synced_gateway());  // put a join request packet back on queue
         return true;
     } else {
         // no more capacity, go back to scanning
@@ -204,13 +206,13 @@ bool mr_assoc_node_too_long_synced_without_joining(void) {
         return false;
     }
 
-    uint32_t now_ts = mr_timer_hf_now(MIRA_TIMER_DEV);
+    uint32_t now_ts    = mr_timer_hf_now(MIRA_TIMER_DEV);
     uint32_t synced_ts = mr_mac_get_synced_ts();
     return now_ts - synced_ts > MIRA_JOIN_TIMEOUT_SINCE_SYNCED;
 }
 
 void mr_assoc_node_reset_backoff(void) {
-    assoc_vars.backoff_n = -1;
+    assoc_vars.backoff_n           = -1;
     assoc_vars.backoff_random_time = 0;
 }
 
@@ -226,7 +228,7 @@ void mr_assoc_node_register_collision_backoff(void) {
         assoc_vars.backoff_n = MIRA_BACKOFF_N_MIN;
     } else {
         // increment the n in [0, 2^n - 1], but only if n is less than the max
-        uint8_t new_n = assoc_vars.backoff_n + 1;
+        uint8_t new_n        = assoc_vars.backoff_n + 1;
         assoc_vars.backoff_n = new_n < MIRA_BACKOFF_N_MAX ? new_n : MIRA_BACKOFF_N_MAX;
     }
     // choose a random number from [0, 2^n - 1] and set it as the backoff time
@@ -275,7 +277,7 @@ void mr_assoc_node_handle_disconnect(void) {
     mr_scheduler_node_deassign_myself_from_schedule();
     mr_event_data_t event_data = {
         .data.gateway_info.gateway_id = mr_mac_get_synced_gateway(),
-        .tag = assoc_vars.is_pending_disconnect
+        .tag                          = assoc_vars.is_pending_disconnect
     };
     assoc_vars.mira_event_callback(MIRA_DISCONNECTED, event_data);
 }
@@ -331,7 +333,7 @@ void mr_assoc_gateway_clear_old_nodes(uint64_t asn) {
             // inform the scheduler
             mr_scheduler_gateway_decrease_nodes_counter();
             // clear the cell
-            cell->assigned_node_id = NULL;
+            cell->assigned_node_id  = NULL;
             cell->last_received_asn = 0;
             // inform the application
             assoc_vars.mira_event_callback(MIRA_NODE_LEFT, event_data);
@@ -373,13 +375,13 @@ void mr_assoc_handle_beacon(uint8_t *packet, uint8_t length, uint8_t channel, ui
         assoc_vars.synced_gateway_remaining_capacity = beacon->remaining_capacity;
     }
 
-    if (beacon->remaining_capacity == 0) { // TODO: what if I am joined to this gateway? add a check for it.
+    if (beacon->remaining_capacity == 0) {  // TODO: what if I am joined to this gateway? add a check for it.
         // this gateway is full, ignore it
         return;
     }
 
     // save this scan info
-    mr_scan_add(*beacon, mr_radio_rssi(), channel, ts, 0); // asn not used anymore during scan
+    mr_scan_add(*beacon, mr_radio_rssi(), channel, ts, 0);  // asn not used anymore during scan
 
     return;
 }
