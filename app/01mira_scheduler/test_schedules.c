@@ -8,7 +8,7 @@ schedule_t schedule_test_app = {
     .backoff_n_max = 9,
     .n_cells       = 5,
     .cells         = {
-                // Only downlink slot_durations
+        // Only downlink slot_durations
         { 'B', 0, NULL },
         { 'S', 1, NULL },
         { 'D', 2, NULL },
@@ -25,7 +25,7 @@ schedule_t schedule_all_uplink = {
     .backoff_n_max = 9,
     .n_cells       = 5,
     .cells         = {
-                // Only downlink slot_durations
+        // Only downlink slot_durations
         { 'U', 0, NULL },
         { 'U', 1, NULL },
         { 'U', 2, NULL },
@@ -42,7 +42,7 @@ schedule_t schedule_all_downlink = {
     .backoff_n_max = 9,
     .n_cells       = 5,
     .cells         = {
-                // Only downlink slot_durations
+        // Only downlink slot_durations
         { 'D', 0, NULL },
         { 'D', 1, NULL },
         { 'D', 2, NULL },

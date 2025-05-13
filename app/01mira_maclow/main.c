@@ -27,7 +27,7 @@ schedule_t schedule_test_app = {
     .backoff_n_max = 9,
     .n_cells       = 5,
     .cells         = {
-                //{'B', 0, NULL},
+        //{'B', 0, NULL},
         //{'S', 1, NULL},
         //{'D', 2, NULL},
         //{'U', 3, NULL},
