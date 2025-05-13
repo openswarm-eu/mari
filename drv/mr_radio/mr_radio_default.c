@@ -32,15 +32,15 @@
 #define RADIO_INTERRUPT_PRIORITY 1
 #endif
 
-#define RADIO_TIFS          0U  ///< Inter frame spacing in us. zero means IFS is enforced by software, not the hardware
+#define RADIO_TIFS 0U  ///< Inter frame spacing in us. zero means IFS is enforced by software, not the hardware
 
-#define RADIO_SHORTS_COMMON (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos) | \
-                            (RADIO_SHORTS_ADDRESS_RSSISTART_Enabled << RADIO_SHORTS_ADDRESS_RSSISTART_Pos) | \
-                            (RADIO_SHORTS_DISABLED_RSSISTOP_Enabled << RADIO_SHORTS_DISABLED_RSSISTOP_Pos)
+#define RADIO_SHORTS_COMMON (RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos) |                 \
+                                (RADIO_SHORTS_ADDRESS_RSSISTART_Enabled << RADIO_SHORTS_ADDRESS_RSSISTART_Pos) | \
+                                (RADIO_SHORTS_DISABLED_RSSISTOP_Enabled << RADIO_SHORTS_DISABLED_RSSISTOP_Pos)
 
-#define RADIO_INTERRUPTS    (RADIO_INTENSET_ADDRESS_Enabled << RADIO_INTENSET_ADDRESS_Pos) | \
-                            (RADIO_INTENSET_END_Enabled << RADIO_INTENSET_END_Pos) | \
-                            (RADIO_INTENSET_DISABLED_Enabled << RADIO_INTENSET_DISABLED_Pos)
+#define RADIO_INTERRUPTS (RADIO_INTENSET_ADDRESS_Enabled << RADIO_INTENSET_ADDRESS_Pos) | \
+                             (RADIO_INTENSET_END_Enabled << RADIO_INTENSET_END_Pos) |     \
+                             (RADIO_INTENSET_DISABLED_Enabled << RADIO_INTENSET_DISABLED_Pos)
 
 #define RADIO_STATE_IDLE 0x00
 #define RADIO_STATE_RX   0x01
@@ -54,12 +54,12 @@ typedef struct __attribute__((packed)) {
 } radio_pdu_t;
 
 typedef struct {
-    radio_pdu_t     pdu;       ///< Variable that stores the radio PDU (protocol data unit) that arrives and the radio packets that are about to be sent.
-    bool            pending_rx_read; ///< Flag to indicate that a PDU has been received, but not yet read by the application.
-    radio_ts_packet_t start_pac_cb;  ///< Function pointer, stores the callback to capture the start of the packet.
-    radio_ts_packet_t end_pac_cb;      ///< Function pointer, stores the callback to capture the end of the packet.
-    uint8_t         state;     ///< Internal state of the radio
-    mr_radio_mode_t mode;      ///< PHY protocol used by the radio (BLE, IEEE 802.15.4)
+    radio_pdu_t       pdu;              ///< Variable that stores the radio PDU (protocol data unit) that arrives and the radio packets that are about to be sent.
+    bool              pending_rx_read;  ///< Flag to indicate that a PDU has been received, but not yet read by the application.
+    radio_ts_packet_t start_pac_cb;     ///< Function pointer, stores the callback to capture the start of the packet.
+    radio_ts_packet_t end_pac_cb;       ///< Function pointer, stores the callback to capture the end of the packet.
+    uint8_t           state;            ///< Internal state of the radio
+    mr_radio_mode_t   mode;             ///< PHY protocol used by the radio (BLE, IEEE 802.15.4)
 } radio_vars_t;
 
 //=========================== variables ========================================
@@ -208,8 +208,8 @@ void mr_radio_init(radio_ts_packet_t start_pac_cb, radio_ts_packet_t end_pac_cb,
 
     // Assign the callbacks that will be called in the RADIO_IRQHandler
     radio_vars.start_pac_cb = start_pac_cb;
-    radio_vars.end_pac_cb = end_pac_cb;
-    radio_vars.state    = RADIO_STATE_IDLE;
+    radio_vars.end_pac_cb   = end_pac_cb;
+    radio_vars.state        = RADIO_STATE_IDLE;
 
     // Configure the external High-frequency Clock. (Needed for correct operation)
     mr_hfclk_init();
@@ -274,7 +274,7 @@ void mr_radio_rx(void) {
     _radio_enable();
 
     NRF_RADIO->TASKS_RXEN = RADIO_TASKS_RXEN_TASKS_RXEN_Trigger;
-    radio_vars.state = RADIO_STATE_RX;
+    radio_vars.state      = RADIO_STATE_RX;
 }
 
 void mr_radio_tx_prepare(const uint8_t *tx_buffer, uint8_t length) {
@@ -296,8 +296,8 @@ void mr_radio_tx_dispatch(void) {
     _radio_enable();
 
     // tell radio to start transmission
-    NRF_RADIO->TASKS_START      = RADIO_TASKS_START_TASKS_START_Trigger << RADIO_TASKS_START_TASKS_START_Pos;
-    radio_vars.state = RADIO_STATE_TX;
+    NRF_RADIO->TASKS_START = RADIO_TASKS_START_TASKS_START_Trigger << RADIO_TASKS_START_TASKS_START_Pos;
+    radio_vars.state       = RADIO_STATE_TX;
 }
 
 //=========================== private ==========================================
@@ -306,7 +306,7 @@ static void _radio_enable(void) {
     NRF_RADIO->EVENTS_ADDRESS  = 0;
     NRF_RADIO->EVENTS_END      = 0;
     NRF_RADIO->EVENTS_DISABLED = 0;
-    NRF_RADIO->INTENSET = RADIO_INTERRUPTS;
+    NRF_RADIO->INTENSET        = RADIO_INTERRUPTS;
 }
 
 //=========================== interrupt handlers ===============================
@@ -320,9 +320,9 @@ static void _radio_enable(void) {
  *
  */
 void RADIO_IRQHandler(void) {
-    uint8_t timer_dev = 2; // FIXME: pass by parameter, or have radio report it somehow
-    uint32_t now_ts = mr_timer_hf_now(timer_dev);
-    uint8_t dbg = 0;
+    uint8_t  timer_dev = 2;  // FIXME: pass by parameter, or have radio report it somehow
+    uint32_t now_ts    = mr_timer_hf_now(timer_dev);
+    uint8_t  dbg       = 0;
 
     // just started sending or receiving: clear interrupt flag, set radio as busy, and report packet start time
     if (NRF_RADIO->EVENTS_ADDRESS) {
@@ -361,11 +361,12 @@ void RADIO_IRQHandler(void) {
         dbg |= 4;
 
         // disable interrupts and shorts
-        NRF_RADIO->INTENCLR        = RADIO_INTERRUPTS;
-        NRF_RADIO->SHORTS          = 0;
+        NRF_RADIO->INTENCLR = RADIO_INTERRUPTS;
+        NRF_RADIO->SHORTS   = 0;
 
         // udpate state
         radio_vars.state = RADIO_STATE_IDLE;
     }
-    if (dbg) radio_vars.state = radio_vars.state;
+    if (dbg)
+        radio_vars.state = radio_vars.state;
 }

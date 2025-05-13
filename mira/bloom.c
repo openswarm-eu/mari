@@ -21,9 +21,9 @@
 
 typedef struct {
     // used by the gateway
-    bool is_dirty; // true if the bloom filter needs to be re-computed
-    bool is_available; // true if the bloom filter is being computed
-    uint8_t bloom[MIRA_BLOOM_M_BYTES]; // bloom filter output
+    bool    is_dirty;                   // true if the bloom filter needs to be re-computed
+    bool    is_available;               // true if the bloom filter is being computed
+    uint8_t bloom[MIRA_BLOOM_M_BYTES];  // bloom filter output
 } bloom_vars_t;
 
 //=========================== variables ========================================
@@ -39,7 +39,7 @@ static uint64_t mr_fnv1a64(uint64_t input);
 // -------- gateway ---------
 
 void mr_bloom_gateway_init(void) {
-    bloom_vars.is_dirty = false;
+    bloom_vars.is_dirty     = false;
     bloom_vars.is_available = false;
 }
 
@@ -73,10 +73,10 @@ void mr_bloom_gateway_compute(void) {
     for (size_t i = 0; i < schedule_ptr->n_cells; i++) {
         cell_t *cell = &schedule_ptr->cells[i];
         if (cell->type != SLOT_TYPE_UPLINK) {
-            continue; // skip non-uplink cells
+            continue;  // skip non-uplink cells
         }
         if (cell->assigned_node_id == NULL) {
-            continue; // skip empty cells
+            continue;  // skip empty cells
         }
         uint64_t id = cell->assigned_node_id;
 
@@ -84,7 +84,7 @@ void mr_bloom_gateway_compute(void) {
         uint64_t h2 = mr_fnv1a64(id ^ MIRA_BLOOM_FNV1A_H2_SALT);
 
         for (int k = 0; k < MIRA_BLOOM_K_HASHES; k++) {
-            uint64_t idx = (h1 + k * h2) & (MIRA_BLOOM_M_BITS - 1); // Fast bitmask instead of division
+            uint64_t idx = (h1 + k * h2) & (MIRA_BLOOM_M_BITS - 1);  // Fast bitmask instead of division
             bloom_vars.bloom[idx / 8] |= (1 << (idx % 8));
         }
     }
@@ -106,7 +106,7 @@ bool mr_bloom_node_contains(uint64_t node_id, const uint8_t *bloom) {
     uint64_t h2 = mr_fnv1a64(node_id ^ MIRA_BLOOM_FNV1A_H2_SALT);
 
     for (int k = 0; k < MIRA_BLOOM_K_HASHES; k++) {
-        uint64_t idx = (h1 + k * h2) & (MIRA_BLOOM_M_BITS - 1); // Fast bitmask instead of division
+        uint64_t idx = (h1 + k * h2) & (MIRA_BLOOM_M_BITS - 1);  // Fast bitmask instead of division
         if ((bloom[idx / 8] & (1 << (idx % 8))) == 0) {
             return false;
         }

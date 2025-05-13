@@ -16,7 +16,7 @@
 #include "mr_timer_hf.h"
 #include "mr_device.h"
 
-#define SLOT 1000 * 1000 // 1 s
+#define SLOT 1000 * 1000  // 1 s
 
 // make some schedules available for testing
 #include "test_schedules.c"
@@ -27,7 +27,7 @@ int main(void) {
     mr_timer_hf_init(MIRA_TIMER_DEV);
 
     // initialize schedule
-    schedule_t schedule = schedule_minuscule;
+    schedule_t     schedule  = schedule_minuscule;
     mr_node_type_t node_type = MIRA_NODE;
     mr_scheduler_init(node_type, &schedule);
 
@@ -36,11 +36,11 @@ int main(void) {
     // loop n_slotframes*n_cells times and make the scheduler tick
     // also, try to assign and deassign uplink cell at specific slotframes
     size_t n_slotframes = 4;
-    //uint64_t asn = (1ULL << 48) + 123456789; // use a large number to test scheduler tick duration
+    // uint64_t asn = (1ULL << 48) + 123456789; // use a large number to test scheduler tick duration
     uint64_t asn = 0;
     for (size_t j = 0; j < n_slotframes; j++) {
         for (size_t i = 0; i < schedule.n_cells; i++) {
-            uint32_t start_ts = mr_timer_hf_now(MIRA_TIMER_DEV);
+            uint32_t       start_ts  = mr_timer_hf_now(MIRA_TIMER_DEV);
             mr_slot_info_t slot_info = mr_scheduler_tick(asn++);
             printf("Scheduler tick took %d us\n", mr_timer_hf_now(MIRA_TIMER_DEV) - start_ts);
             printf(">> Event %c:   %c, %d\n", slot_info.type, slot_info.radio_action, slot_info.channel);
@@ -49,7 +49,7 @@ int main(void) {
             mr_timer_hf_delay_us(MIRA_TIMER_DEV, SLOT);
         }
         puts(".");
-        if (j == 0 && mr_scheduler_gateway_assign_next_available_uplink_cell(mr_device_id(), 0) < 0) { // try to assign at the end of first slotframe
+        if (j == 0 && mr_scheduler_gateway_assign_next_available_uplink_cell(mr_device_id(), 0) < 0) {  // try to assign at the end of first slotframe
             printf("Failed to assign uplink cell\n");
             return 1;
         }

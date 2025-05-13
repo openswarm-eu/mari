@@ -18,8 +18,8 @@
 
 //=========================== defines =========================================
 
-#define MIRA_BLOOM_M_BITS 1024
-#define MIRA_BLOOM_M_BYTES (MIRA_BLOOM_M_BITS / 8)
+#define MIRA_BLOOM_M_BITS   1024
+#define MIRA_BLOOM_M_BYTES  (MIRA_BLOOM_M_BITS / 8)
 #define MIRA_BLOOM_K_HASHES 2
 
 #define MIRA_BLOOM_FNV1A_H2_SALT 0x5bd1e995
@@ -28,15 +28,15 @@
 
 //=========================== prototypes ======================================
 
-void mr_bloom_gateway_init(void);
-void mr_bloom_gateway_set_dirty(void);
-void mr_bloom_gateway_set_clean(void);
-bool mr_bloom_gateway_is_dirty(void);
-bool mr_bloom_gateway_is_available(void);
+void    mr_bloom_gateway_init(void);
+void    mr_bloom_gateway_set_dirty(void);
+void    mr_bloom_gateway_set_clean(void);
+bool    mr_bloom_gateway_is_dirty(void);
+bool    mr_bloom_gateway_is_available(void);
 uint8_t mr_bloom_gateway_copy(uint8_t *output);
-void mr_bloom_gateway_compute(void);
-void mr_bloom_gateway_event_loop(void);
+void    mr_bloom_gateway_compute(void);
+void    mr_bloom_gateway_event_loop(void);
 
 bool mr_bloom_node_contains(uint64_t node_id, const uint8_t *bloom);
 
-#endif // __BLOOM_H
+#endif  // __BLOOM_H

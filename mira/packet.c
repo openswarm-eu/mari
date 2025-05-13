@@ -36,10 +36,10 @@ size_t mr_build_packet_join_response(uint8_t *buffer, uint64_t dst) {
 
 size_t mr_build_packet_beacon(uint8_t *buffer, uint64_t asn, uint8_t remaining_capacity, uint8_t active_schedule_id) {
     mr_beacon_packet_header_t beacon = {
-        .version = MIRA_PROTOCOL_VERSION,
-        .type = MIRA_PACKET_BEACON,
-        .asn = asn,
-        .src = mr_device_id(),
+        .version            = MIRA_PROTOCOL_VERSION,
+        .type               = MIRA_PACKET_BEACON,
+        .asn                = asn,
+        .src                = mr_device_id(),
         .remaining_capacity = remaining_capacity,
         .active_schedule_id = active_schedule_id,
     };

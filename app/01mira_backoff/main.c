@@ -28,13 +28,13 @@ int main(void) {
     mr_assoc_init(NULL);
 
     // test backoff re-schedule execution time (depends on rng)
-    size_t n_runs = 10;
+    size_t   n_runs      = 10;
     uint32_t max_elapsed = 0;
     uint32_t sum_elapsed = 0;
     for (size_t i = 0; i < n_runs; i++) {
         uint32_t start_ts = mr_timer_hf_now(MIRA_APP_TIMER_DEV);
         mr_assoc_node_register_collision_backoff();
-        uint32_t end_ts = mr_timer_hf_now(MIRA_APP_TIMER_DEV);
+        uint32_t end_ts  = mr_timer_hf_now(MIRA_APP_TIMER_DEV);
         uint32_t elapsed = end_ts - start_ts;
         printf("Collision backoff %d: %d\n", i, elapsed);
         sum_elapsed += elapsed;
@@ -48,7 +48,7 @@ int main(void) {
     printf("Max elapsed us: %d\n", max_elapsed);
 
     // main loop
-    while(1) {
+    while (1) {
         __SEV();
         __WFE();
         __WFE();

@@ -42,7 +42,7 @@ typedef enum {
 } mr_radio_mode_t;
 
 typedef void (*mr_radio_cb_t)(uint8_t *packet, uint8_t length);  ///< get the received packet
-typedef void (*radio_ts_packet_t)(uint32_t ts);  ///< capture timestamp for start/end of packet
+typedef void (*radio_ts_packet_t)(uint32_t ts);                  ///< capture timestamp for start/end of packet
 
 //=========================== public ===========================================
 
@@ -129,4 +129,4 @@ void mr_radio_get_rx_packet(uint8_t *packet, uint8_t *length);
 void mr_radio_tx_prepare(const uint8_t *tx_buffer, uint8_t length);
 void mr_radio_tx_dispatch(void);
 
-#endif // __MR_RADIO_H
+#endif  // __MR_RADIO_H

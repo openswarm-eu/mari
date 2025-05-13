@@ -21,23 +21,23 @@
 
 /* Very simple test schedule */
 schedule_t schedule_test_app = {
-    .id = 32, // make sure it doesn't collide
-    .max_nodes = 0,
+    .id            = 32,  // make sure it doesn't collide
+    .max_nodes     = 0,
     .backoff_n_min = 5,
     .backoff_n_max = 9,
-    .n_cells = 5,
-    .cells = {
-        //{'B', 0, NULL},
+    .n_cells       = 5,
+    .cells         = {
+                //{'B', 0, NULL},
         //{'S', 1, NULL},
         //{'D', 2, NULL},
         //{'U', 3, NULL},
         //{'U', 4, NULL},
 
-        {'S', 0, NULL},
-        {'B', 1, NULL},
-        {'B', 2, NULL},
-        {'B', 3, NULL},
-        {'B', 4, NULL},
+        { 'S', 0, NULL },
+        { 'B', 1, NULL },
+        { 'B', 2, NULL },
+        { 'B', 3, NULL },
+        { 'B', 4, NULL },
 
         //{'U', 0, NULL},
         //{'U', 1, NULL},
@@ -47,18 +47,18 @@ schedule_t schedule_test_app = {
     }
 };
 
-extern schedule_t schedule_minuscule, schedule_small, schedule_huge, schedule_only_beacons, schedule_only_beacons_optimized_scan;
+extern schedule_t          schedule_minuscule, schedule_small, schedule_huge, schedule_only_beacons, schedule_only_beacons_optimized_scan;
 extern mr_slot_durations_t slot_durations;
 
 // static void radio_callback(uint8_t *packet, uint8_t length);
-void mira_event_callback(mr_event_t event, mr_event_data_t event_data);
+void        mira_event_callback(mr_event_t event, mr_event_data_t event_data);
 static void print_slot_timing(void);
 
 int main(void) {
     // initialize schedule
     schedule_t schedule = schedule_huge;
 
-    //mr_node_type_t node_type = MIRA_GATEWAY;
+    // mr_node_type_t node_type = MIRA_GATEWAY;
     mr_node_type_t node_type = MIRA_NODE;
 
     print_slot_timing();
@@ -70,7 +70,7 @@ int main(void) {
     mr_scheduler_init(node_type, &schedule);
     printf("\n==== Device of type %c and id %llx is using schedule 0x%0X ====\n\n", node_type, mr_device_id(), schedule.id);
 
-    //printf("MIRA_FIXED_CHANNEL = %d\n", MIRA_FIXED_CHANNEL);
+    // printf("MIRA_FIXED_CHANNEL = %d\n", MIRA_FIXED_CHANNEL);
 
     // initialize the mac
     mr_mac_init(node_type, mira_event_callback);
@@ -99,7 +99,7 @@ void mira_event_callback(mr_event_t event, mr_event_data_t event_data) {
             printf("Connected\n");
             // enqueue a 'hello' packet
             uint8_t packet[MIRA_PACKET_MAX_SIZE] = { 0 };
-            uint8_t data[] = { 0x48, 0x65, 0x6C, 0x6C, 0x6F }; // "Hello"
+            uint8_t data[]                       = { 0x48, 0x65, 0x6C, 0x6C, 0x6F };  // "Hello"
 
             uint8_t packet_len = mr_build_packet_data(packet, event_data.data.gateway_info.gateway_id, data, 5);
 

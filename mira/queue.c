@@ -30,14 +30,14 @@ typedef struct {
 } mr_packet_t;
 
 typedef struct {
-    uint8_t         current;                            ///< Current position in the queue
-    uint8_t         last;                               ///< Position of the last item added in the queue
-    mr_packet_t  packets[MIRA_PACKET_QUEUE_SIZE];
+    uint8_t     current;  ///< Current position in the queue
+    uint8_t     last;     ///< Position of the last item added in the queue
+    mr_packet_t packets[MIRA_PACKET_QUEUE_SIZE];
 } mira_packet_queue_t;
 
 typedef struct {
-    mira_packet_queue_t    packet_queue;
-    mr_packet_t          join_packet;
+    mira_packet_queue_t packet_queue;
+    mr_packet_t         join_packet;
 } queue_vars_t;
 
 //=========================== variables ========================================
@@ -58,8 +58,7 @@ uint8_t mr_queue_next_packet(slot_type_t slot_type, uint8_t *packet) {
                 packet,
                 mr_mac_get_asn(),
                 mr_scheduler_gateway_remaining_capacity(),
-                mr_scheduler_get_active_schedule_id()
-            );
+                mr_scheduler_get_active_schedule_id());
             if (mr_bloom_gateway_is_available()) {
                 len += mr_bloom_gateway_copy(packet + sizeof(mr_beacon_packet_header_t));
             }
@@ -130,9 +129,9 @@ void mr_queue_set_join_request(uint64_t node_id) {
 }
 
 void mr_queue_set_join_response(uint64_t node_id, uint8_t assigned_cell_id) {
-    uint8_t len = mr_build_packet_join_response(queue_vars.join_packet.buffer, node_id);
+    uint8_t len                          = mr_build_packet_join_response(queue_vars.join_packet.buffer, node_id);
     queue_vars.join_packet.buffer[len++] = assigned_cell_id;
-    queue_vars.join_packet.length = len;
+    queue_vars.join_packet.length        = len;
 }
 
 bool mr_queue_has_join_packet(void) {
