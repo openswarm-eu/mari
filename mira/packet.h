@@ -18,7 +18,10 @@
 
 //=========================== defines ==========================================
 
-#define MIRA_PROTOCOL_VERSION 1
+#define MIRA_PROTOCOL_VERSION 2
+
+#define MIRA_NET_ID_PATTERN_ANY 0
+#define MIRA_NET_ID_DEFAULT     1
 
 //=========================== variables ========================================
 
@@ -42,6 +45,7 @@ typedef struct __attribute__((packed)) {
 typedef struct __attribute__((packed)) {
     uint8_t          version;
     mr_packet_type_t type;
+    uint16_t         network_id;
     uint64_t         asn;
     uint64_t         src;
     uint8_t          remaining_capacity;
@@ -58,6 +62,6 @@ size_t mr_build_packet_join_response(uint8_t *buffer, uint64_t dst);
 
 size_t mr_build_packet_keepalive(uint8_t *buffer, uint64_t dst);
 
-size_t mr_build_packet_beacon(uint8_t *buffer, uint64_t asn, uint8_t remaining_capacity, uint8_t active_schedule_id);
+size_t mr_build_packet_beacon(uint8_t *buffer, uint16_t net_id, uint64_t asn, uint8_t remaining_capacity, uint8_t active_schedule_id);
 
 #endif
