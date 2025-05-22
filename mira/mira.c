@@ -48,11 +48,11 @@ static void event_callback(mr_event_t event, mr_event_data_t event_data);
 
 // -------- common --------
 
-void mira_init(mr_node_type_t node_type, schedule_t *app_schedule, mr_event_cb_t app_event_callback) {
+void mira_init(mr_node_type_t node_type, uint16_t net_id, schedule_t *app_schedule, mr_event_cb_t app_event_callback) {
     _mira_vars.node_type          = node_type;
     _mira_vars.app_event_callback = app_event_callback;
 
-    mr_assoc_init(event_callback);
+    mr_assoc_init(net_id, event_callback);
     mr_scheduler_init(node_type, app_schedule);
     mr_mac_init(node_type, event_callback);
     if (node_type == MIRA_GATEWAY) {

@@ -66,6 +66,7 @@ typedef struct {
     mr_assoc_state_t state;
     mr_event_cb_t    mira_event_callback;
     uint32_t         last_state_change_ts;  ///< Last time the state changed
+    uint16_t         network_id;            ///< If gateway, puts it in the beacon packet. If node, uses it to filter beacons (0 means accept any network)
 
     // node
     uint32_t       last_received_from_gateway_asn;  ///< Last received packet when in joined state
@@ -84,7 +85,7 @@ assoc_vars_t assoc_vars = { 0 };
 
 //=========================== public ==========================================
 
-void mr_assoc_init(mr_event_cb_t event_callback) {
+void mr_assoc_init(uint16_t net_id, mr_event_cb_t event_callback) {
 #ifdef DEBUG
     mr_gpio_init(&led0, MR_GPIO_OUT);
     mr_gpio_init(&led1, MR_GPIO_OUT);
@@ -93,6 +94,7 @@ void mr_assoc_init(mr_event_cb_t event_callback) {
     // remember: the LEDs are active low
 #endif
 
+    assoc_vars.network_id          = net_id;
     assoc_vars.mira_event_callback = event_callback;
     mr_assoc_set_state(JOIN_STATE_IDLE);
 
@@ -140,6 +142,10 @@ mr_assoc_state_t mr_assoc_get_state(void) {
 
 bool mr_assoc_is_joined(void) {
     return assoc_vars.state == JOIN_STATE_JOINED;
+}
+
+uint16_t mr_assoc_get_network_id(void) {
+    return assoc_vars.network_id;
 }
 
 // ------------ node functions ------------
@@ -282,6 +288,15 @@ void mr_assoc_node_handle_disconnect(void) {
     assoc_vars.mira_event_callback(MIRA_DISCONNECTED, event_data);
 }
 
+bool mr_assoc_node_matches_network_id(uint16_t network_id) {
+    if (assoc_vars.network_id == MIRA_NET_ID_PATTERN_ANY) {
+        // accept any network id
+        return true;
+    }
+    // in the future, some prefix logic could be added here
+    return assoc_vars.network_id == network_id;
+}
+
 // ------------ gateway functions ---------
 
 bool mr_assoc_gateway_node_is_joined(uint64_t node_id) {
@@ -355,6 +370,11 @@ void mr_assoc_handle_beacon(uint8_t *packet, uint8_t length, uint8_t channel, ui
 
     if (beacon->version != MIRA_PROTOCOL_VERSION) {
         // ignore packet with different protocol version
+        return;
+    }
+
+    if (!mr_assoc_node_matches_network_id(beacon->network_id)) {
+        // ignore packet with non-matching network id
         return;
     }
 

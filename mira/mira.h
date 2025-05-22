@@ -23,7 +23,7 @@
 
 //=========================== prototypes ==========================================
 
-void           mira_init(mr_node_type_t node_type, schedule_t *app_schedule, mr_event_cb_t app_event_callback);
+void           mira_init(mr_node_type_t node_type, uint16_t net_id, schedule_t *app_schedule, mr_event_cb_t app_event_callback);
 void           mira_event_loop(void);
 void           mira_tx(uint8_t *packet, uint8_t length);
 mr_node_type_t mira_get_node_type(void);
