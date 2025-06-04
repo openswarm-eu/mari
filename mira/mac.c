@@ -24,9 +24,6 @@
 #include "mr_timer_hf.h"
 #include "packet.h"
 #include "mr_device.h"
-#if defined(NRF5340_XXAA) && defined(NRF_NETWORK)
-#include "ipc.h"
-#endif
 
 //=========================== debug ============================================
 
