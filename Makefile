@@ -4,9 +4,9 @@ PACKAGES_DIR_OPT ?=
 SEGGER_DIR ?= /opt/segger
 BUILD_CONFIG ?= Debug
 
-.PHONY: gateway node clean-gateway clean-node clean distclean docker
+.PHONY: all node gateway clean-gateway clean-node clean distclean docker
 
-all: gateway node
+all: node gateway
 
 node:
 	@echo "\e[1mBuilding $@ application\e[0m"
@@ -18,13 +18,13 @@ gateway:
 	"$(SEGGER_DIR)/bin/emBuild" mira-gateway-nrf52840dk.emProject -project 03app_$@ -config $(BUILD_CONFIG) $(PACKAGES_DIR_OPT) -rebuild -verbose
 	@echo "\e[1mDone\e[0m\n"
 
-clean-gateway:
-	"$(SEGGER_DIR)/bin/emBuild" mira-gateway-nrf52840dk.emProject -config $(BUILD_CONFIG) -clean
-
 clean-node:
 	"$(SEGGER_DIR)/bin/emBuild" mira-node-nrf52840dk.emProject -config $(BUILD_CONFIG) -clean
 
-clean: clean-gateway clean-node
+clean-gateway:
+	"$(SEGGER_DIR)/bin/emBuild" mira-gateway-nrf52840dk.emProject -config $(BUILD_CONFIG) -clean
+
+clean: clean-node clean-gateway
 
 distclean: clean
 
