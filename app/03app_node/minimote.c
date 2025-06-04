@@ -19,6 +19,7 @@ mr_gpio_t _g_led_pin = { .port = 0, .pin = 2 };
 mr_gpio_t _b_led_pin = { .port = 0, .pin = 3 };
 
 void board_init(void) {
+#ifdef BOARD_NRF52833DK
     // Make sure the mini-mote is running at 3.0v
     // Might need a re-start to take effect
     if (NRF_UICR->REGOUT0 != UICR_REGOUT0_VOUT_3V0) {
@@ -31,6 +32,7 @@ void board_init(void) {
         while (NRF_NVMC->READY == NVMC_READY_READY_Busy) {
         }
     }
+#endif
     mr_gpio_init(&_r_led_pin, MR_GPIO_OUT);
     mr_gpio_init(&_g_led_pin, MR_GPIO_OUT);
     mr_gpio_init(&_b_led_pin, MR_GPIO_OUT);
