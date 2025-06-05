@@ -344,7 +344,7 @@ void mr_assoc_gateway_clear_old_nodes(uint64_t asn) {
         }
         cell_t *cell = &schedule->cells[i];
         if (cell->assigned_node_id != 0 && asn - cell->last_received_asn > max_asn_old) {
-            mr_event_data_t event_data = (mr_event_data_t){ .data.node_info.node_id = cell->assigned_node_id, .tag = MIRA_PEER_LOST };
+            mr_event_data_t event_data = (mr_event_data_t){ .data.node_info.node_id = cell->assigned_node_id, .tag = MIRA_PEER_LOST_TIMEOUT };
             // inform the scheduler
             mr_scheduler_gateway_decrease_nodes_counter();
             // clear the cell

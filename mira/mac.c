@@ -630,8 +630,6 @@ static bool select_gateway_and_sync(void) {
     }
 
     if (is_handover) {
-        DEBUG_GPIO_SET(&pin3);
-        DEBUG_GPIO_CLEAR(&pin3);  // pin3 DEBUG
         // a handover is going to happen, notify application about network disconnection
         mr_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway, .tag = MIRA_HANDOVER };
         mac_vars.mira_event_callback(MIRA_DISCONNECTED, event_data);

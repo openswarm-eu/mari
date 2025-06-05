@@ -7,7 +7,9 @@
  */
 #include <stdint.h>
 #include <string.h>
+
 #include "mr_device.h"
+#include "association.h"
 #include "packet.h"
 
 //=========================== prototypes =======================================
@@ -56,6 +58,7 @@ static size_t _set_header(uint8_t *buffer, uint64_t dst, mr_packet_type_t packet
     mr_packet_header_t header = {
         .version = MIRA_PROTOCOL_VERSION,
         .type    = packet_type,
+        .network_id = mr_assoc_get_network_id(),
         .dst     = dst,
         .src     = src,
     };

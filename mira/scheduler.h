@@ -50,6 +50,8 @@ mr_slot_info_t mr_scheduler_tick(uint64_t asn);
  */
 bool mr_scheduler_set_schedule(uint8_t schedule_id);
 
+uint32_t mr_scheduler_get_duration_us(void);
+
 int16_t mr_scheduler_gateway_assign_next_available_uplink_cell(uint64_t node_id, uint64_t asn);
 
 bool mr_scheduler_node_assign_myself_to_cell(uint16_t cell_index);

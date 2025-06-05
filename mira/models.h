@@ -56,7 +56,7 @@ typedef enum {
     MIRA_NONE              = 0,
     MIRA_HANDOVER          = 1,
     MIRA_OUT_OF_SYNC       = 2,
-    MIRA_PEER_LOST         = 3,
+    MIRA_PEER_LOST         = 3,  // deprecated
     MIRA_GATEWAY_FULL      = 4,
     MIRA_PEER_LOST_TIMEOUT = 5,
     MIRA_PEER_LOST_BLOOM   = 6,

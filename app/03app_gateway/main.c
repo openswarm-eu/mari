@@ -14,6 +14,7 @@
 #include "mr_device.h"
 #include "mr_radio.h"
 #include "mr_timer_hf.h"
+#include "scheduler.h"
 #include "mira.h"
 #include "packet.h"
 
@@ -66,12 +67,13 @@ int main(void) {
 
     mira_init(MIRA_GATEWAY, MIRA_NET_ID_DEFAULT, schedule_app, &mira_event_callback);
 
+    mr_timer_hf_set_periodic_us(MIRA_APP_TIMER_DEV, 2, mr_scheduler_get_duration_us(), &mira_event_loop);
+
     while (1) {
         __SEV();
         __WFE();
         __WFE();
 
-        mira_event_loop();
     }
 }
 

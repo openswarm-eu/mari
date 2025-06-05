@@ -163,6 +163,11 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
         }
 
     } else if (mira_get_node_type() == MIRA_NODE) {
+        if (!mr_assoc_node_matches_network_id(header->network_id)) {
+            // ignore packet with non-matching network id
+            return;
+        }
+
         bool from_my_joined_gateway = header->src == mr_mac_get_synced_gateway() && mr_assoc_get_state() == JOIN_STATE_JOINED;
 
         switch (header->type) {
