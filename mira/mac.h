@@ -80,6 +80,7 @@ extern mr_slot_durations_t slot_durations;
 void     mr_mac_init(mr_node_type_t node_type, mr_event_cb_t event_callback);
 uint64_t mr_mac_get_synced_ts(void);
 uint64_t mr_mac_get_synced_gateway(void);
+uint16_t mr_mac_get_synced_network_id(void);
 uint64_t mr_mac_get_asn(void);
 bool     mr_mac_node_is_synced(void);
 

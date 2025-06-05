@@ -79,6 +79,10 @@ bool mr_scheduler_set_schedule(uint8_t schedule_id) {
     return false;
 }
 
+uint32_t mr_scheduler_get_duration_us(void) {
+    return MIRA_WHOLE_SLOT_DURATION * _schedule_vars.active_schedule_ptr->n_cells;
+}
+
 // ------------ node functions ------------
 
 // to be called at the NODE when processing a JOIN_RESPONSE

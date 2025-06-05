@@ -48,6 +48,7 @@ bool mr_assoc_node_too_long_waiting_for_join_response(void);
 bool mr_assoc_node_too_long_synced_without_joining(void);
 void mr_assoc_node_handle_give_up_joining(void);
 void mr_assoc_node_handle_disconnect(void);
+bool mr_assoc_node_matches_network_id(uint16_t network_id);
 
 void mr_assoc_node_register_collision_backoff(void);
 void mr_assoc_node_reset_backoff(void);

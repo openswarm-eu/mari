@@ -86,8 +86,9 @@ typedef struct {
     bool is_bg_scanning;           ///< Whether the node is scanning for gateways in the background
     bool bg_scan_sleep_next_slot;  ///< Whether the next slot is a sleep slot
 
-    uint64_t synced_gateway;  ///< ID of the gateway the node is synchronized with
-    uint32_t synced_ts;       ///< Timestamp of the last synchronization
+    uint64_t synced_gateway;     ///< ID of the gateway the node is synchronized with
+    uint16_t synced_network_id;  ///< Network ID of the gateway the node is synchronized with
+    uint32_t synced_ts;          ///< Timestamp of the last synchronization
 } mac_vars_t;
 
 //=========================== variables ========================================
@@ -196,6 +197,10 @@ uint64_t mr_mac_get_synced_gateway(void) {
     return mac_vars.synced_gateway;
 }
 
+uint16_t mr_mac_get_synced_network_id(void) {
+    return mac_vars.synced_network_id;
+}
+
 inline bool mr_mac_node_is_synced(void) {
     return mac_vars.synced_gateway != 0;
 }
@@ -271,8 +276,9 @@ static void new_slot_synced(void) {
 }
 
 static void node_back_to_scanning(void) {
-    mac_vars.synced_gateway = 0;
-    mac_vars.synced_ts      = 0;
+    mac_vars.synced_gateway    = 0;
+    mac_vars.synced_network_id = 0;
+    mac_vars.synced_ts         = 0;
     set_slot_state(STATE_SLEEP);
     end_slot();
     start_scan();
@@ -630,8 +636,6 @@ static bool select_gateway_and_sync(void) {
     }
 
     if (is_handover) {
-        DEBUG_GPIO_SET(&pin3);
-        DEBUG_GPIO_CLEAR(&pin3);  // pin3 DEBUG
         // a handover is going to happen, notify application about network disconnection
         mr_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway, .tag = MIRA_HANDOVER };
         mac_vars.mira_event_callback(MIRA_DISCONNECTED, event_data);
@@ -644,8 +648,9 @@ static bool select_gateway_and_sync(void) {
             &new_slot_synced);
     }
 
-    mac_vars.synced_gateway = selected_gateway.beacon.src;
-    mac_vars.synced_ts      = now_ts;
+    mac_vars.synced_gateway    = selected_gateway.beacon.src;
+    mac_vars.synced_network_id = selected_gateway.beacon.network_id;
+    mac_vars.synced_ts         = now_ts;
 
     // the selected gateway may have been scanned a few slot_durations ago, so we need to account for that difference
     // NOTE: this assumes that the slot duration is the same for gateways and nodes
