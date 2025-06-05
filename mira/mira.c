@@ -109,6 +109,11 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
     }
 
     if (mira_get_node_type() == MIRA_GATEWAY) {
+        if (header->network_id != mr_assoc_get_network_id()) {
+            // ignore packets from other networks
+            return;
+        }
+
         bool from_joined_node = mr_assoc_gateway_node_is_joined(header->src);
 
         switch (header->type) {

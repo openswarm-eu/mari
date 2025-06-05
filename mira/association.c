@@ -145,7 +145,11 @@ bool mr_assoc_is_joined(void) {
 }
 
 uint16_t mr_assoc_get_network_id(void) {
-    return assoc_vars.network_id;
+    if (mira_get_node_type() == MIRA_GATEWAY) {
+        return assoc_vars.network_id;
+    } else {
+        return mr_mac_get_synced_network_id();
+    }
 }
 
 // ------------ node functions ------------
