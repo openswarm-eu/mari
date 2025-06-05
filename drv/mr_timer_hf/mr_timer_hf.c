@@ -272,7 +272,11 @@ void TIMER3_IRQHandler(void) {
     _timer_hf_isr(3);
 }
 
+// Skip definition of timer4 handler because the swarmit bulk uart driver also
+// requires it. USE_BULK_UART is a preprocessor flag defined by swarmit.
+#if !defined(USE_BULK_UART)
 void TIMER4_IRQHandler(void) {
     _timer_hf_isr(4);
 }
+#endif
 #endif
