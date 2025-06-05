@@ -86,9 +86,9 @@ typedef struct {
     bool is_bg_scanning;           ///< Whether the node is scanning for gateways in the background
     bool bg_scan_sleep_next_slot;  ///< Whether the next slot is a sleep slot
 
-    uint64_t synced_gateway;  ///< ID of the gateway the node is synchronized with
+    uint64_t synced_gateway;     ///< ID of the gateway the node is synchronized with
     uint16_t synced_network_id;  ///< Network ID of the gateway the node is synchronized with
-    uint32_t synced_ts;       ///< Timestamp of the last synchronization
+    uint32_t synced_ts;          ///< Timestamp of the last synchronization
 } mac_vars_t;
 
 //=========================== variables ========================================
@@ -276,9 +276,9 @@ static void new_slot_synced(void) {
 }
 
 static void node_back_to_scanning(void) {
-    mac_vars.synced_gateway = 0;
+    mac_vars.synced_gateway    = 0;
     mac_vars.synced_network_id = 0;
-    mac_vars.synced_ts      = 0;
+    mac_vars.synced_ts         = 0;
     set_slot_state(STATE_SLEEP);
     end_slot();
     start_scan();
@@ -648,9 +648,9 @@ static bool select_gateway_and_sync(void) {
             &new_slot_synced);
     }
 
-    mac_vars.synced_gateway = selected_gateway.beacon.src;
+    mac_vars.synced_gateway    = selected_gateway.beacon.src;
     mac_vars.synced_network_id = selected_gateway.beacon.network_id;
-    mac_vars.synced_ts      = now_ts;
+    mac_vars.synced_ts         = now_ts;
 
     // the selected gateway may have been scanned a few slot_durations ago, so we need to account for that difference
     // NOTE: this assumes that the slot duration is the same for gateways and nodes

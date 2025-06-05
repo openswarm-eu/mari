@@ -73,7 +73,6 @@ int main(void) {
         __SEV();
         __WFE();
         __WFE();
-
     }
 }
 

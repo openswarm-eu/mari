@@ -56,11 +56,11 @@ static size_t _set_header(uint8_t *buffer, uint64_t dst, mr_packet_type_t packet
     uint64_t src = mr_device_id();
 
     mr_packet_header_t header = {
-        .version = MIRA_PROTOCOL_VERSION,
-        .type    = packet_type,
+        .version    = MIRA_PROTOCOL_VERSION,
+        .type       = packet_type,
         .network_id = mr_assoc_get_network_id(),
-        .dst     = dst,
-        .src     = src,
+        .dst        = dst,
+        .src        = src,
     };
     memcpy(buffer, &header, sizeof(mr_packet_header_t));
     return sizeof(mr_packet_header_t);
