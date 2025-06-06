@@ -18,7 +18,7 @@
 
 //=========================== defines ==========================================
 
-#define MIRA_MAX_NODES         10  // TODO: find a way to sync with the pre-stored schedules
+#define MIRA_MAX_NODES         101  // FIXME: find a way to sync with the pre-stored schedules
 #define MIRA_BROADCAST_ADDRESS 0xFFFFFFFFFFFFFFFF
 
 //=========================== prototypes ==========================================
