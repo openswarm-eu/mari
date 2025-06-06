@@ -1,7 +1,72 @@
-# Mira  💫 👀
+# Mira 💫 👀
 
-Mira is a mobile, low-power, and lightweight wireless connectivity solution for dense IoT supporting real-time interactions and fast OTA updates.
+Mira is a lightweight wireless connectivity solution designed for dense IoT networks, with a focus on supporting real-time interactions and fast over-the-air (OTA) updates.
 
-It was designed to support the OpenSwarm 1,000 DotBots Testbed.
+The driving use case for the design of Mira is the OpenSwarm Testbed of 1,000 [DotBots](https://github.com/DotBots/DotBot-firmware). Mira is suitable for any dense IoT deployment requiring low-latency communication.
 
-Mira is compatible with and has been validated with these chips: nRF52833, nRF52840, and nRF5340.
+## Key Features
+
+- **TSCH over BLE**: Implements Time-Synchronized Channel Hopping (TSCH) over Bluetooth Low Energy (BLE) 2 Mbps PHY
+- **Multi-Gateway Architecture**: Allows scaling the network by adding more gateways
+- **Non-Coordinated Gateways**: Gateways are independent, so the infrastructure setup is very simple
+- **Fast Handovers**: Enables quick transitions between gateways as nodes move
+- **Low-Power Operation**: Designed for energy-efficient operation in battery-powered devices (BLE radio)
+- **Real-Time Communication**: Achieves 100-150 ms average latency with 100 nodes per gateway
+- **Reasonable Throughput for OTAP**: About 10 Kb/s downlink
+- **Quick Network Join**: Best and worst -case join time of 150 ms and 6 seconds, respectively
+- **Dense Network Support**: Scales for networks with hundreds to thousands of nodes
+
+## Project Structure
+
+```
+mira/
+├── app/                    # Example applications and tests
+│   ├── 03app_gateway/     # Gateway implementation example
+│   ├── 03app_node/        # Node implementation example
+│   └── ...                # Various test applications
+├── drv/                   # Hardware drivers
+├── mira/                  # Core protocol implementation
+└── nRF/                   # Nordic Semiconductor SDK files
+```
+
+## Example Usage
+
+Gateway initialization:
+```c
+mira_init(MIRA_GATEWAY, MIRA_NET_ID_DEFAULT, schedule, event_callback);
+```
+
+Node initialization:
+```c
+mira_init(MIRA_NODE, MIRA_NET_ID_PATTERN_ANY, schedule, event_callback);
+```
+
+## Hardware Support
+
+Mira has been validated with the following Nordic Semiconductor chips:
+- nRF52833
+- nRF52840
+- nRF5340
+
+## Development Environment
+
+The project includes configuration files for:
+- Segger Embedded Studio (`.emProject` files)
+- Code formatting (`.clang-format`)
+- Git hooks (`.pre-commit-config.yaml`)
+
+## Getting Started
+
+[Coming soon]
+
+## License
+
+This project is licensed under the terms included in the LICENSE file.
+
+## Publications
+
+- Fedrecheski et al., "Mira: Connecting Large Scale Robot Swarms over BLE using TSCH with Multiple Independent Gateways", CrystalFreeIoT Workshop 2025 [Forthcoming]
+
+## Acknowledgments
+
+This project has received funding from the EU's Horizon Europe Framework Programme under Grant Agreement No. 101093046.
