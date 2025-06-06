@@ -29,10 +29,6 @@
 typedef struct {
     mr_node_type_t node_type;
     mr_event_cb_t  app_event_callback;
-
-    // gateway only
-    uint64_t joined_nodes[MIRA_MAX_NODES];
-    uint8_t  joined_nodes_len;
 } mira_vars_t;
 
 //=========================== variables ========================================
