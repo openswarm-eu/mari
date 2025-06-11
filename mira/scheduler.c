@@ -6,7 +6,7 @@
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
- * @copyright Inria, 2024
+ * @copyright Inria, 2025
  */
 #include <nrf.h>
 #include <stdint.h>
@@ -25,8 +25,6 @@
 //=========================== variables ========================================
 
 typedef struct {
-    mr_node_type_t node_type;  // whether the node is a gateway or a dotbot
-
     // counters and indexes
     schedule_t *active_schedule_ptr;  // pointer to the currently active schedule
     uint32_t    slotframe_counter;    // used to cycle beacon channels through slotframes (when listening for beacons at uplink slot_durations)
@@ -42,16 +40,15 @@ static schedule_vars_t _schedule_vars = { 0 };
 
 //========================== prototypes ========================================
 
-// Compute the radio action when the node is a gateway
+// compute the radio action when the node is a gateway
 void _compute_gateway_action(cell_t cell, mr_slot_info_t *slot_info);
 
-// Compute the radio action when the node is a dotbot
-void _compute_dotbot_action(cell_t cell, mr_slot_info_t *slot_info);
+// compute the radio action when the node is an end device
+void _compute_node_action(cell_t cell, mr_slot_info_t *slot_info);
 
 //=========================== public ===========================================
 
-void mr_scheduler_init(mr_node_type_t node_type, schedule_t *application_schedule) {
-    _schedule_vars.node_type = node_type;
+void mr_scheduler_init(schedule_t *application_schedule) {
 
     if (_schedule_vars.available_schedules_len == MIRA_N_SCHEDULES)
         return;  // FIXME: this is just to simplify debugging (allows calling init multiple times)
@@ -171,10 +168,10 @@ mr_slot_info_t mr_scheduler_tick(uint64_t asn) {
         .channel      = mr_scheduler_get_channel(cell.type, asn, cell.channel_offset),
         .type         = cell.type,  // FIXME: only for debugging, remove before merge
     };
-    if (_schedule_vars.node_type == MIRA_GATEWAY) {
+    if (mira_get_node_type() == MIRA_GATEWAY) {
         _compute_gateway_action(cell, &slot_info);
     } else {
-        _compute_dotbot_action(cell, &slot_info);
+        _compute_node_action(cell, &slot_info);
         mr_assoc_node_tick_backoff();
     }
 
@@ -241,7 +238,7 @@ void _compute_gateway_action(cell_t cell, mr_slot_info_t *slot_info) {
     }
 }
 
-void _compute_dotbot_action(cell_t cell, mr_slot_info_t *slot_info) {
+void _compute_node_action(cell_t cell, mr_slot_info_t *slot_info) {
     switch (cell.type) {
         case SLOT_TYPE_BEACON:
         case SLOT_TYPE_DOWNLINK:

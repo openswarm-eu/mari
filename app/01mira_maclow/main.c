@@ -65,15 +65,15 @@ int main(void) {
 
     mira_set_node_type(node_type);
 
-    mr_assoc_init(mira_event_callback);
+    mr_assoc_init(MIRA_NET_ID_DEFAULT, mira_event_callback);
 
-    mr_scheduler_init(node_type, &schedule);
+    mr_scheduler_init(&schedule);
     printf("\n==== Device of type %c and id %llx is using schedule 0x%0X ====\n\n", node_type, mr_device_id(), schedule.id);
 
     // printf("MIRA_FIXED_CHANNEL = %d\n", MIRA_FIXED_CHANNEL);
 
     // initialize the mac
-    mr_mac_init(node_type, mira_event_callback);
+    mr_mac_init(mira_event_callback);
 
     while (1) {
         __WFE();

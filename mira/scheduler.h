@@ -30,7 +30,7 @@
  *
  * @param[in] schedule         Schedule to be used.
  */
-void mr_scheduler_init(mr_node_type_t node_type, schedule_t *application_schedule);
+void mr_scheduler_init(schedule_t *application_schedule);
 
 /**
  * @brief Advances the schedule by one cell/slot.

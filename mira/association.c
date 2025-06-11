@@ -6,7 +6,7 @@
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
- * @copyright Inria, 2024
+ * @copyright Inria, 2025
  */
 
 #include <nrf.h>
