@@ -6,7 +6,7 @@
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
- * @copyright Inria, 2024
+ * @copyright Inria, 2025
  */
 
 #include <nrf.h>
@@ -66,8 +66,7 @@ typedef enum {
 } mr_mac_state_t;
 
 typedef struct {
-    mr_node_type_t node_type;  //< whether the node is a gateway or a dotbot
-    uint64_t       device_id;  ///< Device ID
+    uint64_t device_id;  ///< Device ID
 
     mr_mac_state_t state;              ///< State within the slot
     uint32_t       start_slot_ts;      ///< Timestamp of the start of the slot
@@ -145,7 +144,7 @@ static void isr_mac_radio_end_frame(uint32_t ts);
 
 //=========================== public ===========================================
 
-void mr_mac_init(mr_node_type_t node_type, mr_event_cb_t event_callback) {
+void mr_mac_init(mr_event_cb_t event_callback) {
 #ifdef DEBUG
     mr_gpio_init(&pin0, MR_GPIO_OUT);
     mr_gpio_init(&pin1, MR_GPIO_OUT);
@@ -160,7 +159,6 @@ void mr_mac_init(mr_node_type_t node_type, mr_event_cb_t event_callback) {
     mr_radio_init(&isr_mac_radio_start_frame, &isr_mac_radio_end_frame, MR_RADIO_BLE_2MBit);
 
     // node stuff
-    mac_vars.node_type = node_type;
     mac_vars.device_id = mr_device_id();
 
     // synchronization stuff
@@ -172,7 +170,7 @@ void mr_mac_init(mr_node_type_t node_type, mr_event_cb_t event_callback) {
     // begin the slot
     set_slot_state(STATE_SLEEP);
 
-    if (mac_vars.node_type == MIRA_GATEWAY) {
+    if (mira_get_node_type() == MIRA_GATEWAY) {
         mac_vars.start_slot_ts = mr_timer_hf_now(MIRA_TIMER_DEV);
         mr_assoc_set_state(JOIN_STATE_JOINED);
         mr_timer_hf_set_periodic_us(
@@ -234,10 +232,10 @@ static void new_slot_synced(void) {
     DEBUG_GPIO_CLEAR(&pin0);  // debug: show that a new slot started
 
     // perform timeout checks
-    if (mac_vars.node_type == MIRA_GATEWAY) {
+    if (mira_get_node_type() == MIRA_GATEWAY) {
         // too long without receiving a packet from certain nodes? disconnect them
         mr_assoc_gateway_clear_old_nodes(mac_vars.asn);
-    } else if (mac_vars.node_type == MIRA_NODE) {
+    } else if (mira_get_node_type() == MIRA_NODE) {
         if (mr_assoc_node_should_leave(mac_vars.asn)) {
             // assoc module determined that the node should leave, so disconnect and back to scanning
             mr_assoc_node_handle_disconnect();
@@ -266,7 +264,7 @@ static void new_slot_synced(void) {
         activity_ri1();
     } else if (mac_vars.current_slot_info.radio_action == MIRA_RADIO_ACTION_SLEEP) {
         // check if we should use this slot for background scan
-        if (mac_vars.node_type == MIRA_GATEWAY || !MIRA_ENABLE_BACKGROUND_SCAN) {
+        if (mira_get_node_type() == MIRA_GATEWAY || !MIRA_ENABLE_BACKGROUND_SCAN) {
             set_slot_state(STATE_SLEEP);
             end_slot();
         } else {  // node with background scan enabled
@@ -542,7 +540,7 @@ static void activity_ri4(uint32_t ts) {
         return;
     }
 
-    if (mac_vars.node_type == MIRA_NODE && mr_assoc_is_joined() && header->src == mac_vars.synced_gateway) {
+    if (mira_get_node_type() == MIRA_NODE && mr_assoc_is_joined() && header->src == mac_vars.synced_gateway) {
         // only fix drift if the packet comes from the gateway we are synced to
         // NOTE: this should ideally be done at ri3 (when the packet starts), but we don't have the id there.
         //       could use use the physical BLE address for that?

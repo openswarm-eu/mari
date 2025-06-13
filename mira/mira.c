@@ -6,7 +6,7 @@
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
- * @copyright Inria, 2024
+ * @copyright Inria, 2025
  */
 
 #include <nrf.h>
@@ -49,8 +49,8 @@ void mira_init(mr_node_type_t node_type, uint16_t net_id, schedule_t *app_schedu
     _mira_vars.app_event_callback = app_event_callback;
 
     mr_assoc_init(net_id, event_callback);
-    mr_scheduler_init(node_type, app_schedule);
-    mr_mac_init(node_type, event_callback);
+    mr_scheduler_init(app_schedule);
+    mr_mac_init(event_callback);
     if (node_type == MIRA_GATEWAY) {
         mr_bloom_gateway_init();
     }

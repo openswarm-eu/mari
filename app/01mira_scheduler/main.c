@@ -11,10 +11,11 @@
 #include <nrf.h>
 #include <stdio.h>
 
-#include "scheduler.h"
-#include "mac.h"
 #include "mr_timer_hf.h"
 #include "mr_device.h"
+#include "scheduler.h"
+#include "mac.h"
+#include "mira.h"
 
 #define SLOT 1000 * 1000  // 1 s
 
@@ -29,7 +30,10 @@ int main(void) {
     // initialize schedule
     schedule_t     schedule  = schedule_minuscule;
     mr_node_type_t node_type = MIRA_NODE;
-    mr_scheduler_init(node_type, &schedule);
+
+    mira_set_node_type(node_type);
+
+    mr_scheduler_init(&schedule);
 
     printf("Device of type %c and id %llx is using schedule %d\n\n", node_type, mr_device_id(), schedule.id);
 
