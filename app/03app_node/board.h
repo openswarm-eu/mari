@@ -1,8 +1,8 @@
 /**
  * @file
  * @brief       Generic board support interface.
- * @details     
- *              
+ * @details
+ *
  */
 #ifndef BOARD_H
 #define BOARD_H
@@ -12,11 +12,10 @@ typedef enum {
     RED,
     GREEN,
     BLUE,
-    OTHER, 
+    OTHER,
 } led_color_t;
-
 
 void board_init(void);
 void board_set_rgb(led_color_t color);
 
-#endif 
+#endif
