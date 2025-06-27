@@ -19,7 +19,7 @@
 #include "mira.h"
 #include "packet.h"
 
-#include "minimote.h"
+#include "board.h"
 
 //=========================== defines ==========================================
 
