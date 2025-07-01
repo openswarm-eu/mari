@@ -49,6 +49,7 @@ typedef enum {
     MIRA_DISCONNECTED,
     MIRA_NODE_JOINED,
     MIRA_NODE_LEFT,
+    MIRA_KEEPALIVE,
     MIRA_ERROR,
 } mr_event_t;
 

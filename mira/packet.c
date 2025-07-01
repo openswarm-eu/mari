@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "mr_device.h"
+#include "scheduler.h"
 #include "association.h"
 #include "packet.h"
 
@@ -48,6 +49,18 @@ size_t mr_build_packet_beacon(uint8_t *buffer, uint16_t net_id, uint64_t asn, ui
     };
     memcpy(buffer, &beacon, sizeof(mr_beacon_packet_header_t));
     return sizeof(mr_beacon_packet_header_t);
+}
+
+size_t mr_build_uart_packet_gateway_info(uint8_t *buffer) {
+    uint64_t device_id   = mr_device_id();
+    uint16_t net_id      = mr_assoc_get_network_id();
+    uint16_t schedule_id = mr_scheduler_get_active_schedule_id();
+
+    memcpy(buffer, &device_id, sizeof(uint64_t));
+    memcpy(buffer + sizeof(uint64_t), &net_id, sizeof(uint16_t));
+    memcpy(buffer + sizeof(uint64_t) + sizeof(uint16_t), &schedule_id, sizeof(uint16_t));
+
+    return sizeof(uint64_t) + sizeof(uint16_t) + sizeof(uint16_t);
 }
 
 //=========================== private ==========================================
