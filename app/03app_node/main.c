@@ -87,9 +87,9 @@ static void mira_event_callback(mr_event_t event, mr_event_data_t event_data) {
             uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
             printf("Connected to gateway %016llX\n", gateway_id);
             if (gateway_id == 0xCEA467E20BACC0AB) {
-                board_set_rgb(GREEN);
+                board_set_mira_status(GREEN);
             } else {
-                board_set_rgb(OTHER);
+                board_set_mira_status(OTHER);
             }
             break;
         }
@@ -97,7 +97,7 @@ static void mira_event_callback(mr_event_t event, mr_event_data_t event_data) {
         {
             uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
             printf("Disconnected from gateway %016llX, reason: %u\n", gateway_id, event_data.tag);
-            board_set_rgb(RED);
+            board_set_mira_status(RED);
             break;
         }
         case MIRA_ERROR:
