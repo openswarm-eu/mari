@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <nrf.h>
-#include "ipc.h"
+#include "mr_ipc.h"
 
 __NO_RETURN extern void reset_handler(void);
 __NO_RETURN void dummy_handler(void);

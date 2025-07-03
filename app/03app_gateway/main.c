@@ -2,7 +2,7 @@
  * @file
  * @ingroup     app
  *
- * @brief       Mira Gateway application example
+ * @brief       Mira Gateway application (radio side)
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
