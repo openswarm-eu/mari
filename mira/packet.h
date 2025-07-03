@@ -53,6 +53,14 @@ typedef struct __attribute__((packed)) {
     uint8_t          active_schedule_id;
 } mr_beacon_packet_header_t;
 
+typedef enum {
+    MIRA_EDGE_NODE_JOINED  = 1,
+    MIRA_EDGE_NODE_LEFT    = 2,
+    MIRA_EDGE_DATA         = 3,
+    MIRA_EDGE_KEEPALIVE    = 4,
+    MIRA_EDGE_GATEWAY_INFO = 5,
+} mr_gateway_edge_type_t;
+
 //=========================== prototypes =======================================
 
 size_t mr_build_packet_data(uint8_t *buffer, uint64_t dst, uint8_t *data, size_t data_len);
@@ -64,5 +72,7 @@ size_t mr_build_packet_join_response(uint8_t *buffer, uint64_t dst);
 size_t mr_build_packet_keepalive(uint8_t *buffer, uint64_t dst);
 
 size_t mr_build_packet_beacon(uint8_t *buffer, uint16_t net_id, uint64_t asn, uint8_t remaining_capacity, uint8_t active_schedule_id);
+
+size_t mr_build_uart_packet_gateway_info(uint8_t *buffer);
 
 #endif

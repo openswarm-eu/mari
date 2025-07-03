@@ -153,12 +153,18 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
                 break;
             }
             case MIRA_PACKET_KEEPALIVE:
+            {
                 if (!from_joined_node) {
                     // ignore packets from nodes that are not joined
                     return;
                 }
                 mr_assoc_gateway_keep_node_alive(header->src, mr_mac_get_asn());  // keep track of when the last packet was received
+                mr_event_data_t event_data = {
+                    .data.node_info = { .node_id = header->src }
+                };
+                _mira_vars.app_event_callback(MIRA_KEEPALIVE, event_data);
                 break;
+            }
             default:
                 break;
         }
