@@ -7,7 +7,7 @@
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  * @author Alexandre Abadie <alexandre.abadie@inria.fr>
  *
- * @copyright Inria, 2025
+ * @copyright Inria, 2025-now
  */
 #include <nrf.h>
 #include <stdio.h>
@@ -36,6 +36,10 @@ int main(void) {
     printf("Hello Mira Gateway App Core (UART) %016llX\n", mr_device_id());
 
     _setup_debug_pins();
+
+    // TODO: communicate with the network core via IPC, and make sure we start the network core
+
+    // TODO: communicate with an external device via UART (e.g. a computer or raspberry pi)
 
     while (1) {
         __SEV();

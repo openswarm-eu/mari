@@ -9,7 +9,7 @@ repos:
         pass_filenames: false
       - id: gateway-network-id-check
         name: Ensure gateway uses MIRA_NET_ID_DEFAULT
-        entry: grep MIRA_NET_ID_DEFAULT app/03app_gateway/main.c
+        entry: grep MIRA_NET_ID_DEFAULT app/03app_gateway_net/main.c
         language: system
         pass_filenames: false
       - id: node-network-id-check
