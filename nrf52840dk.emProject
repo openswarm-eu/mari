@@ -69,6 +69,6 @@
   <import file_name="drv/drv.emProject" />
   <import file_name="mira/mira.emProject" />
   <import file_name="app/app-drv-mira.emProject" />
-  <import file_name="app/app-gateway.emProject" />
+  <import file_name="app/app-gateway-net.emProject" />
   <import file_name="app/app-node.emProject" />
 </solution>
