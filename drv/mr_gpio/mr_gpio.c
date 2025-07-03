@@ -1,12 +1,13 @@
 /**
  * @file
- * @ingroup bsp_gpio
+ * @ingroup drv_gpio
  *
- * @brief  nRF52833-specific definition of the "gpio" bsp module.
+ * @brief  Definition of the "gpio" module.
  *
  * @author Alexandre Abadie <alexandre.abadie@inria.fr>
+ * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
- * @copyright Inria, 2023
+ * @copyright Inria, 2025-now
  */
 #include <nrf.h>
 #include <assert.h>

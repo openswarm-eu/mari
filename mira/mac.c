@@ -9,6 +9,7 @@
  * @copyright Inria, 2025
  */
 
+#include <arm_cmse.h>
 #include <nrf.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -146,6 +147,13 @@ static void isr_mac_radio_end_frame(uint32_t ts);
 
 void mr_mac_init(mr_event_cb_t event_callback) {
 #ifdef DEBUG
+#ifdef NRF5340_XXAA
+    // Wait a bit to ensure application core has set up GPIO permissions
+    // FIXME: replace with proper IPC handshake
+    for (volatile int i = 0; i < 1000000; i++) {
+        __NOP();
+    }
+#endif
     mr_gpio_init(&pin0, MR_GPIO_OUT);
     mr_gpio_init(&pin1, MR_GPIO_OUT);
     mr_gpio_init(&pin2, MR_GPIO_OUT);

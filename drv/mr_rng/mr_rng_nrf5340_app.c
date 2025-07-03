@@ -11,9 +11,9 @@
 #include <stdint.h>
 #include <nrf.h>
 
-#include "ipc.h"
+#include "mr_ipc.h"
 #include "mr_rng.h"
-#include "tz.h"
+// #include "tz.h"
 
 //========================== variables =========================================
 
@@ -33,7 +33,7 @@ void mr_rng_init(void) {
     // Define RAMREGION 2 (0x20004000 to 0x20005FFF, e.g 8KiB) as non secure. It's used to share data between cores
     db_configure_ram_non_secure(2, 1);
 
-    NRF_IPC_S->SEND_CNF[DB_IPC_CHAN_REQ] = 1 << DB_IPC_CHAN_REQ;
+    NRF_IPC_S->SEND_CNF[MR_IPC_CHAN_REQ] = 1 << MR_IPC_CHAN_REQ;
 
     NVIC_EnableIRQ(IPC_IRQn);
     NVIC_ClearPendingIRQ(IPC_IRQn);
@@ -42,7 +42,7 @@ void mr_rng_init(void) {
     // Start the network core
     release_network_core();
 
-    db_ipc_network_call(DB_IPC_RNG_INIT_REQ);
+    db_ipc_network_call(MR_IPC_RNG_INIT_REQ);
 #endif
 }
 
@@ -50,7 +50,7 @@ void mr_rng_read(uint8_t *value) {
 #if defined(USE_SWARMIT)
     swarmit_read_rng(value);
 #else
-    db_ipc_network_call(DB_IPC_RNG_READ_REQ);
+    db_ipc_network_call(MR_IPC_RNG_READ_REQ);
     *value = ipc_shared_data.rng.value;
 #endif
 }

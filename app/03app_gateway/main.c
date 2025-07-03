@@ -53,12 +53,11 @@ void mira_event_callback(mr_event_t event, mr_event_data_t event_data);
 void tx_to_all_connected(void);
 void stats_register(uint8_t type);
 void _debug_print_stats(void);
-void _debug_print_schedule(void);
 
 //=========================== main =============================================
 
 int main(void) {
-    printf("Hello Mira Gateway %016llX\n", mr_device_id());
+    printf("Hello Mira Gateway Net Core %016llX\n", mr_device_id());
     mr_timer_hf_init(MIRA_APP_TIMER_DEV);
 
     mr_timer_hf_set_periodic_us(MIRA_APP_TIMER_DEV, 0, 1000 * 750, &tx_to_all_connected);
@@ -85,20 +84,10 @@ void mira_event_callback(mr_event_t event, mr_event_data_t event_data) {
         case MIRA_NEW_PACKET:
         {
             stats_register('U');
-            // mira_packet_t packet = event_data.data.new_packet;
-            // printf("RX %u B: src=%016llX dst=%016llX (rssi %d) payload=", packet.len, packet.header->src, packet.header->dst, mr_radio_rssi());
-            // for (int i = 0; i < packet.payload_len; i++) {
-            //     printf("%02X ", packet.payload[i]);
-            // }
-            // printf("\n");
             break;
         }
         case MIRA_NODE_JOINED:
             printf("%d New node joined: %016llX  (%d nodes connected)\n", now_ts_s, event_data.data.node_info.node_id, mira_gateway_count_nodes());
-            // uint64_t joined_nodes[MIRA_MAX_NODES] = { 0 };
-            // uint8_t joined_nodes_len = mira_gateway_get_nodes(joined_nodes);
-            // printf("Number of connected nodes: %d\n", joined_nodes_len);
-            //  TODO: send list of joined_nodes to Edge Gateway via UART
             break;
         case MIRA_NODE_LEFT:
             printf("%d Node left: %016llX, reason: %u  (%d nodes connected)\n", now_ts_s, event_data.data.node_info.node_id, event_data.tag, mira_gateway_count_nodes());
@@ -139,22 +128,4 @@ void _debug_print_stats(void) {
     // calculate success rate
     float rate = (float)stats_vars.n_uplink / (float)stats_vars.n_downlink * 100.0;
     printf("ts = %d.%d Success = %.2f%%: %u downlink packets, %u uplink packets\n", now_ts_s, now_ts_ms, rate, stats_vars.n_downlink, stats_vars.n_uplink);
-}
-
-void _debug_print_schedule(void) {
-    uint8_t schedule_len = schedule_app->n_cells;
-    printf("Schedule cells: ");
-    for (int i = 0; i < schedule_len; i++) {
-        cell_t cell = schedule_app->cells[i];
-        if (cell.type == SLOT_TYPE_UPLINK) {
-            printf("%d-U-%016llX ", i, cell.assigned_node_id);
-        } else if (cell.type == SLOT_TYPE_DOWNLINK) {
-            printf("%d-D ", i);
-        } else if (cell.type == SLOT_TYPE_BEACON) {
-            printf("%d-B ", i);
-        } else if (cell.type == SLOT_TYPE_SHARED_UPLINK) {
-            printf("%d-S ", i);
-        }
-    }
-    printf("\n");
 }

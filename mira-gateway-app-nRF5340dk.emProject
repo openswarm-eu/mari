@@ -62,7 +62,7 @@
     gcc_debugging_level="Level 2"
     gcc_omit_frame_pointer="Yes"
     gcc_optimization_level="Level 2 balanced" />
-  <!-- <import file_name="drv/drv.emProject" /> -->
+  <import file_name="drv/drv.emProject" />
   <import file_name="mira/mira.emProject" />
   <import file_name="app/app-gateway-app.emProject" />
 </solution>
