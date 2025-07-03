@@ -35,11 +35,18 @@
 
 #ifdef DEBUG
 #include "mr_gpio.h"  // for debugging
-// the 4 LEDs of the DK are on port 0, pins 13, 14, 15, 16
+// the 4 LEDs of the nRF52840-DK or the nRF5340-DK
+#ifdef NRF52840_XXAA
 mr_gpio_t led0 = { .port = 0, .pin = 13 };
 mr_gpio_t led1 = { .port = 0, .pin = 14 };
 mr_gpio_t led2 = { .port = 0, .pin = 15 };
 mr_gpio_t led3 = { .port = 0, .pin = 16 };
+#else
+mr_gpio_t led0 = { .port = 0, .pin = 28 };
+mr_gpio_t led1 = { .port = 0, .pin = 29 };
+mr_gpio_t led2 = { .port = 0, .pin = 30 };
+mr_gpio_t led3 = { .port = 0, .pin = 31 };
+#endif
 #define DEBUG_GPIO_TOGGLE(pin) mr_gpio_toggle(pin)
 #define DEBUG_GPIO_SET(pin)    mr_gpio_set(pin)
 #define DEBUG_GPIO_CLEAR(pin)  mr_gpio_clear(pin)
@@ -87,6 +94,13 @@ assoc_vars_t assoc_vars = { 0 };
 
 void mr_assoc_init(uint16_t net_id, mr_event_cb_t event_callback) {
 #ifdef DEBUG
+#ifdef NRF5340_XXAA
+    // Wait a bit to ensure application core has set up GPIO permissions
+    // FIXME: replace with proper IPC handshake
+    for (volatile int i = 0; i < 1000000; i++) {
+        __NOP();
+    }
+#endif
     mr_gpio_init(&led0, MR_GPIO_OUT);
     mr_gpio_init(&led1, MR_GPIO_OUT);
     mr_gpio_init(&led2, MR_GPIO_OUT);

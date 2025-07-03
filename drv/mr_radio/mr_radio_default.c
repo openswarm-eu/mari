@@ -6,8 +6,9 @@
  *
  * @author Said Alvarado-Marin <said-alexander.alvarado-marin@inria.fr>
  * @author Diego Badillo-San-Juan <diego.badillo-san-juan@inria.fr>
+ * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  *
- * @copyright Inria, 2022-2024
+ * @copyright Inria, 2025-now
  */
 #include <nrf.h>
 #include <stdint.h>
