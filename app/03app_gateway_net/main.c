@@ -12,6 +12,8 @@
 #include <nrf.h>
 #include <stdio.h>
 
+#include "ipc.h"
+
 #include "mr_device.h"
 #include "mr_radio.h"
 #include "mr_timer_hf.h"
@@ -34,28 +36,7 @@ gateway_vars_t gateway_vars = { 0 };
 extern schedule_t schedule_minuscule, schedule_tiny, schedule_huge;
 schedule_t       *schedule_app = &schedule_huge;
 
-//=========================== prototypes =======================================
-
-void mira_event_callback(mr_event_t event, mr_event_data_t event_data);
-
-//=========================== main =============================================
-
-int main(void) {
-    printf("Hello Mira Gateway Net Core %016llX\n", mr_device_id());
-    mr_timer_hf_init(MIRA_APP_TIMER_DEV);
-
-    mira_init(MIRA_GATEWAY, MIRA_NET_ID_DEFAULT, schedule_app, &mira_event_callback);
-
-    mr_timer_hf_set_periodic_us(MIRA_APP_TIMER_DEV, 2, mr_scheduler_get_duration_us(), &mira_event_loop);
-
-    // TODO: communicate with the application core via IPC
-
-    while (1) {
-        __SEV();
-        __WFE();
-        __WFE();
-    }
-}
+volatile __attribute__((section(".shared_data"))) ipc_shared_data_t ipc_shared_data;
 
 //=========================== callbacks ========================================
 
@@ -81,4 +62,21 @@ void mira_event_callback(mr_event_t event, mr_event_data_t event_data) {
     }
 }
 
-//=========================== private ========================================
+//=========================== main =============================================
+
+int main(void) {
+    printf("Hello Mira Gateway Net Core %016llX\n", mr_device_id());
+    mr_timer_hf_init(MIRA_APP_TIMER_DEV);
+
+    mira_init(MIRA_GATEWAY, MIRA_NET_ID_DEFAULT, schedule_app, &mira_event_callback);
+
+    mr_timer_hf_set_periodic_us(MIRA_APP_TIMER_DEV, 2, mr_scheduler_get_duration_us(), &mira_event_loop);
+
+    // TODO: communicate with the application core via IPC
+
+    while (1) {
+        __SEV();
+        __WFE();
+        __WFE();
+    }
+}

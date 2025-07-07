@@ -67,8 +67,6 @@ extern uint32_t __HEAPSIZE__;
 extern uint32_t __STACKSIZE__;
 extern uint32_t __STACKSIZE_PROCESS__;
 
-void HardFault_Handler(void);
-
 #if defined(NRF5340_XXAA) && defined(NRF_APPLICATION)
 #include "nRF5340_xxAA_Application_cpu.c"
 #elif defined(NRF5340_XXAA) && defined(NRF_NETWORK)
