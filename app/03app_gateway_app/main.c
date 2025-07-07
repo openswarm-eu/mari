@@ -66,9 +66,9 @@ static void _configure_ram_non_secure(uint8_t start_region, size_t length) {
 }
 
 static void _init_ipc(void) {
-    NRF_IPC_NS->INTENSET                            = (1 << IPC_CHAN_RADIO_TO_UART);
-    NRF_IPC_NS->SEND_CNF[IPC_CHAN_UART_TO_RADIO]    = (1 << IPC_CHAN_UART_TO_RADIO);
-    NRF_IPC_NS->RECEIVE_CNF[IPC_CHAN_RADIO_TO_UART] = (1 << IPC_CHAN_RADIO_TO_UART);
+    NRF_IPC_S->INTENSET                            = (1 << IPC_CHAN_RADIO_TO_UART);
+    NRF_IPC_S->SEND_CNF[IPC_CHAN_UART_TO_RADIO]    = (1 << IPC_CHAN_UART_TO_RADIO);
+    NRF_IPC_S->RECEIVE_CNF[IPC_CHAN_RADIO_TO_UART] = (1 << IPC_CHAN_RADIO_TO_UART);
 
     NVIC_EnableIRQ(IPC_IRQn);
     NVIC_ClearPendingIRQ(IPC_IRQn);
