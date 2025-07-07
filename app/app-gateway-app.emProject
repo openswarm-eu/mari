@@ -3,7 +3,7 @@
   <project Name="03app_gateway_app">
     <configuration
       Name="Common"
-      project_dependencies="01mira(01mira);00drv_mr_timer_hf(00drv)"
+      project_dependencies="00drv_mr_timer_hf(00drv);00drv_mr_gpio(00drv)"
       project_directory="03app_gateway_app"
       project_type="Executable" />
     <folder Name="Setup">
@@ -17,7 +17,12 @@
     </folder>
     <folder Name="Source">
       <configuration Name="Common" filter="c;cpp;cxx;cc;h;s;asm;inc" />
+      <file file_name="hdlc.c" />
+      <file file_name="hdlc.h" />
+      <file file_name="ipc.h" />
       <file file_name="main.c" />
+      <file file_name="uart.c" />
+      <file file_name="uart.h" />
     </folder>
     <folder Name="System">
       <file file_name="$(ProjectDir)/../../nRF/System/$(Target)_system_init.c" />
