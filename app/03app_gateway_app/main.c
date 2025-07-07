@@ -120,7 +120,7 @@ int main(void) {
                     size_t msg_len = db_hdlc_decode((uint8_t *)ipc_shared_data.uart_to_radio);
                     ipc_shared_data.uart_to_radio_len = msg_len;
                     if (msg_len) {
-                        NRF_IPC_NS->TASKS_SEND[IPC_CHAN_UART_TO_RADIO] = 1;
+                        NRF_IPC_S->TASKS_SEND[IPC_CHAN_UART_TO_RADIO] = 1;
                     }
                 } break;
                 default:
