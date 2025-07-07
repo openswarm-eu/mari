@@ -137,8 +137,8 @@ int main(void) {
 }
 
 void IPC_IRQHandler(void) {
-    if (NRF_IPC_NS->EVENTS_RECEIVE[IPC_CHAN_UART_TO_RADIO]) {
-        NRF_IPC_NS->EVENTS_RECEIVE[IPC_CHAN_UART_TO_RADIO] = 0;
+    if (NRF_IPC_S->EVENTS_RECEIVE[IPC_CHAN_UART_TO_RADIO]) {
+        NRF_IPC_S->EVENTS_RECEIVE[IPC_CHAN_UART_TO_RADIO] = 0;
         _app_vars.mira_frame_received = true;
     }
 }
