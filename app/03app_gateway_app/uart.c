@@ -16,9 +16,6 @@
 
 #include "mr_gpio.h"
 #include "uart.h"
-//#if defined(NRF5340_XXAA) && defined(NRF_APPLICATION)
-//#include "tz.h"
-//#endif
 
 //=========================== defines ==========================================
 

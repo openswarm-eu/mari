@@ -26,17 +26,17 @@
 #define IPC_IRQ_PRIORITY (0)
 
 typedef enum {
-    IPC_CHAN_RADIO_TO_UART  = 0,    ///< Channel used for radio RX events
-    IPC_CHAN_UART_TO_RADIO  = 1,    ///< Channel used for radio RX events
+    IPC_CHAN_RADIO_TO_UART = 0,  ///< Channel used for radio RX events
+    IPC_CHAN_UART_TO_RADIO = 1,  ///< Channel used for radio RX events
 } ipc_channels_t;
 
 typedef struct __attribute__((packed)) {
-    bool                    net_ready;          ///< Network core is ready
-    bool                    net_ack;            ///< Network core acked the latest request
-    uint8_t                 radio_to_uart[UINT8_MAX]; ///< Data received from the network core
-    uint8_t                 radio_to_uart_len;        ///< Length of the data received from the network core
-    uint8_t                 uart_to_radio_tx[UINT8_MAX]; ///< Data to send to the network
-    uint8_t                 uart_to_radio_len;        ///< Length of the data to send to the network core
+    bool    net_ready;                    ///< Network core is ready
+    bool    net_ack;                      ///< Network core acked the latest request
+    uint8_t radio_to_uart[UINT8_MAX];     ///< Data received from the network core
+    uint8_t radio_to_uart_len;            ///< Length of the data received from the network core
+    uint8_t uart_to_radio_tx[UINT8_MAX];  ///< Data to send to the network
+    uint8_t uart_to_radio_len;            ///< Length of the data to send to the network core
 } ipc_shared_data_t;
 
 /**

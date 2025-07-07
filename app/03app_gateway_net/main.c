@@ -45,26 +45,26 @@ static void mira_event_callback(mr_event_t event, mr_event_data_t event_data) {
         case MIRA_NEW_PACKET:
         {
             ipc_shared_data.radio_to_uart_len = event_data.data.new_packet.len + 1;
-            ipc_shared_data.radio_to_uart[0] = MIRA_EDGE_DATA;
+            ipc_shared_data.radio_to_uart[0]  = MIRA_EDGE_DATA;
             memcpy((void *)ipc_shared_data.radio_to_uart + 1, event_data.data.new_packet.header, event_data.data.new_packet.len);
             break;
         }
         case MIRA_KEEPALIVE:
             printf("%d Node keepalise: %016llX  (%d nodes connected)\n", now_ts_s, event_data.data.node_info.node_id, mira_gateway_count_nodes());
             ipc_shared_data.radio_to_uart_len = 1 + sizeof(uint64_t);
-            ipc_shared_data.radio_to_uart[0] = MIRA_KEEPALIVE;
+            ipc_shared_data.radio_to_uart[0]  = MIRA_KEEPALIVE;
             memcpy((void *)ipc_shared_data.radio_to_uart + 1, &event_data.data.node_info.node_id, sizeof(uint64_t));
             break;
         case MIRA_NODE_JOINED:
             printf("%d New node joined: %016llX  (%d nodes connected)\n", now_ts_s, event_data.data.node_info.node_id, mira_gateway_count_nodes());
             ipc_shared_data.radio_to_uart_len = 1 + sizeof(uint64_t);
-            ipc_shared_data.radio_to_uart[0] = MIRA_NODE_JOINED;
+            ipc_shared_data.radio_to_uart[0]  = MIRA_NODE_JOINED;
             memcpy((void *)ipc_shared_data.radio_to_uart + 1, &event_data.data.node_info.node_id, sizeof(uint64_t));
             break;
         case MIRA_NODE_LEFT:
             printf("%d Node left: %016llX, reason: %u  (%d nodes connected)\n", now_ts_s, event_data.data.node_info.node_id, event_data.tag, mira_gateway_count_nodes());
             ipc_shared_data.radio_to_uart_len = 1 + sizeof(uint64_t);
-            ipc_shared_data.radio_to_uart[0] = MIRA_NODE_LEFT;
+            ipc_shared_data.radio_to_uart[0]  = MIRA_NODE_LEFT;
             memcpy((void *)ipc_shared_data.radio_to_uart + 1, &event_data.data.node_info.node_id, sizeof(uint64_t));
             break;
         case MIRA_ERROR:
@@ -104,7 +104,7 @@ int main(void) {
 
         if (_app_vars.uart_to_radio_packet_ready) {
             _app_vars.uart_to_radio_packet_ready = false;
-            uint8_t packet_type = ipc_shared_data.uart_to_radio_tx[0];
+            uint8_t packet_type                  = ipc_shared_data.uart_to_radio_tx[0];
             if (packet_type != 0x01) {
                 printf("Invalid UART packet type: %02X\n", packet_type);
                 continue;
@@ -130,6 +130,6 @@ int main(void) {
 void IPC_IRQHandler(void) {
     if (NRF_IPC_NS->EVENTS_RECEIVE[IPC_CHAN_UART_TO_RADIO]) {
         NRF_IPC_NS->EVENTS_RECEIVE[IPC_CHAN_UART_TO_RADIO] = 0;
-        _app_vars.uart_to_radio_packet_ready = true;
+        _app_vars.uart_to_radio_packet_ready               = true;
     }
 }

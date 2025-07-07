@@ -15,13 +15,13 @@
 
 //=========================== definitions ======================================
 
-#define DB_HDLC_BUFFER_SIZE    (1024)       ///< Maximum size of the RX buffer
-#define DB_HDLC_FLAG           (0x7E)       ///< Start/End flag
-#define DB_HDLC_FLAG_ESCAPED   (0x5E)       ///< Start/End flag escaped
-#define DB_HDLC_ESCAPE         (0x7D)       ///< Data escape byte
-#define DB_HDLC_ESCAPE_ESCAPED (0x5D)       ///< Escape flag escaped
-#define DB_HDLC_FCS_INIT       (0xFFFF)     ///< Initialization value of the FCS
-#define DB_HDLC_FCS_OK         (0xF0B8)     ///< Expected value of the FCS
+#define DB_HDLC_BUFFER_SIZE    (1024)    ///< Maximum size of the RX buffer
+#define DB_HDLC_FLAG           (0x7E)    ///< Start/End flag
+#define DB_HDLC_FLAG_ESCAPED   (0x5E)    ///< Start/End flag escaped
+#define DB_HDLC_ESCAPE         (0x7D)    ///< Data escape byte
+#define DB_HDLC_ESCAPE_ESCAPED (0x5D)    ///< Escape flag escaped
+#define DB_HDLC_FCS_INIT       (0xFFFF)  ///< Initialization value of the FCS
+#define DB_HDLC_FCS_OK         (0xF0B8)  ///< Expected value of the FCS
 
 typedef struct {
     uint8_t         buffer[DB_HDLC_BUFFER_SIZE];  ///< Input buffer

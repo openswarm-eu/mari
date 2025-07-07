@@ -20,12 +20,12 @@
 
 //=========================== defines ==========================================
 
-#define MR_UART_INDEX (1)  ///< Index of UART peripheral to use
-#define MR_UART_BAUDRATE    (1000000UL)  ///< UART baudrate used by the gateway
+#define MR_UART_INDEX    (1)          ///< Index of UART peripheral to use
+#define MR_UART_BAUDRATE (1000000UL)  ///< UART baudrate used by the gateway
 
 typedef struct {
-    bool mira_frame_received;
-    bool uart_byte_received;
+    bool    mira_frame_received;
+    bool    uart_byte_received;
     uint8_t uart_byte;
     uint8_t hdlc_encode_buffer[1024];  // Should be large enough
 } gateway_app_vars_t;
@@ -34,9 +34,8 @@ typedef struct {
 static const mr_gpio_t _mr_uart_tx_pin = { .port = 1, .pin = 1 };
 static const mr_gpio_t _mr_uart_rx_pin = { .port = 1, .pin = 0 };
 
-static gateway_app_vars_t _app_vars = { 0 };
+static gateway_app_vars_t                                           _app_vars = { 0 };
 volatile __attribute__((section(".shared_data"))) ipc_shared_data_t ipc_shared_data;
-
 
 static void _setup_debug_pins(void) {
     // Assign P0.28 to P0.31 to the network core (for debugging association.c via LEDs)
@@ -89,7 +88,7 @@ static void _release_network_core(void) {
 }
 
 static void _uart_callback(uint8_t byte) {
-    _app_vars.uart_byte = byte;
+    _app_vars.uart_byte          = byte;
     _app_vars.uart_byte_received = true;
 }
 
@@ -97,7 +96,7 @@ int main(void) {
     printf("Hello Mira Gateway App Core (UART) %016llX\n", mr_device_id());
 
     _setup_debug_pins();
-    
+
     _configure_ram_non_secure(2, 1);
     _init_ipc();
     _release_network_core();
@@ -109,7 +108,7 @@ int main(void) {
 
         if (_app_vars.uart_byte_received) {
             _app_vars.uart_byte_received = false;
-            db_hdlc_state_t hdlc_state = db_hdlc_rx_byte(_app_vars.uart_byte);
+            db_hdlc_state_t hdlc_state   = db_hdlc_rx_byte(_app_vars.uart_byte);
             switch ((uint8_t)hdlc_state) {
                 case DB_HDLC_STATE_IDLE:
                 case DB_HDLC_STATE_RECEIVING:
@@ -117,7 +116,7 @@ int main(void) {
                     break;
                 case DB_HDLC_STATE_READY:
                 {
-                    size_t msg_len = db_hdlc_decode((uint8_t *)ipc_shared_data.uart_to_radio);
+                    size_t msg_len                    = db_hdlc_decode((uint8_t *)ipc_shared_data.uart_to_radio);
                     ipc_shared_data.uart_to_radio_len = msg_len;
                     if (msg_len) {
                         NRF_IPC_S->TASKS_SEND[IPC_CHAN_UART_TO_RADIO] = 1;
@@ -130,7 +129,7 @@ int main(void) {
 
         if (_app_vars.mira_frame_received) {
             _app_vars.mira_frame_received = false;
-            size_t frame_len = db_hdlc_encode((uint8_t *)ipc_shared_data.radio_to_uart, ipc_shared_data.radio_to_uart_len, _app_vars.hdlc_encode_buffer);
+            size_t frame_len              = db_hdlc_encode((uint8_t *)ipc_shared_data.radio_to_uart, ipc_shared_data.radio_to_uart_len, _app_vars.hdlc_encode_buffer);
             mr_uart_write(MR_UART_INDEX, _app_vars.hdlc_encode_buffer, frame_len);
         }
     }
@@ -139,6 +138,6 @@ int main(void) {
 void IPC_IRQHandler(void) {
     if (NRF_IPC_S->EVENTS_RECEIVE[IPC_CHAN_RADIO_TO_UART]) {
         NRF_IPC_S->EVENTS_RECEIVE[IPC_CHAN_RADIO_TO_UART] = 0;
-        _app_vars.mira_frame_received = true;
+        _app_vars.mira_frame_received                     = true;
     }
 }
