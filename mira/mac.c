@@ -284,7 +284,7 @@ static void node_back_to_scanning(void) {
 }
 
 static void end_slot(void) {
-    if (!mr_mac_node_is_synced()) {
+    if (mira_get_node_type() == MIRA_NODE && !mr_mac_node_is_synced()) {
         // not synced, so we are not in a slot
         return;
     }
