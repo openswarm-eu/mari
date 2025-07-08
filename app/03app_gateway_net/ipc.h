@@ -32,7 +32,6 @@ typedef enum {
 
 typedef struct __attribute__((packed)) {
     bool    net_ready;                    ///< Network core is ready
-    bool    net_ack;                      ///< Network core acked the latest request
     uint8_t radio_to_uart[UINT8_MAX];     ///< Data received from the network core
     uint8_t radio_to_uart_len;            ///< Length of the data received from the network core
     uint8_t uart_to_radio_tx[UINT8_MAX];  ///< Data to send to the network
