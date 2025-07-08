@@ -11,9 +11,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <nrf.h>
-#include "mr_ipc.h"
 
 __NO_RETURN extern void reset_handler(void);
 __NO_RETURN void dummy_handler(void);
@@ -73,39 +71,6 @@ __attribute__ ((weak, alias("dummy_handler"))) void USBD_IRQHandler(void);
 __attribute__ ((weak, alias("dummy_handler"))) void USBREGULATOR_IRQHandler(void);
 __attribute__ ((weak, alias("dummy_handler"))) void KMU_IRQHandler(void);
 __attribute__ ((weak, alias("dummy_handler"))) void CRYPTOCELL_IRQHandler(void);
-
-#ifndef NO_IPC
-volatile __attribute__((section(".shared_data"))) ipc_shared_data_t ipc_shared_data;
-
-void mr_ipc_network_call(ipc_req_t req) {
-    if (req != MR_IPC_REQ_NONE) {
-        ipc_shared_data.req                    = req;
-        NRF_IPC_S->TASKS_SEND[MR_IPC_CHAN_REQ] = 1;
-    }
-    while (!ipc_shared_data.net_ack) {
-        if (ipc_shared_data.req == MR_IPC_REQ_NONE) {
-            // Something went wrong and, the net-core deleted the request without fulfilling it.
-            // Re-send it
-            ipc_shared_data.req                    = req;
-            NRF_IPC_S->TASKS_SEND[MR_IPC_CHAN_REQ] = 1;
-        }
-    }
-    ipc_shared_data.net_ack = false;
-};
-
-void release_network_core(void) {
-    // Do nothing if network core is already started and ready
-    if (!NRF_RESET_S->NETWORK.FORCEOFF && ipc_shared_data.net_ready) {
-        return;
-    } else if (!NRF_RESET_S->NETWORK.FORCEOFF) {
-        ipc_shared_data.net_ready = false;
-    }
-
-    NRF_RESET_S->NETWORK.FORCEOFF = (RESET_NETWORK_FORCEOFF_FORCEOFF_Release << RESET_NETWORK_FORCEOFF_FORCEOFF_Pos);
-
-    while (!ipc_shared_data.net_ready) {}
-}
-#endif
 
 // Vector table
 extern uint32_t __stack_end__;
