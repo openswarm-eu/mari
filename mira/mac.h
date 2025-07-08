@@ -33,8 +33,8 @@
 #define BLE_2M_US_PER_BYTE          (1000 / BLE_2M_B_MS)  // 4 us
 
 // Intra-slot durations. TOA definitions consider BLE 2M mode.
-#define MIRA_TS_TX_OFFSET            (300)  // time for radio setup before TX
-#define MIRA_RX_GUARD_TIME           (150)  // time range relative to MIRA_TS_TX_OFFSET for the receiver to start RXing
+#define MIRA_TS_TX_OFFSET            (350)  // time for radio setup before TX
+#define MIRA_RX_GUARD_TIME           (100)  // time range relative to MIRA_TS_TX_OFFSET for the receiver to start RXing
 #define MIRA_END_GUARD_TIME          MIRA_RX_GUARD_TIME
 #define MIRA_PACKET_TOA              (BLE_2M_US_PER_BYTE * MIRA_BLE_PAYLOAD_MAX_LENGTH)  // Time on air for the maximum payload.
 #define MIRA_PACKET_TOA_WITH_PADDING (MIRA_PACKET_TOA + 50)                              // Add padding based on experiments. Also, it takes 28 us until event ADDRESS is triggered (when the packet actually starts traveling over the air)

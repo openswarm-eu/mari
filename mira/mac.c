@@ -664,7 +664,7 @@ static bool select_gateway_and_sync(void) {
         time_to_skip_one_slot = slot_durations.whole_slot;
     }
 
-    uint64_t time_cpu_and_toa = 445;  // magic number: measured using the logic analyzer
+    uint64_t time_cpu_and_toa = 455;  // magic number: measured using the logic analyzer
     if (is_handover) {
         time_cpu_and_toa += 116;  // magic number: measured using the logic analyzer (why??)
     }
