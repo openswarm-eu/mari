@@ -20,11 +20,11 @@
 
 /// Internal state of the HDLC decoder
 typedef enum {
-    DB_HDLC_STATE_IDLE,       ///< Waiting for incoming HDLC frames
-    DB_HDLC_STATE_RECEIVING,  ///< An HDLC frame is being received
-    DB_HDLC_STATE_READY,      ///< An HDLC frame is ready to be decoded
-    DB_HDLC_STATE_ERROR,      ///< The FCS value is invalid
-} db_hdlc_state_t;
+    MR_HDLC_STATE_IDLE,       ///< Waiting for incoming HDLC frames
+    MR_HDLC_STATE_RECEIVING,  ///< An HDLC frame is being received
+    MR_HDLC_STATE_READY,      ///< An HDLC frame is ready to be decoded
+    MR_HDLC_STATE_ERROR,      ///< The FCS value is invalid
+} mr_hdlc_state_t;
 
 //=========================== public ===========================================
 
@@ -33,7 +33,7 @@ typedef enum {
  *
  * @param[in]   byte    The received byte
  */
-db_hdlc_state_t db_hdlc_rx_byte(uint8_t byte);
+mr_hdlc_state_t mr_hdlc_rx_byte(uint8_t byte);
 
 /**
  * @brief   Decode an HDLC frame
@@ -42,7 +42,7 @@ db_hdlc_state_t db_hdlc_rx_byte(uint8_t byte);
  *
  * @return the number of bytes decoded
  */
-size_t db_hdlc_decode(uint8_t *payload);
+size_t mr_hdlc_decode(uint8_t *payload);
 
 /**
  * @brief   Encode a buffer in an HDLC frame
@@ -53,6 +53,6 @@ size_t db_hdlc_decode(uint8_t *payload);
  *
  * @return the size of the HDLC frame
  */
-size_t db_hdlc_encode(const uint8_t *input, size_t input_len, uint8_t *frame);
+size_t mr_hdlc_encode(const uint8_t *input, size_t input_len, uint8_t *frame);
 
 #endif

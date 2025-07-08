@@ -24,7 +24,7 @@
 #elif defined(NRF5340_XXAA) && defined(NRF_NETWORK)
 #define NRF_POWER (NRF_POWER_NS)
 #endif
-#define DB_UARTE_CHUNK_SIZE (64U)
+#define MR_UARTE_CHUNK_SIZE (64U)
 
 typedef struct {
     NRF_UARTE_Type *p;
@@ -189,18 +189,18 @@ void mr_uart_init(uart_t uart, const mr_gpio_t *rx_pin, const mr_gpio_t *tx_pin,
 
 void mr_uart_write(uart_t uart, uint8_t *buffer, size_t length) {
     uint16_t pos = 0;
-    // Send DB_UARTE_CHUNK_SIZE (64 Bytes) maximum at a time
-    while ((pos % DB_UARTE_CHUNK_SIZE) == 0 && pos < length) {
+    // Send MR_UARTE_CHUNK_SIZE (64 Bytes) maximum at a time
+    while ((pos % MR_UARTE_CHUNK_SIZE) == 0 && pos < length) {
         _devs[uart].p->EVENTS_ENDTX = 0;
         _devs[uart].p->TXD.PTR      = (uint32_t)&buffer[pos];
-        if ((pos + DB_UARTE_CHUNK_SIZE) > length) {
+        if ((pos + MR_UARTE_CHUNK_SIZE) > length) {
             _devs[uart].p->TXD.MAXCNT = length - pos;
         } else {
-            _devs[uart].p->TXD.MAXCNT = DB_UARTE_CHUNK_SIZE;
+            _devs[uart].p->TXD.MAXCNT = MR_UARTE_CHUNK_SIZE;
         }
         _devs[uart].p->TASKS_STARTTX = 1;
         while (_devs[uart].p->EVENTS_ENDTX == 0) {}
-        pos += DB_UARTE_CHUNK_SIZE;
+        pos += MR_UARTE_CHUNK_SIZE;
     }
 }
 

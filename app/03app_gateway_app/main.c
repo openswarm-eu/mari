@@ -109,15 +109,15 @@ int main(void) {
 
         if (_app_vars.uart_byte_received) {
             _app_vars.uart_byte_received = false;
-            db_hdlc_state_t hdlc_state   = db_hdlc_rx_byte(_app_vars.uart_byte);
+            mr_hdlc_state_t hdlc_state   = mr_hdlc_rx_byte(_app_vars.uart_byte);
             switch ((uint8_t)hdlc_state) {
-                case DB_HDLC_STATE_IDLE:
-                case DB_HDLC_STATE_RECEIVING:
-                case DB_HDLC_STATE_ERROR:
+                case MR_HDLC_STATE_IDLE:
+                case MR_HDLC_STATE_RECEIVING:
+                case MR_HDLC_STATE_ERROR:
                     break;
-                case DB_HDLC_STATE_READY:
+                case MR_HDLC_STATE_READY:
                 {
-                    size_t msg_len                    = db_hdlc_decode((uint8_t *)ipc_shared_data.uart_to_radio);
+                    size_t msg_len                    = mr_hdlc_decode((uint8_t *)ipc_shared_data.uart_to_radio);
                     ipc_shared_data.uart_to_radio_len = msg_len;
                     if (msg_len) {
                         NRF_IPC_S->TASKS_SEND[IPC_CHAN_UART_TO_RADIO] = 1;
@@ -130,7 +130,7 @@ int main(void) {
 
         if (_app_vars.mira_frame_received) {
             _app_vars.mira_frame_received = false;
-            size_t frame_len              = db_hdlc_encode((uint8_t *)ipc_shared_data.radio_to_uart, ipc_shared_data.radio_to_uart_len, _app_vars.hdlc_encode_buffer);
+            size_t frame_len              = mr_hdlc_encode((uint8_t *)ipc_shared_data.radio_to_uart, ipc_shared_data.radio_to_uart_len, _app_vars.hdlc_encode_buffer);
             mr_uart_write(MR_UART_INDEX, _app_vars.hdlc_encode_buffer, frame_len);
         }
     }

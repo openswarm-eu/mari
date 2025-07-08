@@ -15,18 +15,18 @@
 
 //=========================== definitions ======================================
 
-#define DB_HDLC_BUFFER_SIZE    (1024)    ///< Maximum size of the RX buffer
-#define DB_HDLC_FLAG           (0x7E)    ///< Start/End flag
-#define DB_HDLC_FLAG_ESCAPED   (0x5E)    ///< Start/End flag escaped
-#define DB_HDLC_ESCAPE         (0x7D)    ///< Data escape byte
-#define DB_HDLC_ESCAPE_ESCAPED (0x5D)    ///< Escape flag escaped
-#define DB_HDLC_FCS_INIT       (0xFFFF)  ///< Initialization value of the FCS
-#define DB_HDLC_FCS_OK         (0xF0B8)  ///< Expected value of the FCS
+#define MR_HDLC_BUFFER_SIZE    (1024)    ///< Maximum size of the RX buffer
+#define MR_HDLC_FLAG           (0x7E)    ///< Start/End flag
+#define MR_HDLC_FLAG_ESCAPED   (0x5E)    ///< Start/End flag escaped
+#define MR_HDLC_ESCAPE         (0x7D)    ///< Data escape byte
+#define MR_HDLC_ESCAPE_ESCAPED (0x5D)    ///< Escape flag escaped
+#define MR_HDLC_FCS_INIT       (0xFFFF)  ///< Initialization value of the FCS
+#define MR_HDLC_FCS_OK         (0xF0B8)  ///< Expected value of the FCS
 
 typedef struct {
-    uint8_t         buffer[DB_HDLC_BUFFER_SIZE];  ///< Input buffer
+    uint8_t         buffer[MR_HDLC_BUFFER_SIZE];  ///< Input buffer
     uint16_t        buffer_pos;                   ///< Current position in the input buffer
-    db_hdlc_state_t state;                        ///< Current state of the HDLC RX engine
+    mr_hdlc_state_t state;                        ///< Current state of the HDLC RX engine
     uint16_t        fcs;                          ///< Current value of the FCS
 } hdlc_vars_t;
 
@@ -72,43 +72,43 @@ static hdlc_vars_t _hdlc_vars;
 
 //=========================== prototypes =======================================
 
-uint16_t _db_hdlc_update_fcs(uint16_t fcs, uint8_t byte);
+uint16_t _mr_hdlc_update_fcs(uint16_t fcs, uint8_t byte);
 
 //=========================== public ===========================================
 
-db_hdlc_state_t db_hdlc_rx_byte(uint8_t byte) {
-    const bool can_handle_new_frame = (_hdlc_vars.state == DB_HDLC_STATE_IDLE ||
-                                       _hdlc_vars.state == DB_HDLC_STATE_ERROR ||
-                                       _hdlc_vars.state == DB_HDLC_STATE_READY);
-    if (can_handle_new_frame && byte == DB_HDLC_FLAG) {
+mr_hdlc_state_t mr_hdlc_rx_byte(uint8_t byte) {
+    const bool can_handle_new_frame = (_hdlc_vars.state == MR_HDLC_STATE_IDLE ||
+                                       _hdlc_vars.state == MR_HDLC_STATE_ERROR ||
+                                       _hdlc_vars.state == MR_HDLC_STATE_READY);
+    if (can_handle_new_frame && byte == MR_HDLC_FLAG) {
         // Beginning of frame
         _hdlc_vars.buffer_pos = 0;
-        _hdlc_vars.fcs        = DB_HDLC_FCS_INIT;
-        _hdlc_vars.state      = DB_HDLC_STATE_RECEIVING;
-    } else if (_hdlc_vars.buffer_pos > 0 && _hdlc_vars.state == DB_HDLC_STATE_RECEIVING && byte == DB_HDLC_FLAG) {
+        _hdlc_vars.fcs        = MR_HDLC_FCS_INIT;
+        _hdlc_vars.state      = MR_HDLC_STATE_RECEIVING;
+    } else if (_hdlc_vars.buffer_pos > 0 && _hdlc_vars.state == MR_HDLC_STATE_RECEIVING && byte == MR_HDLC_FLAG) {
         // End of frame
-        if (_hdlc_vars.fcs != DB_HDLC_FCS_OK) {
+        if (_hdlc_vars.fcs != MR_HDLC_FCS_OK) {
             // Invalid FCS
-            _hdlc_vars.state = DB_HDLC_STATE_ERROR;
+            _hdlc_vars.state = MR_HDLC_STATE_ERROR;
         }
-        _hdlc_vars.state = DB_HDLC_STATE_READY;
-    } else if (_hdlc_vars.state == DB_HDLC_STATE_RECEIVING) {
+        _hdlc_vars.state = MR_HDLC_STATE_READY;
+    } else if (_hdlc_vars.state == MR_HDLC_STATE_RECEIVING) {
         // Middle of frame
-        if (_hdlc_vars.buffer_pos >= DB_HDLC_BUFFER_SIZE - 1) {
+        if (_hdlc_vars.buffer_pos >= MR_HDLC_BUFFER_SIZE - 1) {
             // Buffer is full and no end flag was received so something is wrong
-            _hdlc_vars.state = DB_HDLC_STATE_ERROR;
+            _hdlc_vars.state = MR_HDLC_STATE_ERROR;
             return _hdlc_vars.state;
         }
         _hdlc_vars.buffer[_hdlc_vars.buffer_pos++] = byte;
-        _hdlc_vars.fcs                             = _db_hdlc_update_fcs(_hdlc_vars.fcs, byte);
+        _hdlc_vars.fcs                             = _mr_hdlc_update_fcs(_hdlc_vars.fcs, byte);
     }
 
     return _hdlc_vars.state;
 }
 
-size_t db_hdlc_decode(uint8_t *output) {
+size_t mr_hdlc_decode(uint8_t *output) {
     size_t output_pos = 0;
-    if (_hdlc_vars.state != DB_HDLC_STATE_READY) {
+    if (_hdlc_vars.state != MR_HDLC_STATE_READY) {
         return output_pos;
     }
 
@@ -116,13 +116,13 @@ size_t db_hdlc_decode(uint8_t *output) {
     bool    escape_byte = false;
     while (input_pos < _hdlc_vars.buffer_pos) {
         uint8_t current_byte = _hdlc_vars.buffer[input_pos];
-        if (current_byte == DB_HDLC_ESCAPE) {
+        if (current_byte == MR_HDLC_ESCAPE) {
             escape_byte = true;
         } else if (escape_byte == true) {
-            if (current_byte == DB_HDLC_ESCAPE_ESCAPED) {
-                output[output_pos++] = DB_HDLC_ESCAPE;
-            } else if (current_byte == DB_HDLC_FLAG_ESCAPED) {
-                output[output_pos++] = DB_HDLC_FLAG;
+            if (current_byte == MR_HDLC_ESCAPE_ESCAPED) {
+                output[output_pos++] = MR_HDLC_ESCAPE;
+            } else if (current_byte == MR_HDLC_FLAG_ESCAPED) {
+                output[output_pos++] = MR_HDLC_FLAG;
             }
             escape_byte = false;
         } else {
@@ -131,26 +131,26 @@ size_t db_hdlc_decode(uint8_t *output) {
         input_pos++;
     }
 
-    _hdlc_vars.state = DB_HDLC_STATE_IDLE;
+    _hdlc_vars.state = MR_HDLC_STATE_IDLE;
     return output_pos - 2;
 }
 
-size_t db_hdlc_encode(const uint8_t *input, size_t input_len, uint8_t *frame) {
-    uint16_t fcs       = DB_HDLC_FCS_INIT;
+size_t mr_hdlc_encode(const uint8_t *input, size_t input_len, uint8_t *frame) {
+    uint16_t fcs       = MR_HDLC_FCS_INIT;
     size_t   frame_len = 0;
 
     // Start flag
-    frame[frame_len++] = DB_HDLC_FLAG;
+    frame[frame_len++] = MR_HDLC_FLAG;
 
     for (uint8_t pos = 0; pos < input_len; pos++) {
         uint8_t byte = input[pos];
-        fcs          = _db_hdlc_update_fcs(fcs, byte);
-        if (byte == DB_HDLC_ESCAPE) {
-            frame[frame_len++] = DB_HDLC_ESCAPE;
-            frame[frame_len++] = DB_HDLC_ESCAPE_ESCAPED;
-        } else if (byte == DB_HDLC_FLAG) {
-            frame[frame_len++] = DB_HDLC_ESCAPE;
-            frame[frame_len++] = DB_HDLC_FLAG_ESCAPED;
+        fcs          = _mr_hdlc_update_fcs(fcs, byte);
+        if (byte == MR_HDLC_ESCAPE) {
+            frame[frame_len++] = MR_HDLC_ESCAPE;
+            frame[frame_len++] = MR_HDLC_ESCAPE_ESCAPED;
+        } else if (byte == MR_HDLC_FLAG) {
+            frame[frame_len++] = MR_HDLC_ESCAPE;
+            frame[frame_len++] = MR_HDLC_FLAG_ESCAPED;
         } else {
             frame[frame_len++] = byte;
         }
@@ -159,33 +159,33 @@ size_t db_hdlc_encode(const uint8_t *input, size_t input_len, uint8_t *frame) {
     fcs = 0xFFFF - fcs;
 
     // Write the FCS in the frame
-    if ((fcs & 0xFF) == DB_HDLC_ESCAPE) {
-        frame[frame_len++] = DB_HDLC_ESCAPE;
-        frame[frame_len++] = DB_HDLC_ESCAPE_ESCAPED;
-    } else if ((fcs & 0xFF) == DB_HDLC_FLAG) {
-        frame[frame_len++] = DB_HDLC_ESCAPE;
-        frame[frame_len++] = DB_HDLC_FLAG_ESCAPED;
+    if ((fcs & 0xFF) == MR_HDLC_ESCAPE) {
+        frame[frame_len++] = MR_HDLC_ESCAPE;
+        frame[frame_len++] = MR_HDLC_ESCAPE_ESCAPED;
+    } else if ((fcs & 0xFF) == MR_HDLC_FLAG) {
+        frame[frame_len++] = MR_HDLC_ESCAPE;
+        frame[frame_len++] = MR_HDLC_FLAG_ESCAPED;
     } else {
         frame[frame_len++] = (fcs & 0xFF);
     }
-    if (((fcs & 0xFF00) >> 8) == DB_HDLC_ESCAPE) {
-        frame[frame_len++] = DB_HDLC_ESCAPE;
-        frame[frame_len++] = DB_HDLC_ESCAPE_ESCAPED;
-    } else if (((fcs & 0xFF00) >> 8) == DB_HDLC_FLAG) {
-        frame[frame_len++] = DB_HDLC_ESCAPE;
-        frame[frame_len++] = DB_HDLC_FLAG_ESCAPED;
+    if (((fcs & 0xFF00) >> 8) == MR_HDLC_ESCAPE) {
+        frame[frame_len++] = MR_HDLC_ESCAPE;
+        frame[frame_len++] = MR_HDLC_ESCAPE_ESCAPED;
+    } else if (((fcs & 0xFF00) >> 8) == MR_HDLC_FLAG) {
+        frame[frame_len++] = MR_HDLC_ESCAPE;
+        frame[frame_len++] = MR_HDLC_FLAG_ESCAPED;
     } else {
         frame[frame_len++] = ((fcs & 0xFF00) >> 8);
     }
 
     // End flag
-    frame[frame_len++] = DB_HDLC_FLAG;
+    frame[frame_len++] = MR_HDLC_FLAG;
 
     return frame_len;
 }
 
 //=========================== private ==========================================
 
-uint16_t _db_hdlc_update_fcs(uint16_t fcs, uint8_t byte) {
+uint16_t _mr_hdlc_update_fcs(uint16_t fcs, uint8_t byte) {
     return (fcs >> 8) ^ _fcs[(fcs ^ byte) & 0xff];
 }
