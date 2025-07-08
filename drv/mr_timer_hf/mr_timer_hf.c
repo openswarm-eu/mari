@@ -19,10 +19,8 @@
 
 //=========================== define ===========================================
 
-/// Timer interrupt priority, must be lower than the UART priority (0)
-/// This is used to ensure that the timer interrupt cannot preempt the UART interrupt
-/// which requires very tight timing to ensure no data is lost
-#define TIMER_IRQ_PRIORITY (1U)
+/// Timer interrupt priority, must be the highest priority
+#define TIMER_IRQ_PRIORITY (0U)
 #define TIMER_MAX_CHANNELS (6U)
 
 typedef struct {
