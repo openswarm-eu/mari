@@ -39,7 +39,7 @@ schedule_t       *schedule_app = &schedule_huge;
 
 volatile __attribute__((section(".shared_data"))) ipc_shared_data_t ipc_shared_data;
 
-static void mira_event_callback(mr_event_t event, mr_event_data_t event_data) {
+static void _mira_event_callback(mr_event_t event, mr_event_data_t event_data) {
     (void)event_data;
     uint32_t now_ts_s = mr_timer_hf_now(MIRA_APP_TIMER_DEV) / 1000 / 1000;
     switch (event) {
@@ -77,9 +77,9 @@ static void mira_event_callback(mr_event_t event, mr_event_data_t event_data) {
     NRF_IPC_NS->TASKS_SEND[IPC_CHAN_RADIO_TO_UART] = 1;
 }
 
-void to_uart_gateway_loop(void) {
+static void _to_uart_gateway_loop(void) {
     ipc_shared_data.radio_to_uart[0]               = MIRA_EDGE_GATEWAY_INFO;
-    size_t len                                     = mr_build_uart_packet_gateway_info((void *)(ipc_shared_data.radio_to_uart + 1));
+    size_t len                                     = mr_build_uart_packet_gateway_info((uint8_t *)(ipc_shared_data.radio_to_uart + 1));
     ipc_shared_data.radio_to_uart_len              = 1 + len;
     NRF_IPC_NS->TASKS_SEND[IPC_CHAN_RADIO_TO_UART] = 1;
 }
@@ -99,10 +99,10 @@ int main(void) {
     mr_timer_hf_init(MIRA_APP_TIMER_DEV);
     _init_ipc();
 
-    mira_init(MIRA_GATEWAY, MIRA_NET_ID_DEFAULT, schedule_app, &mira_event_callback);
+    mira_init(MIRA_GATEWAY, MIRA_NET_ID_DEFAULT, schedule_app, &_mira_event_callback);
 
     mr_timer_hf_set_periodic_us(MIRA_APP_TIMER_DEV, 2, mr_scheduler_get_duration_us(), &mira_event_loop);
-    mr_timer_hf_set_periodic_us(MIRA_APP_TIMER_DEV, 3, mr_scheduler_get_duration_us() * 10, &to_uart_gateway_loop);
+    mr_timer_hf_set_periodic_us(MIRA_APP_TIMER_DEV, 3, mr_scheduler_get_duration_us() * 10, &_to_uart_gateway_loop);
 
     // Unlock the application core
     ipc_shared_data.net_ready = true;
