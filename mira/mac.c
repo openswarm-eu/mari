@@ -399,14 +399,14 @@ static void activity_ti1(void) {
     // called by: function new_slot_synced
     set_slot_state(STATE_TX_OFFSET);
 
-    mr_timer_hf_set_oneshot_with_ref_us(  // TODO: use PPI instead
+    mr_timer_hf_set_oneshot_with_ref_diff_us(  // TODO: use PPI instead
         MIRA_TIMER_DEV,
         MIRA_TIMER_CHANNEL_1,
         mac_vars.start_slot_ts,
         slot_durations.tx_offset,
         &activity_ti2);
 
-    mr_timer_hf_set_oneshot_with_ref_us(
+    mr_timer_hf_set_oneshot_with_ref_diff_us(
         MIRA_TIMER_DEV,
         MIRA_TIMER_CHANNEL_2,
         mac_vars.start_slot_ts,
@@ -464,21 +464,21 @@ static void activity_ri1(void) {
     // called by: function new_slot_synced
     set_slot_state(STATE_RX_OFFSET);
 
-    mr_timer_hf_set_oneshot_with_ref_us(  // TODO: use PPI instead
+    mr_timer_hf_set_oneshot_with_ref_diff_us(  // TODO: use PPI instead
         MIRA_TIMER_DEV,
         MIRA_TIMER_CHANNEL_1,
         mac_vars.start_slot_ts,
         slot_durations.rx_offset,
         &activity_ri2);
 
-    mr_timer_hf_set_oneshot_with_ref_us(
+    mr_timer_hf_set_oneshot_with_ref_diff_us(
         MIRA_TIMER_DEV,
         MIRA_TIMER_CHANNEL_2,
         mac_vars.start_slot_ts,
         slot_durations.tx_offset + slot_durations.rx_guard,
         &activity_rie1);
 
-    mr_timer_hf_set_oneshot_with_ref_us(
+    mr_timer_hf_set_oneshot_with_ref_diff_us(
         MIRA_TIMER_DEV,
         MIRA_TIMER_CHANNEL_3,
         mac_vars.start_slot_ts,
