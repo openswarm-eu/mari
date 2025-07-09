@@ -554,6 +554,8 @@ static void activity_ri4(uint32_t ts) {
     mac_vars.received_packet.end_ts  = ts;
     mac_vars.received_packet.asn     = mac_vars.asn;
 
+    header->stats.rssi = mr_radio_rssi();
+
     mr_handle_packet(mac_vars.received_packet.packet, mac_vars.received_packet.packet_len);
 
     end_slot();
