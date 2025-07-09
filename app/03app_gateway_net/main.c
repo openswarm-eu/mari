@@ -18,6 +18,7 @@
 
 #include "mr_device.h"
 #include "mr_timer_hf.h"
+#include "association.h"
 #include "scheduler.h"
 #include "mira.h"
 #include "packet.h"
@@ -123,6 +124,7 @@ int main(void) {
 
             mr_packet_header_t *header = (mr_packet_header_t *)mira_frame;
             header->src                = mr_device_id();
+            header->network_id         = mr_assoc_get_network_id();
 
             mira_tx(mira_frame, mira_frame_len);
         }

@@ -102,6 +102,7 @@ int main(void) {
     mr_uart_init(MR_UART_INDEX, &_mr_uart_rx_pin, &_mr_uart_tx_pin, MR_UART_BAUDRATE, &_uart_callback);
 
     _release_network_core();
+    NRF_RESET_S->NETWORK.FORCEOFF = 0;
 
     while (1) {
         __WFE();

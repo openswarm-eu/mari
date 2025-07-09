@@ -147,13 +147,6 @@ static void isr_mac_radio_end_frame(uint32_t ts);
 
 void mr_mac_init(mr_event_cb_t event_callback) {
 #ifdef DEBUG
-#ifdef NRF5340_XXAA
-    // Wait a bit to ensure application core has set up GPIO permissions
-    // FIXME: replace with proper IPC handshake
-    for (volatile int i = 0; i < 1000000; i++) {
-        __NOP();
-    }
-#endif
     mr_gpio_init(&pin0, MR_GPIO_OUT);
     mr_gpio_init(&pin1, MR_GPIO_OUT);
     mr_gpio_init(&pin2, MR_GPIO_OUT);
@@ -291,7 +284,7 @@ static void node_back_to_scanning(void) {
 }
 
 static void end_slot(void) {
-    if (!mr_mac_node_is_synced()) {
+    if (mira_get_node_type() == MIRA_NODE && !mr_mac_node_is_synced()) {
         // not synced, so we are not in a slot
         return;
     }
@@ -406,14 +399,14 @@ static void activity_ti1(void) {
     // called by: function new_slot_synced
     set_slot_state(STATE_TX_OFFSET);
 
-    mr_timer_hf_set_oneshot_with_ref_us(  // TODO: use PPI instead
+    mr_timer_hf_set_oneshot_with_ref_diff_us(  // TODO: use PPI instead
         MIRA_TIMER_DEV,
         MIRA_TIMER_CHANNEL_1,
         mac_vars.start_slot_ts,
         slot_durations.tx_offset,
         &activity_ti2);
 
-    mr_timer_hf_set_oneshot_with_ref_us(
+    mr_timer_hf_set_oneshot_with_ref_diff_us(
         MIRA_TIMER_DEV,
         MIRA_TIMER_CHANNEL_2,
         mac_vars.start_slot_ts,
@@ -471,21 +464,21 @@ static void activity_ri1(void) {
     // called by: function new_slot_synced
     set_slot_state(STATE_RX_OFFSET);
 
-    mr_timer_hf_set_oneshot_with_ref_us(  // TODO: use PPI instead
+    mr_timer_hf_set_oneshot_with_ref_diff_us(  // TODO: use PPI instead
         MIRA_TIMER_DEV,
         MIRA_TIMER_CHANNEL_1,
         mac_vars.start_slot_ts,
         slot_durations.rx_offset,
         &activity_ri2);
 
-    mr_timer_hf_set_oneshot_with_ref_us(
+    mr_timer_hf_set_oneshot_with_ref_diff_us(
         MIRA_TIMER_DEV,
         MIRA_TIMER_CHANNEL_2,
         mac_vars.start_slot_ts,
         slot_durations.tx_offset + slot_durations.rx_guard,
         &activity_rie1);
 
-    mr_timer_hf_set_oneshot_with_ref_us(
+    mr_timer_hf_set_oneshot_with_ref_diff_us(
         MIRA_TIMER_DEV,
         MIRA_TIMER_CHANNEL_3,
         mac_vars.start_slot_ts,
@@ -671,7 +664,7 @@ static bool select_gateway_and_sync(void) {
         time_to_skip_one_slot = slot_durations.whole_slot;
     }
 
-    uint64_t time_cpu_and_toa = 445;  // magic number: measured using the logic analyzer
+    uint64_t time_cpu_and_toa = 455;  // magic number: measured using the logic analyzer
     if (is_handover) {
         time_cpu_and_toa += 116;  // magic number: measured using the logic analyzer (why??)
     }

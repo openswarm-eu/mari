@@ -129,15 +129,7 @@ inline void mr_scheduler_gateway_decrease_nodes_counter(void) {
 
 // to be called at the GATEWAY to build a beacon
 uint8_t mr_scheduler_gateway_remaining_capacity(void) {
-    // TODO: can be optimized, if we pre-compute the number of uplink slots in a schedule
-    uint8_t remaining_capacity = 0;
-    for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
-        cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
-        if (cell->type == SLOT_TYPE_UPLINK && cell->assigned_node_id == NULL) {
-            remaining_capacity++;
-        }
-    }
-    return remaining_capacity;
+    return _schedule_vars.active_schedule_ptr->max_nodes - _schedule_vars.num_assigned_uplink_nodes;
 }
 
 // to be called at the GATEWAY to build a beacon

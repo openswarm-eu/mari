@@ -27,8 +27,8 @@
 #define NRF_RADIO NRF_RADIO_NS
 #endif
 
-/// Radio interrupt priority, set lower than the UART priority (0) and timer priority (1)
-#define RADIO_INTERRUPT_PRIORITY 2
+/// Radio interrupt priority, set lower than the timer priority (0)
+#define RADIO_INTERRUPT_PRIORITY 1
 
 #define RADIO_TIFS 0U  ///< Inter frame spacing in us. zero means IFS is enforced by software, not the hardware
 

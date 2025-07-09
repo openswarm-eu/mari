@@ -38,7 +38,7 @@ uint8_t payload_len = 5;
 
 extern schedule_t schedule_minuscule, schedule_tiny, schedule_huge;
 
-schedule_t *schedule_app = &schedule_minuscule;
+schedule_t *schedule_app = &schedule_huge;
 
 //=========================== prototypes =======================================
 
