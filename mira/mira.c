@@ -124,10 +124,8 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
                 if (cell_id >= 0) {
                     // at the packet level, max_nodes is limited to 256 (using uint8_t cell_id)
                     mr_queue_set_join_response(header->src, (uint8_t)cell_id);
-                    // having an updated bloom filter ASAP is important, because otherwise
-                    // the node might receive an outdated bloom and think it's already left the gateway.
-                    // hence we compute it immediately instead of just setting the dirty flag
-                    mr_bloom_gateway_compute();
+                    // set the dirty flag that will trigger the event loop to compute the bloom filter
+                    mr_bloom_gateway_set_dirty();
                     _mira_vars.app_event_callback(MIRA_NODE_JOINED, (mr_event_data_t){ .data.node_info.node_id = header->src });
                 } else {
                     _mira_vars.app_event_callback(MIRA_ERROR, (mr_event_data_t){ .tag = MIRA_GATEWAY_FULL });
