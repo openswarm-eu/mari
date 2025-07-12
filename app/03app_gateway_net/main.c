@@ -102,7 +102,6 @@ int main(void) {
 
     mira_init(MIRA_GATEWAY, MIRA_NET_ID_DEFAULT, schedule_app, &_mira_event_callback);
 
-    mr_timer_hf_set_periodic_us(MIRA_APP_TIMER_DEV, 2, mr_scheduler_get_duration_us(), &mira_event_loop);
     mr_timer_hf_set_periodic_us(MIRA_APP_TIMER_DEV, 3, mr_scheduler_get_duration_us() * 10, &_to_uart_gateway_loop);
 
     // Unlock the application core
@@ -110,6 +109,8 @@ int main(void) {
 
     while (1) {
         __WFE();
+
+        mira_event_loop();
 
         if (_app_vars.uart_to_radio_packet_ready) {
             _app_vars.uart_to_radio_packet_ready = false;
