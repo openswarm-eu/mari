@@ -32,9 +32,18 @@ static bloom_vars_t bloom_vars = { 0 };
 
 //=========================== prototypes =======================================
 
-static uint64_t mr_fnv1a64(uint64_t input);
-
 //=========================== public ===========================================
+
+// FNV-1a 64-bit hash
+uint64_t mr_bloom_hash_fnv1a64(uint64_t input) {
+    uint64_t hash = 0xcbf29ce484222325ULL;
+    for (int b = 0; b < 8; b++) {
+        uint8_t byte = (input >> (56 - b * 8)) & 0xFF;
+        hash ^= byte;
+        hash *= 0x100000001b3ULL;
+    }
+    return hash;
+}
 
 // -------- gateway ---------
 
@@ -78,10 +87,9 @@ void mr_bloom_gateway_compute(void) {
         if (cell->assigned_node_id == NULL) {
             continue;  // skip empty cells
         }
-        uint64_t id = cell->assigned_node_id;
 
-        uint64_t h1 = mr_fnv1a64(id);
-        uint64_t h2 = mr_fnv1a64(id ^ MIRA_BLOOM_FNV1A_H2_SALT);
+        uint64_t h1 = cell->bloom_h1;
+        uint64_t h2 = cell->bloom_h2;
 
         for (int k = 0; k < MIRA_BLOOM_K_HASHES; k++) {
             uint64_t idx = (h1 + k * h2) & (MIRA_BLOOM_M_BITS - 1);  // Fast bitmask instead of division
@@ -102,8 +110,8 @@ void mr_bloom_gateway_event_loop(void) {
 // -------- node ---------
 
 bool mr_bloom_node_contains(uint64_t node_id, const uint8_t *bloom) {
-    uint64_t h1 = mr_fnv1a64(node_id);
-    uint64_t h2 = mr_fnv1a64(node_id ^ MIRA_BLOOM_FNV1A_H2_SALT);
+    uint64_t h1 = mr_bloom_hash_fnv1a64(node_id);
+    uint64_t h2 = mr_bloom_hash_fnv1a64(node_id ^ MIRA_BLOOM_FNV1A_H2_SALT);
 
     for (int k = 0; k < MIRA_BLOOM_K_HASHES; k++) {
         uint64_t idx = (h1 + k * h2) & (MIRA_BLOOM_M_BITS - 1);  // Fast bitmask instead of division
@@ -115,14 +123,3 @@ bool mr_bloom_node_contains(uint64_t node_id, const uint8_t *bloom) {
 }
 
 //=========================== private ==========================================
-
-// FNV-1a 64-bit hash
-static uint64_t mr_fnv1a64(uint64_t input) {
-    uint64_t hash = 0xcbf29ce484222325ULL;
-    for (int b = 0; b < 8; b++) {
-        uint8_t byte = (input >> (56 - b * 8)) & 0xFF;
-        hash ^= byte;
-        hash *= 0x100000001b3ULL;
-    }
-    return hash;
-}

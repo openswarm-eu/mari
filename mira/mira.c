@@ -120,7 +120,9 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
                     return;
                 }
                 // try to assign a cell to the node
-                int16_t cell_id = mr_scheduler_gateway_assign_next_available_uplink_cell(header->src, mr_mac_get_asn());  // the asn-based keep-alive is also initialized
+                // the asn-based keep-alive is also initialized
+                // the hashes h1 and h2 are also set
+                int16_t cell_id = mr_scheduler_gateway_assign_next_available_uplink_cell(header->src, mr_mac_get_asn());
                 if (cell_id >= 0) {
                     // at the packet level, max_nodes is limited to 256 (using uint8_t cell_id)
                     mr_queue_set_join_response(header->src, (uint8_t)cell_id);

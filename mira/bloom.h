@@ -28,6 +28,8 @@
 
 //=========================== prototypes ======================================
 
+uint64_t mr_bloom_hash_fnv1a64(uint64_t input);
+
 void    mr_bloom_gateway_init(void);
 void    mr_bloom_gateway_set_dirty(void);
 void    mr_bloom_gateway_set_clean(void);

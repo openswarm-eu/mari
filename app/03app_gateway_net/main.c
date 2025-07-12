@@ -18,6 +18,7 @@
 
 #include "mr_device.h"
 #include "mr_timer_hf.h"
+#include "mac.h"
 #include "association.h"
 #include "scheduler.h"
 #include "mira.h"
@@ -110,8 +111,6 @@ int main(void) {
     while (1) {
         __WFE();
 
-        mira_event_loop();
-
         if (_app_vars.uart_to_radio_packet_ready) {
             _app_vars.uart_to_radio_packet_ready = false;
             uint8_t packet_type                  = ipc_shared_data.uart_to_radio_tx[0];
@@ -129,6 +128,9 @@ int main(void) {
 
             mira_tx(mira_frame, mira_frame_len);
         }
+
+        // best to keep this at the end of the main loop
+        mira_event_loop();
     }
 }
 
