@@ -89,7 +89,7 @@ void mr_scheduler_gateway_gen_bloom_from_list(uint64_t *nodes, size_t count, uin
     (void)bloom_output;
     mr_gpio_set(&pin2);
     memset(bloom_output, 0, BLOOM_M_BYTES);
-    mr_gpio_clear(&pin2);
+    mr_gpio_clear(&pin2);  // 16.7 us in DEBUG
 
     // f*ck off warnings!
     uint64_t idx = 0;
@@ -106,7 +106,7 @@ void mr_scheduler_gateway_gen_bloom_from_list(uint64_t *nodes, size_t count, uin
     h2 = fnv1a64(id ^ 0x5bd1e995);
     (void)h1;
     (void)h2;
-    mr_gpio_clear(&pin3);
+    mr_gpio_clear(&pin3);  // 15.9 us in DEBUG
 
     mr_gpio_set(&pin3);
     for (int k = 0; k < BLOOM_K_HASHES; k++) {
@@ -114,7 +114,7 @@ void mr_scheduler_gateway_gen_bloom_from_list(uint64_t *nodes, size_t count, uin
         idx = (h1 + k * h2) & (BLOOM_M_BITS - 1);  // Fast bitmask instead of division
         bloom_output[idx / 8] |= (1 << (idx % 8));
     }
-    mr_gpio_clear(&pin3);
+    mr_gpio_clear(&pin3);  // 2.65 us in DEBUG
 
     // benchmark the whole loop
     mr_gpio_set(&pin2);
@@ -133,7 +133,7 @@ void mr_scheduler_gateway_gen_bloom_from_list(uint64_t *nodes, size_t count, uin
             bloom_output[idx / 8] |= (1 << (idx % 8));
         }
     }
-    mr_gpio_clear(&pin2);
+    mr_gpio_clear(&pin2);  // 1749 us in DEBUG
 }
 
 bool mr_scheduler_node_bloom_contains(uint64_t node_id, const uint8_t *bloom) {
