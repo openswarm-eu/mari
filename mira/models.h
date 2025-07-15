@@ -44,7 +44,7 @@ typedef enum {
 } mr_node_type_t;
 
 typedef enum {
-    MIRA_NEW_PACKET,
+    MIRA_NEW_PACKET = 1,
     MIRA_CONNECTED,
     MIRA_DISCONNECTED,
     MIRA_NODE_JOINED,
