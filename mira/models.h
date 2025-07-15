@@ -44,7 +44,7 @@ typedef enum {
 } mr_node_type_t;
 
 typedef enum {
-    MIRA_NEW_PACKET,
+    MIRA_NEW_PACKET = 1,
     MIRA_CONNECTED,
     MIRA_DISCONNECTED,
     MIRA_NODE_JOINED,
@@ -107,6 +107,8 @@ typedef struct {
     uint8_t     channel_offset;
     uint64_t    assigned_node_id;
     uint64_t    last_received_asn;  ///< ASN marking the last time the node was heard from
+    uint64_t    bloom_h1;           ///< H1 hash of the node ID, used to compute the bloom filter
+    uint64_t    bloom_h2;           ///< H2 hash of the node ID, used to compute the bloom filter
 } cell_t;
 
 typedef struct {

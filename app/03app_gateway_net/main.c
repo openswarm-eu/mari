@@ -18,6 +18,7 @@
 
 #include "mr_device.h"
 #include "mr_timer_hf.h"
+#include "mac.h"
 #include "association.h"
 #include "scheduler.h"
 #include "mira.h"
@@ -102,7 +103,6 @@ int main(void) {
 
     mira_init(MIRA_GATEWAY, MIRA_NET_ID_DEFAULT, schedule_app, &_mira_event_callback);
 
-    mr_timer_hf_set_periodic_us(MIRA_APP_TIMER_DEV, 2, mr_scheduler_get_duration_us(), &mira_event_loop);
     mr_timer_hf_set_periodic_us(MIRA_APP_TIMER_DEV, 3, mr_scheduler_get_duration_us() * 10, &_to_uart_gateway_loop);
 
     // Unlock the application core
@@ -128,6 +128,9 @@ int main(void) {
 
             mira_tx(mira_frame, mira_frame_len);
         }
+
+        // best to keep this at the end of the main loop
+        mira_event_loop();
     }
 }
 

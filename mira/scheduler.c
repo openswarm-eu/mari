@@ -17,6 +17,7 @@
 #include "mr_device.h"
 
 #include "scheduler.h"
+#include "bloom.h"
 #include "all_schedules.c"
 #include "association.c"
 
@@ -115,6 +116,9 @@ int16_t mr_scheduler_gateway_assign_next_available_uplink_cell(uint64_t node_id,
         if (cell->type == SLOT_TYPE_UPLINK && (cell->assigned_node_id == NULL || cell->assigned_node_id == node_id)) {
             cell->assigned_node_id  = node_id;
             cell->last_received_asn = asn;
+            // pre-compute the bloom filter hashes
+            cell->bloom_h1 = mr_bloom_hash_fnv1a64(node_id);
+            cell->bloom_h2 = mr_bloom_hash_fnv1a64(node_id ^ MIRA_BLOOM_FNV1A_H2_SALT);
             _schedule_vars.num_assigned_uplink_nodes++;
             return i;
         }
