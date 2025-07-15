@@ -11,6 +11,7 @@
 #include <nrf.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "mr_gpio.h"
 #include "mr_device.h"
@@ -26,7 +27,9 @@
 #define MIRA_APP_TIMER_DEV 1
 
 typedef struct {
-    bool dummy;
+    mr_event_t      event;
+    mr_event_data_t event_data;
+    bool            event_ready;
 } node_vars_t;
 
 //=========================== variables ========================================
@@ -63,6 +66,50 @@ int main(void) {
         __WFE();
         __WFE();
 
+        if (node_vars.event_ready) {
+            node_vars.event_ready = false;
+
+            mr_event_t      event      = node_vars.event;
+            mr_event_data_t event_data = node_vars.event_data;
+
+            switch (event) {
+                case MIRA_NEW_PACKET:
+                {
+                    mira_packet_t packet = event_data.data.new_packet;
+                    printf("RX %u B: src=%016llX dst=%016llX (rssi %d) payload=", packet.len, packet.header->src, packet.header->dst, mr_radio_rssi());
+                    for (int i = 0; i < packet.payload_len; i++) {
+                        printf("%02X ", packet.payload[i]);
+                    }
+                    printf("\n");
+                    mira_node_tx_payload(payload, payload_len);
+                    break;
+                }
+                case MIRA_CONNECTED:
+                {
+                    uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
+                    printf("Connected to gateway %016llX\n", gateway_id);
+                    if (gateway_id == 0xCEA467E20BACC0AB) {
+                        board_set_mira_status(GREEN);
+                    } else {
+                        board_set_mira_status(OTHER);
+                    }
+                    break;
+                }
+                case MIRA_DISCONNECTED:
+                {
+                    uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
+                    printf("Disconnected from gateway %016llX, reason: %u\n", gateway_id, event_data.tag);
+                    board_set_mira_status(RED);
+                    break;
+                }
+                case MIRA_ERROR:
+                    printf("Error\n");
+                    break;
+                default:
+                    break;
+            }
+        }
+
         mira_event_loop();
     }
 }
@@ -70,42 +117,9 @@ int main(void) {
 //=========================== callbacks ========================================
 
 static void mira_event_callback(mr_event_t event, mr_event_data_t event_data) {
-    switch (event) {
-        case MIRA_NEW_PACKET:
-        {
-            mira_packet_t packet = event_data.data.new_packet;
-            printf("RX %u B: src=%016llX dst=%016llX (rssi %d) payload=", packet.len, packet.header->src, packet.header->dst, mr_radio_rssi());
-            for (int i = 0; i < packet.payload_len; i++) {
-                printf("%02X ", packet.payload[i]);
-            }
-            printf("\n");
-            mira_node_tx_payload(payload, payload_len);
-            break;
-        }
-        case MIRA_CONNECTED:
-        {
-            uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
-            printf("Connected to gateway %016llX\n", gateway_id);
-            if (gateway_id == 0xCEA467E20BACC0AB) {
-                board_set_mira_status(GREEN);
-            } else {
-                board_set_mira_status(OTHER);
-            }
-            break;
-        }
-        case MIRA_DISCONNECTED:
-        {
-            uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
-            printf("Disconnected from gateway %016llX, reason: %u\n", gateway_id, event_data.tag);
-            board_set_mira_status(RED);
-            break;
-        }
-        case MIRA_ERROR:
-            printf("Error\n");
-            break;
-        default:
-            break;
-    }
+    memcpy(&node_vars.event, &event, sizeof(mr_event_t));
+    memcpy(&node_vars.event_data, &event_data, sizeof(mr_event_data_t));
+    node_vars.event_ready = true;
 }
 
 //=========================== private =========================================
