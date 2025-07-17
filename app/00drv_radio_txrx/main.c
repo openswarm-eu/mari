@@ -53,16 +53,16 @@ static void isr_radio_end_frame(uint32_t ts);
 //=========================== main ============================================
 
 int main(void) {
-    mr_timer_hf_init(MIRA_TIMER_DEV);
+    mr_timer_hf_init(MARI_TIMER_DEV);
     mr_gpio_init(&pin0, MR_GPIO_OUT);
     mr_gpio_init(&pin1, MR_GPIO_OUT);
 
     mr_radio_init(&isr_radio_start_frame, &isr_radio_end_frame, MR_RADIO_BLE_2MBit);
-    mr_radio_set_channel(MIRA_FIXED_SCAN_CHANNEL);
+    mr_radio_set_channel(MARI_FIXED_SCAN_CHANNEL);
 
-    printf("MIRA_FIXED_SCAN_CHANNEL = %d\n", MIRA_FIXED_SCAN_CHANNEL);
+    printf("MARI_FIXED_SCAN_CHANNEL = %d\n", MARI_FIXED_SCAN_CHANNEL);
 
-    mr_timer_hf_set_periodic_us(MIRA_TIMER_DEV, 0, 5000, send_beacon_prepare);  // 5 ms
+    mr_timer_hf_set_periodic_us(MARI_TIMER_DEV, 0, 5000, send_beacon_prepare);  // 5 ms
 
     while (1) {
         __WFE();
@@ -73,13 +73,13 @@ int main(void) {
 
 static void send_beacon_prepare(void) {
     printf("Sending beacon from %llx\n", mr_device_id());
-    uint8_t packet[MIRA_PACKET_MAX_SIZE] = { 0 };
+    uint8_t packet[MARI_PACKET_MAX_SIZE] = { 0 };
     size_t  len                          = mr_build_packet_beacon(packet, txrx_vars.asn++, 10, schedule_huge.id);
     mr_radio_disable();
     mr_radio_tx_prepare(packet, len);
     DEBUG_GPIO_SET(&pin0);
     // give 100 us for radio to ramp up
-    mr_timer_hf_set_oneshot_us(MIRA_TIMER_DEV, 1, 100, &send_beacon_dispatch);
+    mr_timer_hf_set_oneshot_us(MARI_TIMER_DEV, 1, 100, &send_beacon_dispatch);
 }
 
 static void send_beacon_dispatch(void) {
@@ -88,7 +88,7 @@ static void send_beacon_dispatch(void) {
 
     // beacon = 20 bytes = TOA 80 us
     // schedule radio for RX in 200 us
-    mr_timer_hf_set_oneshot_us(MIRA_TIMER_DEV, 1, 200, mr_radio_rx);
+    mr_timer_hf_set_oneshot_us(MARI_TIMER_DEV, 1, 200, mr_radio_rx);
 }
 
 static void isr_radio_start_frame(uint32_t ts) {
@@ -101,7 +101,7 @@ static void isr_radio_end_frame(uint32_t ts) {
     printf("End frame at %d\n", ts);
 
     if (mr_radio_pending_rx_read()) {  // interrupt came from RX
-        uint8_t packet[MIRA_PACKET_MAX_SIZE];
+        uint8_t packet[MARI_PACKET_MAX_SIZE];
         uint8_t length;
         mr_radio_get_rx_packet(packet, &length);
         printf("Received packet of length %d\n", length);

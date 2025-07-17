@@ -1,8 +1,8 @@
-# Mira 💫 👀
+# Mari 💫 👀
 
-Mira is a lightweight wireless connectivity solution designed for dense IoT networks, with a focus on supporting real-time interactions and fast over-the-air (OTA) updates.
+Mari is a lightweight wireless connectivity solution designed for dense IoT networks, with a focus on supporting real-time interactions and fast over-the-air (OTA) updates.
 
-The driving use case for the design of Mira is the OpenSwarm Testbed of 1,000 [DotBots](https://github.com/DotBots/DotBot-firmware). Mira is suitable for any dense IoT deployment requiring low-latency communication.
+The driving use case for the design of Mari is the OpenSwarm Testbed of 1,000 [DotBots](https://github.com/DotBots/DotBot-firmware). Mari is suitable for any dense IoT deployment requiring low-latency communication.
 
 ## Key Features
 
@@ -19,13 +19,13 @@ The driving use case for the design of Mira is the OpenSwarm Testbed of 1,000 [D
 ## Project Structure
 
 ```
-mira/
+mari/
 ├── app/                    # Example applications and tests
 │   ├── 03app_gateway/     # Gateway implementation example
 │   ├── 03app_node/        # Node implementation example
 │   └── ...                # Various test applications
 ├── drv/                   # Hardware drivers
-├── mira/                  # Core protocol implementation
+├── mari/                  # Core protocol implementation
 └── nRF/                   # Nordic Semiconductor SDK files
 ```
 
@@ -33,17 +33,17 @@ mira/
 
 Gateway initialization:
 ```c
-mira_init(MIRA_GATEWAY, MIRA_NET_ID_DEFAULT, schedule, event_callback);
+mari_init(MARI_GATEWAY, MARI_NET_ID_DEFAULT, schedule, event_callback);
 ```
 
 Node initialization:
 ```c
-mira_init(MIRA_NODE, MIRA_NET_ID_PATTERN_ANY, schedule, event_callback);
+mari_init(MARI_NODE, MARI_NET_ID_PATTERN_ANY, schedule, event_callback);
 ```
 
 ## Hardware Support
 
-Mira has been validated with the following Nordic Semiconductor chips:
+Mari has been validated with the following Nordic Semiconductor chips:
 - nRF52833
 - nRF52840
 - nRF5340
@@ -65,7 +65,7 @@ This project is licensed under the terms included in the LICENSE file.
 
 ## Publications
 
-- Fedrecheski et al., "Mira: Connecting Large Scale Robot Swarms over BLE using TSCH with Multiple Independent Gateways", CrystalFreeIoT Workshop 2025 [Forthcoming]
+- Fedrecheski et al., "Mari: Connecting Large Scale Robot Swarms over BLE using TSCH with Multiple Independent Gateways", CrystalFreeIoT Workshop 2025 [Forthcoming]
 
 ## Acknowledgments
 

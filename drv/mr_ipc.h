@@ -27,7 +27,7 @@ typedef enum {
 
 typedef enum {
     MR_IPC_CHAN_REQ        = 0,  ///< Channel used for request events
-    MR_IPC_CHAN_MIRA_EVENT = 1,  ///< Channel used for mira events
+    MR_IPC_CHAN_MARI_EVENT = 1,  ///< Channel used for mari events
 } ipc_channels_t;
 
 typedef struct {
