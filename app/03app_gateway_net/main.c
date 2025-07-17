@@ -2,7 +2,7 @@
  * @file
  * @ingroup     app
  *
- * @brief       Mira Gateway application (radio side)
+ * @brief       Mari Gateway application (radio side)
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  * @author Alexandre Abadie <alexandre.abadie@inria.fr>
@@ -21,12 +21,12 @@
 #include "mac.h"
 #include "association.h"
 #include "scheduler.h"
-#include "mira.h"
+#include "mari.h"
 #include "packet.h"
 
 //=========================== defines ==========================================
 
-#define MIRA_APP_TIMER_DEV 1
+#define MARI_APP_TIMER_DEV 1
 
 typedef struct {
     bool uart_to_radio_packet_ready;
@@ -41,35 +41,35 @@ schedule_t       *schedule_app = &schedule_huge;
 
 volatile __attribute__((section(".shared_data"))) ipc_shared_data_t ipc_shared_data;
 
-static void _mira_event_callback(mr_event_t event, mr_event_data_t event_data) {
+static void _mari_event_callback(mr_event_t event, mr_event_data_t event_data) {
     (void)event_data;
-    uint32_t now_ts_s = mr_timer_hf_now(MIRA_APP_TIMER_DEV) / 1000 / 1000;
+    uint32_t now_ts_s = mr_timer_hf_now(MARI_APP_TIMER_DEV) / 1000 / 1000;
     switch (event) {
-        case MIRA_NEW_PACKET:
+        case MARI_NEW_PACKET:
         {
             ipc_shared_data.radio_to_uart_len = event_data.data.new_packet.len + 1;
-            ipc_shared_data.radio_to_uart[0]  = MIRA_EDGE_DATA;
+            ipc_shared_data.radio_to_uart[0]  = MARI_EDGE_DATA;
             memcpy((void *)ipc_shared_data.radio_to_uart + 1, event_data.data.new_packet.header, event_data.data.new_packet.len);
             break;
         }
-        case MIRA_KEEPALIVE:
+        case MARI_KEEPALIVE:
             ipc_shared_data.radio_to_uart_len = 1 + sizeof(uint64_t);
-            ipc_shared_data.radio_to_uart[0]  = MIRA_EDGE_KEEPALIVE;
+            ipc_shared_data.radio_to_uart[0]  = MARI_EDGE_KEEPALIVE;
             memcpy((void *)ipc_shared_data.radio_to_uart + 1, &event_data.data.node_info.node_id, sizeof(uint64_t));
             break;
-        case MIRA_NODE_JOINED:
-            printf("%d New node joined: %016llX  (%d nodes connected)\n", now_ts_s, event_data.data.node_info.node_id, mira_gateway_count_nodes());
+        case MARI_NODE_JOINED:
+            printf("%d New node joined: %016llX  (%d nodes connected)\n", now_ts_s, event_data.data.node_info.node_id, mari_gateway_count_nodes());
             ipc_shared_data.radio_to_uart_len = 1 + sizeof(uint64_t);
-            ipc_shared_data.radio_to_uart[0]  = MIRA_EDGE_NODE_JOINED;
+            ipc_shared_data.radio_to_uart[0]  = MARI_EDGE_NODE_JOINED;
             memcpy((void *)ipc_shared_data.radio_to_uart + 1, &event_data.data.node_info.node_id, sizeof(uint64_t));
             break;
-        case MIRA_NODE_LEFT:
-            printf("%d Node left: %016llX, reason: %u  (%d nodes connected)\n", now_ts_s, event_data.data.node_info.node_id, event_data.tag, mira_gateway_count_nodes());
+        case MARI_NODE_LEFT:
+            printf("%d Node left: %016llX, reason: %u  (%d nodes connected)\n", now_ts_s, event_data.data.node_info.node_id, event_data.tag, mari_gateway_count_nodes());
             ipc_shared_data.radio_to_uart_len = 1 + sizeof(uint64_t);
-            ipc_shared_data.radio_to_uart[0]  = MIRA_EDGE_NODE_LEFT;
+            ipc_shared_data.radio_to_uart[0]  = MARI_EDGE_NODE_LEFT;
             memcpy((void *)ipc_shared_data.radio_to_uart + 1, &event_data.data.node_info.node_id, sizeof(uint64_t));
             break;
-        case MIRA_ERROR:
+        case MARI_ERROR:
             printf("Error, reason: %u\n", event_data.tag);
             break;
         default:
@@ -80,7 +80,7 @@ static void _mira_event_callback(mr_event_t event, mr_event_data_t event_data) {
 }
 
 static void _to_uart_gateway_loop(void) {
-    ipc_shared_data.radio_to_uart[0]               = MIRA_EDGE_GATEWAY_INFO;
+    ipc_shared_data.radio_to_uart[0]               = MARI_EDGE_GATEWAY_INFO;
     size_t len                                     = mr_build_uart_packet_gateway_info((uint8_t *)(ipc_shared_data.radio_to_uart + 1));
     ipc_shared_data.radio_to_uart_len              = 1 + len;
     NRF_IPC_NS->TASKS_SEND[IPC_CHAN_RADIO_TO_UART] = 1;
@@ -97,13 +97,13 @@ static void _init_ipc(void) {
 }
 
 int main(void) {
-    printf("Hello Mira Gateway Net Core %016llX\n", mr_device_id());
-    mr_timer_hf_init(MIRA_APP_TIMER_DEV);
+    printf("Hello Mari Gateway Net Core %016llX\n", mr_device_id());
+    mr_timer_hf_init(MARI_APP_TIMER_DEV);
     _init_ipc();
 
-    mira_init(MIRA_GATEWAY, MIRA_NET_ID_DEFAULT, schedule_app, &_mira_event_callback);
+    mari_init(MARI_GATEWAY, MARI_NET_ID_DEFAULT, schedule_app, &_mari_event_callback);
 
-    mr_timer_hf_set_periodic_us(MIRA_APP_TIMER_DEV, 3, mr_scheduler_get_duration_us() * 10, &_to_uart_gateway_loop);
+    mr_timer_hf_set_periodic_us(MARI_APP_TIMER_DEV, 3, mr_scheduler_get_duration_us() * 10, &_to_uart_gateway_loop);
 
     // Unlock the application core
     ipc_shared_data.net_ready = true;
@@ -119,18 +119,18 @@ int main(void) {
                 continue;
             }
 
-            uint8_t *mira_frame     = (uint8_t *)ipc_shared_data.uart_to_radio_tx + 1;
-            uint8_t  mira_frame_len = ipc_shared_data.uart_to_radio_len - 1;
+            uint8_t *mari_frame     = (uint8_t *)ipc_shared_data.uart_to_radio_tx + 1;
+            uint8_t  mari_frame_len = ipc_shared_data.uart_to_radio_len - 1;
 
-            mr_packet_header_t *header = (mr_packet_header_t *)mira_frame;
+            mr_packet_header_t *header = (mr_packet_header_t *)mari_frame;
             header->src                = mr_device_id();
             header->network_id         = mr_assoc_get_network_id();
 
-            mira_tx(mira_frame, mira_frame_len);
+            mari_tx(mari_frame, mari_frame_len);
         }
 
         // best to keep this at the end of the main loop
-        mira_event_loop();
+        mari_event_loop();
     }
 }
 

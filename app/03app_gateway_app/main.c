@@ -2,7 +2,7 @@
  * @file
  * @ingroup     app
  *
- * @brief       Mira Gateway application (uart side)
+ * @brief       Mari Gateway application (uart side)
  *
  * @author Geovane Fedrecheski <geovane.fedrecheski@inria.fr>
  * @author Alexandre Abadie <alexandre.abadie@inria.fr>
@@ -24,7 +24,7 @@
 #define MR_UART_BAUDRATE (1000000UL)  ///< UART baudrate used by the gateway
 
 typedef struct {
-    bool    mira_frame_received;
+    bool    mari_frame_received;
     bool    uart_byte_received;
     uint8_t uart_byte;
     uint8_t hdlc_encode_buffer[1024];  // Should be large enough
@@ -93,7 +93,7 @@ static void _uart_callback(uint8_t byte) {
 }
 
 int main(void) {
-    printf("Hello Mira Gateway App Core (UART) %016llX\n", mr_device_id());
+    printf("Hello Mari Gateway App Core (UART) %016llX\n", mr_device_id());
 
     _setup_debug_pins();
 
@@ -128,8 +128,8 @@ int main(void) {
             }
         }
 
-        if (_app_vars.mira_frame_received) {
-            _app_vars.mira_frame_received = false;
+        if (_app_vars.mari_frame_received) {
+            _app_vars.mari_frame_received = false;
             size_t frame_len              = mr_hdlc_encode((uint8_t *)ipc_shared_data.radio_to_uart, ipc_shared_data.radio_to_uart_len, _app_vars.hdlc_encode_buffer);
             mr_uart_write(MR_UART_INDEX, _app_vars.hdlc_encode_buffer, frame_len);
         }
@@ -139,6 +139,6 @@ int main(void) {
 void IPC_IRQHandler(void) {
     if (NRF_IPC_S->EVENTS_RECEIVE[IPC_CHAN_RADIO_TO_UART]) {
         NRF_IPC_S->EVENTS_RECEIVE[IPC_CHAN_RADIO_TO_UART] = 0;
-        _app_vars.mira_frame_received                     = true;
+        _app_vars.mari_frame_received                     = true;
     }
 }

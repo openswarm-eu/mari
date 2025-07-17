@@ -1,1 +1,1 @@
-# Mira Scheduler
+# Mari Scheduler
