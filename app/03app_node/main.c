@@ -26,6 +26,10 @@
 
 #define MARI_APP_TIMER_DEV 1
 
+#define LATENCY_MAGIC_BYTE_1 0x4C
+#define LATENCY_MAGIC_BYTE_2 0x54
+#define LOAD_PACKET_BYTE     'L'  // Define the load packet byte ('L')
+
 typedef struct {
     mr_event_t      event;
     mr_event_data_t event_data;
@@ -53,9 +57,7 @@ static void tx_if_connected(void);
 int main(void) {
     printf("Hello Mari Node %016llX\n", mr_device_id());
     mr_timer_hf_init(MARI_APP_TIMER_DEV);
-
-    // mr_timer_hf_set_periodic_us(MARI_APP_TIMER_DEV, 0, 1000 * 500, &tx_if_connected);
-    mr_timer_hf_set_oneshot_us(MARI_APP_TIMER_DEV, 0, 0, &tx_if_connected);  // do not tx
+    mr_timer_hf_set_oneshot_us(MARI_APP_TIMER_DEV, 0, 0, &tx_if_connected);
 
     board_init();
 
@@ -81,7 +83,21 @@ int main(void) {
                         printf("%02X ", packet.payload[i]);
                     }
                     printf("\n");
-                    mari_node_tx_payload(payload, payload_len);
+
+                    // Check for latency packet
+                    if (packet.payload_len >= 2 &&
+                        packet.payload[0] == LATENCY_MAGIC_BYTE_1 &&
+                        packet.payload[1] == LATENCY_MAGIC_BYTE_2) {
+                        // Echo the latency packet back for RTT measurement
+                        printf("Latency packet detected, echoing back.\n");
+                        mari_node_tx_payload(packet.payload, packet.payload_len);
+                    }
+
+                    else if (packet.payload_len == 1 && packet.payload[0] == LOAD_PACKET_BYTE) {
+                        printf("Load packet detected, ignoring (not replying).\n");
+                    } else {
+                        mari_node_tx_payload(payload, payload_len);
+                    }
                     break;
                 }
                 case MARI_CONNECTED:
