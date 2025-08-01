@@ -40,8 +40,6 @@ typedef struct {
     size_t      available_schedules_len;
 } schedule_vars_t;
 
-#define MARI_STATS_SCHED_USAGE_SIZE 4  // supports schedules with up to 256 cells
-
 typedef struct {
     uint64_t sched_usage[MARI_STATS_SCHED_USAGE_SIZE];
 } schedule_stats_t;
@@ -248,6 +246,10 @@ void mr_scheduler_stats_register_used_slot(bool used) {
     } else {
         _schedule_stats.sched_usage[3] |= (uint64_t)encoded_action << (cell_index - 192);
     }
+}
+
+uint64_t *mr_scheduler_get_schedule_usage(void) {
+    return _schedule_stats.sched_usage;
 }
 
 //=========================== private ==========================================
