@@ -88,7 +88,6 @@ int main(void) {
                         packet.payload[0] == LATENCY_MAGIC_BYTE_1 &&
                         packet.payload[1] == LATENCY_MAGIC_BYTE_2) {
                         mari_node_tx_payload(packet.payload, packet.payload_len);
-                    } else if (packet.payload_len == 1 && packet.payload[0] == LOAD_PACKET_BYTE) {
                     } else if (packet.payload_len == sizeof(NORMAL_DATA_PAYLOAD) - 1 &&
                                strncmp((char *)packet.payload, (char *)NORMAL_DATA_PAYLOAD, sizeof(NORMAL_DATA_PAYLOAD) - 1) == 0) {
                         node_stats.rx_app_packets++;
