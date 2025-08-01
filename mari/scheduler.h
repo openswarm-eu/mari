@@ -72,6 +72,8 @@ uint8_t mr_scheduler_get_active_schedule_slot_count(void);
 
 cell_t mr_scheduler_node_peek_slot(uint64_t asn);
 
+void mr_scheduler_stats_register_used_slot(bool used);
+
 /**
  * @brief Computes the channel to be used in a given slot.
  *
