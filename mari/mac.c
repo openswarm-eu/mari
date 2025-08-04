@@ -264,6 +264,7 @@ static void new_slot_synced(void) {
     } else if (mac_vars.current_slot_info.radio_action == MARI_RADIO_ACTION_RX) {
         activity_ri1();
     } else if (mac_vars.current_slot_info.radio_action == MARI_RADIO_ACTION_SLEEP) {
+        mr_scheduler_stats_register_used_slot(false);
         // check if we should use this slot for background scan
         if (mari_get_node_type() == MARI_GATEWAY || !MARI_ENABLE_BACKGROUND_SCAN) {
             set_slot_state(STATE_SLEEP);

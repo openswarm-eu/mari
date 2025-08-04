@@ -236,15 +236,15 @@ void mr_scheduler_stats_register_used_slot(bool used) {
     if (used) {
         encoded_action = 1;
     }
-    uint8_t cell_index = _schedule_vars.current_cell_index;
-    if (cell_index < 64) {
-        _schedule_stats.sched_usage[0] |= (uint64_t)encoded_action << cell_index;
-    } else if (cell_index < 128) {
-        _schedule_stats.sched_usage[1] |= (uint64_t)encoded_action << (cell_index - 64);
-    } else if (cell_index < 192) {
-        _schedule_stats.sched_usage[2] |= (uint64_t)encoded_action << (cell_index - 128);
-    } else {
-        _schedule_stats.sched_usage[3] |= (uint64_t)encoded_action << (cell_index - 192);
+    uint8_t cell_index   = _schedule_vars.current_cell_index;
+    uint8_t array_index  = cell_index / 64;
+    uint8_t bit_position = cell_index % 64;
+
+    if (array_index < MARI_STATS_SCHED_USAGE_SIZE) {
+        // First clear the bit at the position
+        _schedule_stats.sched_usage[array_index] &= ~((uint64_t)1 << bit_position);
+        // Then set it to the new value
+        _schedule_stats.sched_usage[array_index] |= (uint64_t)encoded_action << bit_position;
     }
 }
 
