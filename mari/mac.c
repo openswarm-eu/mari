@@ -133,12 +133,14 @@ static void fix_drift(uint32_t ts);
 
 static void start_scan(void);
 static void end_scan(void);
+static void handle_scan_and_trigger_association(uint32_t now_ts);
 static void activity_scan_start_frame(uint32_t ts);
 static void activity_scan_end_frame(uint32_t ts);
-static bool select_gateway_and_sync(void);
+static bool sync_to_gateway(uint32_t now_ts, mr_channel_info_t *selected_gateway, uint32_t handover_time_correction_us);
 
 static void start_background_scan(void);
 static void end_background_scan(void);
+static void handle_bg_scan_and_trigger_handover(uint32_t now_ts);
 
 static void isr_mac_radio_start_frame(uint32_t ts);
 static void isr_mac_radio_end_frame(uint32_t ts);
@@ -338,18 +340,14 @@ static void start_scan(void) {
 }
 
 static void end_scan(void) {
+    uint32_t now_ts = mr_timer_hf_now(MARI_TIMER_DEV);
+
     mac_vars.is_scanning = false;
     DEBUG_GPIO_CLEAR(&pin0);  // debug: show that the scan is over
     set_slot_state(STATE_SLEEP);
     disable_radio_and_intra_slot_timers();
 
-    if (select_gateway_and_sync()) {
-        // found a gateway and synchronized to it
-        mr_assoc_node_handle_synced();
-    } else {
-        // no gateway found, back to scanning
-        start_scan();
-    }
+    handle_scan_and_trigger_association(now_ts);
 }
 
 // --------------------- start/end background scan --------
@@ -384,6 +382,8 @@ static void start_background_scan(void) {
 }
 
 static void end_background_scan(void) {
+    uint32_t now_ts = mr_timer_hf_now(MARI_TIMER_DEV);
+
     cell_t next_slot                 = mr_scheduler_node_peek_slot(mac_vars.asn);  // remember: the asn was already incremented at new_slot_synced
     mac_vars.bg_scan_sleep_next_slot = next_slot.type == SLOT_TYPE_UPLINK && next_slot.assigned_node_id != mr_device_id();
 
@@ -393,10 +393,7 @@ static void end_background_scan(void) {
         set_slot_state(STATE_SLEEP);
         disable_radio_and_intra_slot_timers();
 
-        if (select_gateway_and_sync()) {
-            // found a gateway and synchronized to it
-            mr_assoc_node_handle_synced();
-        }
+        handle_bg_scan_and_trigger_handover(now_ts);
     }
     // otherwise, do nothing, and the background scan will continue through the next slot
 }
@@ -610,7 +607,84 @@ static void fix_drift(uint32_t ts) {
     }
 }
 
+// --------------------- handover --------------------
+
+static bool select_gateway_for_handover(uint32_t now_ts, mr_channel_info_t *selected_gateway) {
+    if (!mr_scan_select(selected_gateway, mac_vars.scan_started_ts, now_ts)) {
+        // no gateway found, do nothing
+        return false;
+    }
+
+    if (selected_gateway->beacon.src == mac_vars.synced_gateway) {
+        // should not happen, but just in case: already synced to this gateway, ignore it
+        return false;
+    }
+
+    if (selected_gateway->rssi > mac_vars.received_packet.rssi + MARI_HANDOVER_RSSI_HYSTERESIS) {
+        // the new gateway is not strong enough, ignore it
+        return false;
+    }
+
+    // FIXME: have this be the first condition to be checked; I put it here just for debugging
+    if (now_ts - mac_vars.synced_ts < MARI_HANDOVER_MIN_INTERVAL) {
+        // just recently performed a synchronization, will not try again so soon
+        return false;
+    }
+
+    return true;
+}
+
+static void handle_bg_scan_and_trigger_handover(uint32_t now_ts) {
+    mr_channel_info_t selected_gateway = { 0 };
+    if (!select_gateway_for_handover(now_ts, &selected_gateway)) {
+        // no handover, stop here
+        return;
+    }
+
+    // ==== for DEBUG only
+    DEBUG_GPIO_SET(&pin3);
+    DEBUG_GPIO_CLEAR(&pin3);
+    // ==== for DEBUG only
+
+    // a handover is going to happen, have the association module handle the disconnection event
+    mr_assoc_node_handle_immediate_disconnect(MARI_HANDOVER);
+    // during handover, we don't want the inter slot timer to tick again before we finish sync, so just set if far away in the future
+    mr_timer_hf_set_periodic_us(
+        MARI_TIMER_DEV,
+        MARI_TIMER_INTER_SLOT_CHANNEL,
+        slot_durations.whole_slot << 4,  // 16 slots in the future
+        &new_slot_synced);
+
+    uint32_t handover_time_correction_us = 206;  // magic number: measured using the logic analyzer
+    if (sync_to_gateway(now_ts, &selected_gateway, handover_time_correction_us)) {
+        // found a gateway and synchronized to it
+        mr_assoc_node_handle_synced();
+    } else {
+        // failed to synchronize to a gateway, back to scanning
+        mr_assoc_node_handle_immediate_disconnect(MARI_HANDOVER_FAILED);
+        node_back_to_scanning();
+        return;
+    }
+}
+
 // --------------------- scan activities ------------------
+
+static void handle_scan_and_trigger_association(uint32_t now_ts) {
+    mr_channel_info_t selected_gateway = { 0 };
+    if (!mr_scan_select(&selected_gateway, mac_vars.scan_started_ts, now_ts)) {
+        // no gateway found, back to scanning
+        start_scan();
+        return;
+    }
+
+    if (sync_to_gateway(now_ts, &selected_gateway, 0)) {
+        // successfully synchronized to a gateway
+        mr_assoc_node_handle_synced();
+    } else {
+        // failed to synchronize to a gateway, back to scanning
+        start_scan();
+    }
+}
 
 static void activity_scan_dispatch_new_schedule(void) {
     mr_timer_hf_set_periodic_us(
@@ -620,63 +694,19 @@ static void activity_scan_dispatch_new_schedule(void) {
         &new_slot_synced);
 }
 
-static bool select_gateway_and_sync(void) {
-    uint32_t now_ts      = mr_timer_hf_now(MARI_TIMER_DEV);
-    bool     is_handover = false;
-
-    mr_channel_info_t selected_gateway = { 0 };
-    if (!mr_scan_select(&selected_gateway, mac_vars.scan_started_ts, now_ts)) {
-        // no gateway found
-        return false;
-    }
-
-    if (mr_assoc_is_joined()) {
-        // this is a handover attempt
-        if (selected_gateway.beacon.src == mac_vars.synced_gateway) {
-            // should not happen, but just in case: already synced to this gateway, ignore it
-            return false;
-        }
-        if (mac_vars.synced_ts - selected_gateway.timestamp < MARI_HANDOVER_MIN_INTERVAL) {
-            // just recently performed a synchronization, will not try again so soon
-            return false;
-        }
-        if (selected_gateway.rssi > mac_vars.received_packet.rssi + MARI_HANDOVER_RSSI_HYSTERESIS) {
-            // the new gateway is not strong enough, ignore it
-            return false;
-        }
-        is_handover = true;
-    }
-
-    // ==== for DEBUG only
-    if (is_handover) {
-        DEBUG_GPIO_SET(&pin3);
-        DEBUG_GPIO_CLEAR(&pin3);
-    }
-    // ==== for DEBUG only
-
-    if (!mr_scheduler_set_schedule(selected_gateway.beacon.active_schedule_id)) {
+static bool sync_to_gateway(uint32_t now_ts, mr_channel_info_t *selected_gateway, uint32_t handover_time_correction_us) {
+    if (!mr_scheduler_set_schedule(selected_gateway->beacon.active_schedule_id)) {
         // schedule not found, a new scan will begin again via new_scan
         return false;
     }
 
-    if (is_handover) {
-        // a handover is going to happen, have the association module handle the disconnection event
-        mr_assoc_node_handle_immediate_disconnect(MARI_HANDOVER);
-        // during handover, we don't want the inter slot timer to tick again before we finish sync, so just set if far away in the future
-        mr_timer_hf_set_periodic_us(
-            MARI_TIMER_DEV,
-            MARI_TIMER_INTER_SLOT_CHANNEL,
-            slot_durations.whole_slot << 4,  // 16 slots in the future
-            &new_slot_synced);
-    }
-
-    mac_vars.synced_gateway    = selected_gateway.beacon.src;
-    mac_vars.synced_network_id = selected_gateway.beacon.network_id;
+    mac_vars.synced_gateway    = selected_gateway->beacon.src;
+    mac_vars.synced_network_id = selected_gateway->beacon.network_id;
     mac_vars.synced_ts         = now_ts;
 
     // the selected gateway may have been scanned a few slot_durations ago, so we need to account for that difference
     // NOTE: this assumes that the slot duration is the same for gateways and nodes
-    uint32_t time_since_beacon      = now_ts - selected_gateway.timestamp;
+    uint32_t time_since_beacon      = now_ts - selected_gateway->timestamp;
     uint64_t asn_count_since_beacon = (time_since_beacon / slot_durations.whole_slot) + 1;  // +1 because we are inside the current slot
     uint64_t time_into_gateway_slot = time_since_beacon % slot_durations.whole_slot;
 
@@ -687,10 +717,8 @@ static bool select_gateway_and_sync(void) {
         time_to_skip_one_slot = slot_durations.whole_slot;
     }
 
-    uint64_t time_cpu_and_toa = 455;  // magic number: measured using the logic analyzer
-    if (is_handover) {
-        time_cpu_and_toa += 116;  // magic number: measured using the logic analyzer (why??)
-    }
+    uint64_t time_cpu_and_toa = 435;  // magic number: measured using the logic analyzer
+    time_cpu_and_toa += handover_time_correction_us;
 
     uint32_t time_dispatch_new_schedule = ((slot_durations.whole_slot - time_into_gateway_slot) + time_to_skip_one_slot) - time_cpu_and_toa;
     mr_timer_hf_set_oneshot_us(
@@ -700,7 +728,7 @@ static bool select_gateway_and_sync(void) {
         &activity_scan_dispatch_new_schedule);
 
     // set the asn to match the gateway's
-    mac_vars.asn = selected_gateway.beacon.asn + asn_count_since_beacon;
+    mac_vars.asn = selected_gateway->beacon.asn + asn_count_since_beacon;
 
     return true;
 }
