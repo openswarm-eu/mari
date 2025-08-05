@@ -239,7 +239,7 @@ static void new_slot_synced(void) {
     } else if (mari_get_node_type() == MARI_NODE) {
         if (mr_assoc_node_should_leave(mac_vars.asn)) {
             // assoc module determined that the node should leave, so disconnect and back to scanning
-            mr_assoc_node_handle_disconnect();
+            mr_assoc_node_handle_pending_disconnect();
             node_back_to_scanning();
             return;
         } else if (mr_assoc_node_too_long_waiting_for_join_response()) {
@@ -275,13 +275,17 @@ static void new_slot_synced(void) {
     }
 }
 
-static void node_back_to_scanning(void) {
+static void node_clear_synced_info(void) {
     mac_vars.synced_gateway    = 0;
     mac_vars.synced_network_id = 0;
     mac_vars.synced_ts         = 0;
     mac_vars.asn               = 0;
     mac_vars.is_scanning       = false;
     mac_vars.is_bg_scanning    = false;
+}
+
+static void node_back_to_scanning(void) {
+    node_clear_synced_info();
     set_slot_state(STATE_SLEEP);
     end_slot();
     start_scan();
@@ -596,6 +600,7 @@ static void fix_drift(uint32_t ts) {
             clock_drift);
     } else {
         // drift is too high, need to re-sync
+        // FIXME: use `mr_assoc_node_handle_immediate_disconnect` instead
         mr_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway, .tag = MARI_OUT_OF_SYNC };
         mac_vars.mari_event_callback(MARI_DISCONNECTED, event_data);
         mr_assoc_set_state(JOIN_STATE_IDLE);
@@ -626,12 +631,6 @@ static bool select_gateway_and_sync(void) {
     }
 
     if (mr_assoc_is_joined()) {
-        // ==== for DEBUG only
-        DEBUG_GPIO_SET(&pin3);
-        DEBUG_GPIO_CLEAR(&pin3);
-        return false;
-        // ==== for DEBUG only
-
         // this is a handover attempt
         if (selected_gateway.beacon.src == mac_vars.synced_gateway) {
             // should not happen, but just in case: already synced to this gateway, ignore it
@@ -648,16 +647,21 @@ static bool select_gateway_and_sync(void) {
         is_handover = true;
     }
 
+    // ==== for DEBUG only
+    if (is_handover) {
+        DEBUG_GPIO_SET(&pin3);
+        DEBUG_GPIO_CLEAR(&pin3);
+    }
+    // ==== for DEBUG only
+
     if (!mr_scheduler_set_schedule(selected_gateway.beacon.active_schedule_id)) {
         // schedule not found, a new scan will begin again via new_scan
         return false;
     }
 
     if (is_handover) {
-        // a handover is going to happen, notify application about network disconnection
-        mr_event_data_t event_data = { .data.gateway_info.gateway_id = mac_vars.synced_gateway, .tag = MARI_HANDOVER };
-        mac_vars.mari_event_callback(MARI_DISCONNECTED, event_data);
-        // NOTE: should we `mr_assoc_set_state(JOIN_STATE_IDLE);` here?
+        // a handover is going to happen, have the association module handle the disconnection event
+        mr_assoc_node_handle_immediate_disconnect(MARI_HANDOVER);
         // during handover, we don't want the inter slot timer to tick again before we finish sync, so just set if far away in the future
         mr_timer_hf_set_periodic_us(
             MARI_TIMER_DEV,
