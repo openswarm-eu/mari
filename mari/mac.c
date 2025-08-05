@@ -266,11 +266,11 @@ static void new_slot_synced(void) {
     } else if (mac_vars.current_slot_info.radio_action == MARI_RADIO_ACTION_SLEEP) {
         mr_scheduler_stats_register_used_slot(false);
         // check if we should use this slot for background scan
-        if (mari_get_node_type() == MARI_GATEWAY || !MARI_ENABLE_BACKGROUND_SCAN) {
+        if (MARI_ENABLE_BACKGROUND_SCAN && mari_get_node_type() == MARI_NODE && mr_assoc_is_joined()) {
+            start_background_scan();
+        } else {
             set_slot_state(STATE_SLEEP);
             end_slot();
-        } else {  // node with background scan enabled
-            start_background_scan();
         }
     }
 }
@@ -279,6 +279,9 @@ static void node_back_to_scanning(void) {
     mac_vars.synced_gateway    = 0;
     mac_vars.synced_network_id = 0;
     mac_vars.synced_ts         = 0;
+    mac_vars.asn               = 0;
+    mac_vars.is_scanning       = false;
+    mac_vars.is_bg_scanning    = false;
     set_slot_state(STATE_SLEEP);
     end_slot();
     start_scan();
@@ -391,6 +394,7 @@ static void end_background_scan(void) {
             mr_assoc_node_handle_synced();
         }
     }
+    // otherwise, do nothing, and the background scan will continue through the next slot
 }
 
 // --------------------- tx activities --------------------
@@ -622,6 +626,12 @@ static bool select_gateway_and_sync(void) {
     }
 
     if (mr_assoc_is_joined()) {
+        // ==== for DEBUG only
+        DEBUG_GPIO_SET(&pin3);
+        DEBUG_GPIO_CLEAR(&pin3);
+        return false;
+        // ==== for DEBUG only
+
         // this is a handover attempt
         if (selected_gateway.beacon.src == mac_vars.synced_gateway) {
             // should not happen, but just in case: already synced to this gateway, ignore it
@@ -707,7 +717,7 @@ static void activity_scan_end_frame(uint32_t end_frame_ts) {
 
     // if there is still enough time before end of scan, re-enable the radio
     bool still_time_for_rx_scan    = mac_vars.is_scanning && (end_frame_ts + MARI_BEACON_TOA_WITH_PADDING < mac_vars.scan_expected_end_ts);
-    bool still_time_for_rx_bg_scan = mac_vars.is_bg_scanning && mac_vars.bg_scan_sleep_next_slot;
+    bool still_time_for_rx_bg_scan = mr_assoc_is_joined() && mac_vars.is_bg_scanning && mac_vars.bg_scan_sleep_next_slot;
     if (still_time_for_rx_scan || still_time_for_rx_bg_scan) {
         // re-enable the radio, if there still time to scan more (conditions for normal / bg scan)
         set_slot_state(STATE_RX_DATA_LISTEN);
