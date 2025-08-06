@@ -47,7 +47,8 @@ bool mr_assoc_node_handle_failed_join(void);
 bool mr_assoc_node_too_long_waiting_for_join_response(void);
 bool mr_assoc_node_too_long_synced_without_joining(void);
 void mr_assoc_node_handle_give_up_joining(void);
-void mr_assoc_node_handle_disconnect(void);
+void mr_assoc_node_handle_pending_disconnect(void);
+void mr_assoc_node_handle_immediate_disconnect(mr_event_tag_t tag);
 bool mr_assoc_node_matches_network_id(uint16_t network_id);
 
 void mr_assoc_node_register_collision_backoff(void);

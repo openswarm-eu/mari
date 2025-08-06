@@ -36,6 +36,7 @@ typedef struct {
     mr_event_t      event;
     mr_event_data_t event_data;
     bool            event_ready;
+    bool            led_blink_state;  // for blinking when not connected
 } node_vars_t;
 
 typedef struct __attribute__((packed)) {
@@ -52,21 +53,36 @@ extern schedule_t schedule_minuscule, schedule_tiny, schedule_huge;
 
 schedule_t *schedule_app = &schedule_huge;
 
-//=========================== prototypes =======================================
+//=========================== private ==========================================
 
-static void mari_event_callback(mr_event_t event, mr_event_data_t event_data);
-static void tx_if_connected(void);
+static void _led_blink_callback(void) {
+    if (!mari_node_is_connected()) {
+        // not connected: blink blue (alternate between OFF and BLUE every 10ms)
+        board_set_led_mari(node_vars.led_blink_state ? OFF : BLUE);
+        node_vars.led_blink_state = !node_vars.led_blink_state;
+    }
+}
+
+static void mari_event_callback(mr_event_t event, mr_event_data_t event_data) {
+    memcpy(&node_vars.event, &event, sizeof(mr_event_t));
+    memcpy(&node_vars.event_data, &event_data, sizeof(mr_event_data_t));
+    node_vars.event_ready = true;
+}
 
 //=========================== main =============================================
 
 int main(void) {
     printf("Hello Mari Node %016llX\n", mr_device_id());
     mr_timer_hf_init(MARI_APP_TIMER_DEV);
-    mr_timer_hf_set_oneshot_us(MARI_APP_TIMER_DEV, 0, 0, &tx_if_connected);
 
     board_init();
+    board_set_led_mari(BLUE);
 
     mari_init(MARI_NODE, MARI_NET_ID_PATTERN_ANY, schedule_app, &mari_event_callback);
+
+    mr_timer_hf_set_periodic_us(MARI_APP_TIMER_DEV, 0, 100 * 1000, &_led_blink_callback);
+
+    board_set_led_mari(OFF);
 
     while (1) {
         __SEV();
@@ -100,18 +116,14 @@ int main(void) {
                 {
                     uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
                     printf("Connected to gateway %016llX\n", gateway_id);
-                    if (gateway_id == 0xCEA467E20BACC0AB) {
-                        board_set_mari_status(GREEN);
-                    } else {
-                        board_set_mari_status(OTHER);
-                    }
+                    board_set_led_mari_gateway(gateway_id);
                     break;
                 }
                 case MARI_DISCONNECTED:
                 {
                     uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
                     printf("Disconnected from gateway %016llX, reason: %u\n", gateway_id, event_data.tag);
-                    board_set_mari_status(RED);
+                    board_set_led_mari(OFF);
                     break;
                 }
                 default:
@@ -121,18 +133,4 @@ int main(void) {
 
         mari_event_loop();
     }
-}
-
-//=========================== callbacks ========================================
-
-static void mari_event_callback(mr_event_t event, mr_event_data_t event_data) {
-    memcpy(&node_vars.event, &event, sizeof(mr_event_t));
-    memcpy(&node_vars.event_data, &event_data, sizeof(mr_event_data_t));
-    node_vars.event_ready = true;
-}
-
-//=========================== private =========================================
-
-static void tx_if_connected(void) {
-    // This function is not used in the current logic but kept for reference.
 }

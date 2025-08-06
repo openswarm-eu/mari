@@ -32,7 +32,7 @@
 
 #define MARI_N_CELLS_MAX 137
 
-#define MARI_ENABLE_BACKGROUND_SCAN 0
+#define MARI_ENABLE_BACKGROUND_SCAN 1
 
 #define MARI_PACKET_MAX_SIZE 255
 
@@ -61,6 +61,7 @@ typedef enum {
     MARI_GATEWAY_FULL      = 4,
     MARI_PEER_LOST_TIMEOUT = 5,
     MARI_PEER_LOST_BLOOM   = 6,
+    MARI_HANDOVER_FAILED   = 7,
 } mr_event_tag_t;
 
 typedef struct {

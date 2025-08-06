@@ -289,12 +289,22 @@ void mr_assoc_node_keep_gateway_alive(uint64_t asn) {
     assoc_vars.last_received_from_gateway_asn = asn;
 }
 
-void mr_assoc_node_handle_disconnect(void) {
+void mr_assoc_node_handle_pending_disconnect(void) {
     mr_assoc_set_state(JOIN_STATE_IDLE);
     mr_scheduler_node_deassign_myself_from_schedule();
     mr_event_data_t event_data = {
         .data.gateway_info.gateway_id = mr_mac_get_synced_gateway(),
         .tag                          = assoc_vars.is_pending_disconnect
+    };
+    assoc_vars.mari_event_callback(MARI_DISCONNECTED, event_data);
+}
+
+void mr_assoc_node_handle_immediate_disconnect(mr_event_tag_t tag) {
+    mr_assoc_set_state(JOIN_STATE_IDLE);
+    mr_scheduler_node_deassign_myself_from_schedule();
+    mr_event_data_t event_data = {
+        .data.gateway_info.gateway_id = mr_mac_get_synced_gateway(),
+        .tag                          = tag
     };
     assoc_vars.mari_event_callback(MARI_DISCONNECTED, event_data);
 }

@@ -8,12 +8,12 @@ repos:
         language: system
         pass_filenames: false
       - id: gateway-network-id-check
-        name: Ensure gateway uses MARI_NET_ID_DEFAULT
+        name: "Ensure gateway uses MARI_NET_ID_DEFAULT "
         entry: grep MARI_NET_ID_DEFAULT app/03app_gateway_net/main.c
         language: system
         pass_filenames: false
       - id: node-network-id-check
-        name: Ensure node uses MARI_NET_ID_PATTERN_ANY
+        name: "Ensure node uses MARI_NET_ID_PATTERN_ANY "
         entry: grep MARI_NET_ID_PATTERN_ANY app/03app_node/main.c
         language: system
         pass_filenames: false
