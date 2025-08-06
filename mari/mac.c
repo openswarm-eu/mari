@@ -620,7 +620,7 @@ static bool select_gateway_for_handover(uint32_t now_ts, mr_channel_info_t *sele
         return false;
     }
 
-    if (selected_gateway->rssi > mac_vars.received_packet.rssi + MARI_HANDOVER_RSSI_HYSTERESIS) {
+    if (selected_gateway->rssi < (mac_vars.received_packet.rssi + MARI_HANDOVER_RSSI_HYSTERESIS)) {
         // the new gateway is not strong enough, ignore it
         return false;
     }
