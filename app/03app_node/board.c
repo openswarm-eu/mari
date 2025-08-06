@@ -56,6 +56,7 @@ void board_init(void) {
 }
 
 void board_set_mari_status(led_color_t color) {
+    // clear = ON, set = OFF
     switch (color) {
         case RED:
             mr_gpio_clear(&_r_led_pin);
@@ -72,7 +73,12 @@ void board_set_mari_status(led_color_t color) {
             mr_gpio_set(&_g_led_pin);
             mr_gpio_clear(&_b_led_pin);
             break;
-        case OTHER:
+        case PURPLE:
+            mr_gpio_clear(&_r_led_pin);
+            mr_gpio_set(&_g_led_pin);
+            mr_gpio_clear(&_b_led_pin);
+            break;
+        case YELLOW:
             mr_gpio_clear(&_r_led_pin);
             mr_gpio_clear(&_g_led_pin);
             mr_gpio_set(&_b_led_pin);
