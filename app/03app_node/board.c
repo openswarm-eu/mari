@@ -42,7 +42,7 @@ void board_init(void) {
     mr_gpio_init(&_r_led_pin, MR_GPIO_OUT);
     mr_gpio_init(&_g_led_pin, MR_GPIO_OUT);
     mr_gpio_init(&_b_led_pin, MR_GPIO_OUT);
-    board_set_mari_status(BLUE);
+    board_set_led_mari(OFF);
 
 #ifdef MARI_BOARD_NRF52840_DONGLE
     mr_gpio_init(&_app_led_pin, MR_GPIO_OUT);
@@ -55,7 +55,29 @@ void board_init(void) {
     mr_gpio_set(&_reg_pin);
 }
 
-void board_set_mari_status(led_color_t color) {
+static led_color_t _get_color_for_gateway(uint64_t gateway_id) {
+    switch (gateway_id) {
+        case 0x1E5EA52FA00B12F8:
+            return GREEN;
+        case 0x84951B1F317B8E74:
+            return PURPLE;
+        case 0x0000000000000002:  // TBD
+            return BLUE;
+        case 0x0000000000000003:
+            return CYAN;
+        case 0x0000000000000004:
+            return MAGENTA;
+        default:
+            return WHITE;
+    }
+}
+
+void board_set_led_mari_gateway(uint64_t gateway_id) {
+    led_color_t color = _get_color_for_gateway(gateway_id);
+    board_set_led_mari(color);
+}
+
+void board_set_led_mari(led_color_t color) {
     // clear = ON, set = OFF
     switch (color) {
         case RED:
@@ -81,6 +103,31 @@ void board_set_mari_status(led_color_t color) {
         case YELLOW:
             mr_gpio_clear(&_r_led_pin);
             mr_gpio_clear(&_g_led_pin);
+            mr_gpio_set(&_b_led_pin);
+            break;
+        case CYAN:
+            mr_gpio_clear(&_r_led_pin);
+            mr_gpio_set(&_g_led_pin);
+            mr_gpio_clear(&_b_led_pin);
+            break;
+        case MAGENTA:
+            mr_gpio_set(&_r_led_pin);
+            mr_gpio_clear(&_g_led_pin);
+            mr_gpio_set(&_b_led_pin);
+            break;
+        case ORANGE:
+            mr_gpio_clear(&_r_led_pin);
+            mr_gpio_set(&_g_led_pin);
+            mr_gpio_clear(&_b_led_pin);
+            break;
+        case PINK:
+            mr_gpio_set(&_r_led_pin);
+            mr_gpio_clear(&_g_led_pin);
+            mr_gpio_set(&_b_led_pin);
+            break;
+        case WHITE:
+            mr_gpio_set(&_r_led_pin);
+            mr_gpio_set(&_g_led_pin);
             mr_gpio_set(&_b_led_pin);
             break;
         case OFF:
