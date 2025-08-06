@@ -38,6 +38,7 @@ typedef struct {
     bool            event_ready;
     uint64_t        last_gateway_id;
     led_color_t     color;
+    bool            led_blink_state;  // for blinking when not connected
 } node_vars_t;
 
 typedef struct __attribute__((packed)) {
@@ -56,6 +57,18 @@ schedule_t *schedule_app = &schedule_huge;
 
 //=========================== private ==========================================
 
+static void _led_blink_callback(void) {
+    if (!mari_node_is_connected()) {
+        // Not connected: blink blue (alternate between OFF and BLUE every 10ms)
+        if (node_vars.led_blink_state) {
+            board_set_mari_status(OFF);
+        } else {
+            board_set_mari_status(BLUE);
+        }
+        node_vars.led_blink_state = !node_vars.led_blink_state;
+    }
+}
+
 static void mari_event_callback(mr_event_t event, mr_event_data_t event_data) {
     memcpy(&node_vars.event, &event, sizeof(mr_event_t));
     memcpy(&node_vars.event_data, &event_data, sizeof(mr_event_data_t));
@@ -72,6 +85,8 @@ int main(void) {
     board_set_mari_status(BLUE);
 
     mari_init(MARI_NODE, MARI_NET_ID_PATTERN_ANY, schedule_app, &mari_event_callback);
+
+    mr_timer_hf_set_periodic_us(MARI_APP_TIMER_DEV, 0, 100 * 1000, &_led_blink_callback);
 
     board_set_mari_status(OFF);
 
@@ -107,12 +122,14 @@ int main(void) {
                 {
                     uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
                     printf("Connected to gateway %016llX\n", gateway_id);
-                    if (node_vars.last_gateway_id == 0 || gateway_id == node_vars.last_gateway_id) {
-                        board_set_mari_status(GREEN);
-                    } else {
-                        // set to purple if the gateway changed (handover or reassociation)
-                        board_set_mari_status(PURPLE);
+                    if (node_vars.last_gateway_id == 0) {
+                        // always start with green
+                        node_vars.color = GREEN;
+                    } else if (gateway_id != node_vars.last_gateway_id) {
+                        // invert the color if the gateway changed (handover)
+                        node_vars.color = node_vars.color == GREEN ? PURPLE : GREEN;
                     }
+                    board_set_mari_status(node_vars.color);
                     node_vars.last_gateway_id = gateway_id;
                     break;
                 }
@@ -120,7 +137,7 @@ int main(void) {
                 {
                     uint64_t gateway_id = event_data.data.gateway_info.gateway_id;
                     printf("Disconnected from gateway %016llX, reason: %u\n", gateway_id, event_data.tag);
-                    board_set_mari_status(RED);
+                    // LED will be handled by the periodic blink function (blue blinking)
                     break;
                 }
                 default:
