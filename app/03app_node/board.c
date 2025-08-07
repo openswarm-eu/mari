@@ -61,14 +61,10 @@ static led_color_t _get_color_for_gateway(uint64_t gateway_id) {
             return GREEN;
         case 0x84951B1F317B8E74:
             return PURPLE;
-        case 0x0000000000000002:  // TBD
+        case 0x0000000000000001:  // TBD
             return BLUE;
-        case 0x0000000000000003:
-            return CYAN;
-        case 0x0000000000000004:
-            return MAGENTA;
         default:
-            return WHITE;
+            return PINK;
     }
 }
 
@@ -95,7 +91,7 @@ void board_set_led_mari(led_color_t color) {
             mr_gpio_set(&_g_led_pin);
             mr_gpio_clear(&_b_led_pin);
             break;
-        case PURPLE:
+        case PINK:
             mr_gpio_clear(&_r_led_pin);
             mr_gpio_set(&_g_led_pin);
             mr_gpio_clear(&_b_led_pin);
@@ -106,31 +102,10 @@ void board_set_led_mari(led_color_t color) {
             mr_gpio_set(&_b_led_pin);
             break;
         case CYAN:
-            mr_gpio_clear(&_r_led_pin);
-            mr_gpio_set(&_g_led_pin);
-            mr_gpio_clear(&_b_led_pin);
-            break;
-        case MAGENTA:
             mr_gpio_set(&_r_led_pin);
             mr_gpio_clear(&_g_led_pin);
-            mr_gpio_set(&_b_led_pin);
-            break;
-        case ORANGE:
-            mr_gpio_clear(&_r_led_pin);
-            mr_gpio_set(&_g_led_pin);
             mr_gpio_clear(&_b_led_pin);
             break;
-        case PINK:
-            mr_gpio_set(&_r_led_pin);
-            mr_gpio_clear(&_g_led_pin);
-            mr_gpio_set(&_b_led_pin);
-            break;
-        case WHITE:
-            mr_gpio_set(&_r_led_pin);
-            mr_gpio_set(&_g_led_pin);
-            mr_gpio_set(&_b_led_pin);
-            break;
-        case OFF:
         default:
             mr_gpio_set(&_r_led_pin);
             mr_gpio_set(&_g_led_pin);
