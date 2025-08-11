@@ -28,11 +28,22 @@
 
 //=========================== variables =======================================
 
+// a lightweight scan structure without bloom filter
+typedef struct __attribute__((packed)) {
+    uint8_t          version;
+    mr_packet_type_t type;
+    uint16_t         network_id;
+    uint64_t         asn;
+    uint64_t         src;
+    uint8_t          remaining_capacity;
+    uint8_t          active_schedule_id;
+} mr_beacon_scan_header_t;
+
 typedef struct {
     int8_t                    rssi;
     uint32_t                  timestamp;
     uint64_t                  captured_asn;
-    mr_beacon_packet_header_t beacon;
+    mr_beacon_scan_header_t beacon;
 } mr_channel_info_t;
 
 typedef struct {

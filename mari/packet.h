@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <nrf.h>
+#include "bloom.h"
 
 //=========================== defines ==========================================
 
@@ -56,6 +57,7 @@ typedef struct __attribute__((packed)) {
     uint64_t         src;
     uint8_t          remaining_capacity;
     uint8_t          active_schedule_id;
+    uint8_t          bloom_filter[MARI_BLOOM_M_BYTES];
 } mr_beacon_packet_header_t;
 
 typedef enum {

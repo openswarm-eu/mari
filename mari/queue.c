@@ -60,9 +60,6 @@ uint8_t mr_queue_next_packet(slot_type_t slot_type, uint8_t *packet) {
                 mr_mac_get_asn(),
                 mr_scheduler_gateway_remaining_capacity(),
                 mr_scheduler_get_active_schedule_id());
-            if (mr_bloom_gateway_is_available()) {
-                len += mr_bloom_gateway_copy(packet + sizeof(mr_beacon_packet_header_t));
-            }
         } else if (slot_type == SLOT_TYPE_DOWNLINK) {
             if (mr_queue_has_join_packet()) {
                 len = mr_queue_get_join_packet(packet);
