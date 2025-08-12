@@ -52,7 +52,7 @@ Mari has been validated with the following Nordic Semiconductor chips:
 
 The project includes configuration files for:
 - Segger Embedded Studio (`.emProject` files)
-- Code formatting (`.clang-format`)
+- Code formatting (`.clang-format` file, please use `clang-format` version 15)
 - Git hooks (`.pre-commit-config.yaml`)
 
 ## Getting Started
