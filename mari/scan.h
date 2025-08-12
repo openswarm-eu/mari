@@ -40,9 +40,9 @@ typedef struct __attribute__((packed)) {
 } mr_beacon_scan_header_t;
 
 typedef struct {
-    int8_t                    rssi;
-    uint32_t                  timestamp;
-    uint64_t                  captured_asn;
+    int8_t                  rssi;
+    uint32_t                timestamp;
+    uint64_t                captured_asn;
     mr_beacon_scan_header_t beacon;
 } mr_channel_info_t;
 
