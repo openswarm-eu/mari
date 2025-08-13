@@ -401,7 +401,7 @@ void mr_assoc_handle_beacon(uint8_t *packet, uint8_t length, uint8_t channel, ui
 
     bool from_my_gateway = beacon->src == mr_mac_get_synced_gateway();
     if (from_my_gateway && mr_assoc_is_joined()) {
-        bool still_joined = mr_bloom_node_contains(mr_device_id(), packet + sizeof(mr_beacon_packet_header_t));
+        bool still_joined = mr_bloom_node_contains(mr_device_id(), beacon->bloom_filter);
         if (!still_joined) {
             // node no longer joined to this gateway, so need to leave
             assoc_vars.is_pending_disconnect = MARI_PEER_LOST_BLOOM;

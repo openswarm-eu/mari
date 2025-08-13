@@ -137,11 +137,22 @@ bool mr_scan_select(mr_channel_info_t *best_channel_info, uint32_t ts_scan_start
 //=========================== private ==========================================
 
 inline void _save_rssi(size_t idx, mr_beacon_packet_header_t beacon, int8_t rssi, uint8_t channel, uint32_t ts_scan, uint64_t asn_scan) {
-    size_t channel_idx                                          = channel % MARI_N_BLE_REGULAR_CHANNELS;
+    size_t channel_idx = channel % MARI_N_BLE_REGULAR_CHANNELS;
+    // copy beacon without bloom filter to reduce memory consumption during scan
+    mr_beacon_scan_header_t scan_beacon = {
+        .version            = beacon.version,
+        .type               = beacon.type,
+        .network_id         = beacon.network_id,
+        .asn                = beacon.asn,
+        .src                = beacon.src,
+        .remaining_capacity = beacon.remaining_capacity,
+        .active_schedule_id = beacon.active_schedule_id
+    };
+
     scan_vars.scans[idx].channel_info[channel_idx].rssi         = rssi;
     scan_vars.scans[idx].channel_info[channel_idx].timestamp    = ts_scan;
     scan_vars.scans[idx].channel_info[channel_idx].captured_asn = asn_scan;
-    scan_vars.scans[idx].channel_info[channel_idx].beacon       = beacon;
+    scan_vars.scans[idx].channel_info[channel_idx].beacon       = scan_beacon;
 }
 
 inline bool _scan_is_too_old(mr_gateway_scan_t scan, uint32_t ts_scan) {
