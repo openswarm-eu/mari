@@ -717,7 +717,7 @@ static bool sync_to_gateway(uint32_t now_ts, mr_channel_info_t *selected_gateway
         time_to_skip_one_slot = slot_durations.whole_slot;
     }
 
-    uint64_t time_cpu_and_toa = 435;  // magic number: measured using the logic analyzer
+    uint64_t time_cpu_and_toa = 485;  // magic number: measured using the logic analyzer
     time_cpu_and_toa += handover_time_correction_us;
 
     uint32_t time_dispatch_new_schedule = ((slot_durations.whole_slot - time_into_gateway_slot) + time_to_skip_one_slot) - time_cpu_and_toa;

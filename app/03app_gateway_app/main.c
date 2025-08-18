@@ -84,6 +84,12 @@ static void _release_network_core(void) {
 
     NRF_RESET_S->NETWORK.FORCEOFF = (RESET_NETWORK_FORCEOFF_FORCEOFF_Release << RESET_NETWORK_FORCEOFF_FORCEOFF_Pos);
 
+    // add an extra delay to ensure the network core is released
+    // NOTE: this is very hacky, but since this only happens once, we don't want to consume another timer
+    for (uint32_t i = 0; i < 500000; i++) {
+        __NOP();
+    }
+
     while (!ipc_shared_data.net_ready) {}
 }
 
@@ -102,6 +108,7 @@ int main(void) {
     mr_uart_init(MR_UART_INDEX, &_mr_uart_rx_pin, &_mr_uart_tx_pin, MR_UART_BAUDRATE, &_uart_callback);
 
     _release_network_core();
+    // this is a bit hacky -- sometimes it does not work without this
     NRF_RESET_S->NETWORK.FORCEOFF = 0;
 
     while (1) {
