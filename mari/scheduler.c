@@ -180,7 +180,9 @@ mr_slot_info_t mr_scheduler_tick(uint64_t asn) {
         _compute_gateway_action(cell, &slot_info);
     } else {
         _compute_node_action(cell, &slot_info);
-        mr_assoc_node_tick_backoff();
+        if (cell.type == SLOT_TYPE_SHARED_UPLINK) {
+            mr_assoc_node_tick_backoff();
+        }
     }
 
     // if the slotframe wrapped, keep track of how many slotframes have passed (used to cycle beacon channels)
