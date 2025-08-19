@@ -62,7 +62,7 @@ mr_gpio_t led3 = { .port = 0, .pin = 31 };
 #define MARI_BACKOFF_N_MIN 6
 #define MARI_BACKOFF_N_MAX 7
 
-#define MARI_JOIN_TIMEOUT_SINCE_SYNCED (1000 * 1000 * 15)  // 15 seconds. after this time, go back to scanning. NOTE: have it be based on slotframe size?
+#define MARI_JOIN_TIMEOUT_SINCE_SYNCED (1000 * 1000 * 5)  // 5 seconds. after this time, go back to scanning. NOTE: have it be based on slotframe size?
 
 // after this amount of time, consider that a join request failed (very likely due to a collision during the shared uplink slot)
 // currently set to 2 slot durations -- enough when the schedule always have a shared-uplink followed by a downlink,
