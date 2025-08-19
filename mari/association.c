@@ -59,8 +59,8 @@ mr_gpio_t led3 = { .port = 0, .pin = 31 };
 
 //=========================== defines =========================================
 
-#define MARI_BACKOFF_N_MIN 6
-#define MARI_BACKOFF_N_MAX 7
+#define MARI_BACKOFF_N_MIN 4
+#define MARI_BACKOFF_N_MAX 6
 
 #define MARI_JOIN_TIMEOUT_SINCE_SYNCED (1000 * 1000 * 5)  // 5 seconds. after this time, go back to scanning. NOTE: have it be based on slotframe size?
 
