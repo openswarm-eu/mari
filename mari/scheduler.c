@@ -69,8 +69,9 @@ void mr_scheduler_init(schedule_t *application_schedule) {
     // FIXME: schedules only used for debugging
     //_schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = schedule_test;
 
-    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = &schedule_minuscule;
     _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = &schedule_tiny;
+    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = &schedule_medium;
+    _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = &schedule_big;
     _schedule_vars.available_schedules[_schedule_vars.available_schedules_len++] = &schedule_huge;
 
     if (application_schedule != NULL) {
