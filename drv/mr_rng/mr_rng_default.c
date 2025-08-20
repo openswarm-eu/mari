@@ -52,3 +52,17 @@ void mr_rng_read_range(uint8_t *value, uint8_t min, uint8_t max) {
         mr_rng_read_u8(value);
     } while (!(*value >= min && *value < max));
 }
+
+void mr_rng_read_u8_fast(uint8_t *value) {
+    // Temporarily disable bias correction for faster reads
+    uint32_t original_config = NRF_RNG->CONFIG;
+    NRF_RNG->CONFIG          = 0;  // Disable bias correction
+
+    NRF_RNG->TASKS_START = 1;
+    while (NRF_RNG->EVENTS_VALRDY == 0) {};
+    *value                 = (uint8_t)NRF_RNG->VALUE;
+    NRF_RNG->EVENTS_VALRDY = 0;
+
+    // Restore original config
+    NRF_RNG->CONFIG = original_config;
+}

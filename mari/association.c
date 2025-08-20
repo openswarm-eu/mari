@@ -90,8 +90,8 @@ assoc_vars_t assoc_vars = { 0 };
 
 //=========================== prototypes ======================================
 
-uint16_t mr_assoc_node_compute_backoff_random_time(uint8_t backoff_n);
-void     mr_assoc_node_init_backoff(void);
+uint8_t mr_assoc_node_compute_backoff_random_time(uint8_t backoff_n);
+void    mr_assoc_node_init_backoff(void);
 
 //=========================== public ==========================================
 
@@ -166,8 +166,7 @@ uint16_t mr_assoc_get_network_id(void) {
 
 void mr_assoc_node_handle_synced(void) {
     mr_assoc_set_state(JOIN_STATE_SYNCED);
-    // mr_assoc_node_init_backoff();  // ensure we start the joining procedure already with a backoff
-    mr_assoc_node_reset_backoff();
+    mr_assoc_node_init_backoff();  // ensure we start the joining procedure already with a backoff
     mr_queue_set_join_request(mr_mac_get_synced_gateway());
 }
 
@@ -266,13 +265,14 @@ void mr_assoc_node_register_collision_backoff(void) {
     assoc_vars.backoff_random_time = mr_assoc_node_compute_backoff_random_time(assoc_vars.backoff_n);
 }
 
-uint16_t mr_assoc_node_compute_backoff_random_time(uint8_t backoff_n) {
+uint8_t mr_assoc_node_compute_backoff_random_time(uint8_t backoff_n) {
     // first, compute the maximum value for the random number
-    uint16_t max = (1 << backoff_n) - 1;
+    uint8_t max = (1 << backoff_n) - 1;
 
     // then, read a random number from the RNG
-    uint16_t random_number;
-    mr_rng_read_u16(&random_number);
+    // NOTE: the RNG call to read 1 byte in fast mode takes about 160 us
+    uint8_t random_number;
+    mr_rng_read_u8_fast(&random_number);
 
     // finally, make sure random number is in the interval [0, max]
     // using modulo does not give perfect uniformity,

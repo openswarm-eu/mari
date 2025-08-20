@@ -29,6 +29,8 @@ void mr_rng_init(void);
  */
 void mr_rng_read_u8(uint8_t *value);
 
+void mr_rng_read_u8_fast(uint8_t *value);
+
 void mr_rng_read_u16(uint16_t *value);
 
 void mr_rng_read_range(uint8_t *value, uint8_t min, uint8_t max);
