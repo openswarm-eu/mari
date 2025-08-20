@@ -23,7 +23,7 @@
 
 #define MARI_MAX_SCAN_LIST_SIZE       (5)
 #define MARI_SCAN_OLD_US              (1000 * 500)       // rssi reading considered old after 500 ms
-#define MARI_HANDOVER_RSSI_HYSTERESIS (18)               // hysteresis (in dBm) for handover
+#define MARI_HANDOVER_RSSI_HYSTERESIS (24)               // hysteresis (in dBm) for handover
 #define MARI_HANDOVER_MIN_INTERVAL    (1000 * 1000 * 5)  // minimum interval between handovers (in us)
 
 //=========================== variables =======================================
