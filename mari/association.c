@@ -90,6 +90,9 @@ assoc_vars_t assoc_vars = { 0 };
 
 //=========================== prototypes ======================================
 
+uint16_t mr_assoc_node_compute_backoff_random_time(uint8_t backoff_n);
+void     mr_assoc_node_init_backoff(void);
+
 //=========================== public ==========================================
 
 void mr_assoc_init(uint16_t net_id, mr_event_cb_t event_callback) {
@@ -163,6 +166,7 @@ uint16_t mr_assoc_get_network_id(void) {
 
 void mr_assoc_node_handle_synced(void) {
     mr_assoc_set_state(JOIN_STATE_SYNCED);
+    // mr_assoc_node_init_backoff();  // ensure we start the joining procedure already with a backoff
     mr_assoc_node_reset_backoff();
     mr_queue_set_join_request(mr_mac_get_synced_gateway());
 }
@@ -228,20 +232,30 @@ bool mr_assoc_node_too_long_synced_without_joining(void) {
     return now_ts - synced_ts > MARI_JOIN_TIMEOUT_SINCE_SYNCED;
 }
 
+// to be called when the node is ready to join, i.e., when it gets synced with the gateway
+void mr_assoc_node_init_backoff(void) {
+    assoc_vars.backoff_n           = MARI_BACKOFF_N_MIN;
+    assoc_vars.backoff_random_time = mr_assoc_node_compute_backoff_random_time(assoc_vars.backoff_n);
+}
+
+// to be called when the backoff is no longer needed, or when joining fails
 void mr_assoc_node_reset_backoff(void) {
     assoc_vars.backoff_n           = -1;
     assoc_vars.backoff_random_time = 0;
 }
 
+// to be called every time the node checks if it should join
 void mr_assoc_node_tick_backoff(void) {
     if (assoc_vars.backoff_random_time > 0) {
         assoc_vars.backoff_random_time--;
     }
 }
 
+// to be called when the node experiences a collision during joining
+// this will increment the backoff n, and compute a new random time
 void mr_assoc_node_register_collision_backoff(void) {
     if (assoc_vars.backoff_n == -1) {
-        // initialize backoff
+        // initialize backoff, just in case
         assoc_vars.backoff_n = MARI_BACKOFF_N_MIN;
     } else {
         // increment the n in [0, 2^n - 1], but only if n is less than the max
@@ -249,8 +263,12 @@ void mr_assoc_node_register_collision_backoff(void) {
         assoc_vars.backoff_n = new_n < MARI_BACKOFF_N_MAX ? new_n : MARI_BACKOFF_N_MAX;
     }
 
+    assoc_vars.backoff_random_time = mr_assoc_node_compute_backoff_random_time(assoc_vars.backoff_n);
+}
+
+uint16_t mr_assoc_node_compute_backoff_random_time(uint8_t backoff_n) {
     // first, compute the maximum value for the random number
-    uint16_t max = (1 << assoc_vars.backoff_n) - 1;
+    uint16_t max = (1 << backoff_n) - 1;
 
     // then, read a random number from the RNG
     uint16_t random_number;
@@ -259,7 +277,7 @@ void mr_assoc_node_register_collision_backoff(void) {
     // finally, make sure random number is in the interval [0, max]
     // using modulo does not give perfect uniformity,
     // but it is much faster than an exhaustive search, and good enough for our purpose
-    assoc_vars.backoff_random_time = (random_number % (max + 1));
+    return random_number % (max + 1);
 }
 
 bool mr_assoc_node_should_leave(uint32_t asn) {
