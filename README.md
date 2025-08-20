@@ -57,7 +57,7 @@ The project includes configuration files for:
 
 ## Getting Started
 
-[Coming soon]
+1- To run Mari network on your computer follow the instructions at : https://github.com/DotBots/mari/wiki/Getting-started#running-mari-network-on-your-computer
 
 ## License
 
