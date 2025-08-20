@@ -15,6 +15,7 @@
 // - the schedule that can be passed by the application during initialization
 #define MARI_N_SCHEDULES 4 + 1
 
+// clang-format off
 /* Schedule used for tests only. Commented out by default. */
 // schedule_t schedule_test = {
 //     .id            = 0xFE,
@@ -28,7 +29,6 @@
 //     }
 // };
 
-// clang-format off
 /* Schedule with 17 slots, supporting up to 10 nodes */
 schedule_t schedule_tiny = {
     .id = 6,

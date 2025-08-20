@@ -248,20 +248,18 @@ void mr_assoc_node_register_collision_backoff(void) {
         uint8_t new_n        = assoc_vars.backoff_n + 1;
         assoc_vars.backoff_n = new_n < MARI_BACKOFF_N_MAX ? new_n : MARI_BACKOFF_N_MAX;
     }
-    // choose a random number from [0, 2^n - 1] and set it as the backoff time
+
+    // first, compute the maximum value for the random number
     uint16_t max = (1 << assoc_vars.backoff_n) - 1;
 
-    // read 2 bytes from the RNG
-    uint8_t raw_low, raw_high;
-    mr_rng_read(&raw_low);
-    mr_rng_read(&raw_high);
-    // combine the two bytes into a 16-bit number (we need 16 bits because MARI_BACKOFF_N_MAX > 8)
-    uint16_t raw = ((uint16_t)raw_high << 8) | (uint16_t)raw_low;
+    // then, read a random number from the RNG
+    uint16_t random_number;
+    mr_rng_read_u16(&random_number);
 
-    // now, make sure random number is in the interval [0, max]
+    // finally, make sure random number is in the interval [0, max]
     // using modulo does not give perfect uniformity,
     // but it is much faster than an exhaustive search, and good enough for our purpose
-    assoc_vars.backoff_random_time = (raw % (max + 1));
+    assoc_vars.backoff_random_time = (random_number % (max + 1));
 }
 
 bool mr_assoc_node_should_leave(uint32_t asn) {
