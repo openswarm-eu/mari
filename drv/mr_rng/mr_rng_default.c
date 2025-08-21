@@ -31,15 +31,38 @@ void mr_rng_init(void) {
     NRF_RNG->SHORTS = (RNG_SHORTS_VALRDY_STOP_Enabled << RNG_SHORTS_VALRDY_STOP_Pos);
 }
 
-void mr_rng_read(uint8_t *value) {
+void mr_rng_read_u8(uint8_t *value) {
     NRF_RNG->TASKS_START = 1;
     while (NRF_RNG->EVENTS_VALRDY == 0) {};
     *value                 = (uint8_t)NRF_RNG->VALUE;
     NRF_RNG->EVENTS_VALRDY = 0;
 }
 
+void mr_rng_read_u16(uint16_t *value) {
+    // read 2 bytes from the RNG
+    uint8_t raw_low, raw_high;
+    mr_rng_read_u8(&raw_low);
+    mr_rng_read_u8(&raw_high);
+    // combine the two bytes into a 16-bit number (we need 16 bits because MARI_BACKOFF_N_MAX > 8)
+    *value = ((uint16_t)raw_high << 8) | (uint16_t)raw_low;
+}
+
 void mr_rng_read_range(uint8_t *value, uint8_t min, uint8_t max) {
     do {
-        mr_rng_read(value);
+        mr_rng_read_u8(value);
     } while (!(*value >= min && *value < max));
+}
+
+void mr_rng_read_u8_fast(uint8_t *value) {
+    // Temporarily disable bias correction for faster reads
+    uint32_t original_config = NRF_RNG->CONFIG;
+    NRF_RNG->CONFIG          = 0;  // Disable bias correction
+
+    NRF_RNG->TASKS_START = 1;
+    while (NRF_RNG->EVENTS_VALRDY == 0) {};
+    *value                 = (uint8_t)NRF_RNG->VALUE;
+    NRF_RNG->EVENTS_VALRDY = 0;
+
+    // Restore original config
+    NRF_RNG->CONFIG = original_config;
 }

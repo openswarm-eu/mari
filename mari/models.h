@@ -30,7 +30,7 @@
 #define MARI_FIXED_SCAN_CHANNEL 37  // to hardcode the channel, use a valid value other than 0
 // #endif
 
-#define MARI_N_CELLS_MAX 137
+#define MARI_N_CELLS_MAX 149
 
 #define MARI_ENABLE_BACKGROUND_SCAN 1
 

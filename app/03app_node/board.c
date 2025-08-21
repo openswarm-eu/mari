@@ -57,14 +57,14 @@ void board_init(void) {
 
 static led_color_t _get_color_for_gateway(uint64_t gateway_id) {
     switch (gateway_id) {
-        case 0x1E5EA52FA00B12F8:
+        case 0x1B5B306C3D7542D0:  // 2024, Yinghao
             return GREEN;
-        case 0x84951B1F317B8E74:
-            return PURPLE;
-        case 0x0000000000000001:  // TBD
-            return BLUE;
-        default:
+        case 0xD5A813E7177DD598:  // 2025, TBD
             return PINK;
+        case 0x7D4ADB2FBBA3797F:  // 2025, Geovane
+            return YELLOW;
+        default:
+            return BLUE;
     }
 }
 

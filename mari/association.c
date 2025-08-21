@@ -59,8 +59,8 @@ mr_gpio_t led3 = { .port = 0, .pin = 31 };
 
 //=========================== defines =========================================
 
-#define MARI_BACKOFF_N_MIN 5
-#define MARI_BACKOFF_N_MAX 9
+#define MARI_BACKOFF_N_MIN 4
+#define MARI_BACKOFF_N_MAX 6
 
 #define MARI_JOIN_TIMEOUT_SINCE_SYNCED (1000 * 1000 * 5)  // 5 seconds. after this time, go back to scanning. NOTE: have it be based on slotframe size?
 
@@ -89,6 +89,9 @@ typedef struct {
 assoc_vars_t assoc_vars = { 0 };
 
 //=========================== prototypes ======================================
+
+uint8_t mr_assoc_node_compute_backoff_random_time(uint8_t backoff_n);
+void    mr_assoc_node_init_backoff(void);
 
 //=========================== public ==========================================
 
@@ -163,7 +166,7 @@ uint16_t mr_assoc_get_network_id(void) {
 
 void mr_assoc_node_handle_synced(void) {
     mr_assoc_set_state(JOIN_STATE_SYNCED);
-    mr_assoc_node_reset_backoff();
+    mr_assoc_node_init_backoff();  // ensure we start the joining procedure already with a backoff
     mr_queue_set_join_request(mr_mac_get_synced_gateway());
 }
 
@@ -228,40 +231,53 @@ bool mr_assoc_node_too_long_synced_without_joining(void) {
     return now_ts - synced_ts > MARI_JOIN_TIMEOUT_SINCE_SYNCED;
 }
 
+// to be called when the node is ready to join, i.e., when it gets synced with the gateway
+void mr_assoc_node_init_backoff(void) {
+    assoc_vars.backoff_n           = MARI_BACKOFF_N_MIN;
+    assoc_vars.backoff_random_time = mr_assoc_node_compute_backoff_random_time(assoc_vars.backoff_n);
+}
+
+// to be called when the backoff is no longer needed, or when joining fails
 void mr_assoc_node_reset_backoff(void) {
     assoc_vars.backoff_n           = -1;
     assoc_vars.backoff_random_time = 0;
 }
 
+// to be called every time the node checks if it should join
 void mr_assoc_node_tick_backoff(void) {
     if (assoc_vars.backoff_random_time > 0) {
         assoc_vars.backoff_random_time--;
     }
 }
 
+// to be called when the node experiences a collision during joining
+// this will increment the backoff n, and compute a new random time
 void mr_assoc_node_register_collision_backoff(void) {
     if (assoc_vars.backoff_n == -1) {
-        // initialize backoff
+        // initialize backoff, just in case
         assoc_vars.backoff_n = MARI_BACKOFF_N_MIN;
     } else {
         // increment the n in [0, 2^n - 1], but only if n is less than the max
         uint8_t new_n        = assoc_vars.backoff_n + 1;
         assoc_vars.backoff_n = new_n < MARI_BACKOFF_N_MAX ? new_n : MARI_BACKOFF_N_MAX;
     }
-    // choose a random number from [0, 2^n - 1] and set it as the backoff time
-    uint16_t max = (1 << assoc_vars.backoff_n) - 1;
 
-    // read 2 bytes from the RNG
-    uint8_t raw_low, raw_high;
-    mr_rng_read(&raw_low);
-    mr_rng_read(&raw_high);
-    // combine the two bytes into a 16-bit number (we need 16 bits because MARI_BACKOFF_N_MAX > 8)
-    uint16_t raw = ((uint16_t)raw_high << 8) | (uint16_t)raw_low;
+    assoc_vars.backoff_random_time = mr_assoc_node_compute_backoff_random_time(assoc_vars.backoff_n);
+}
 
-    // now, make sure random number is in the interval [0, max]
+uint8_t mr_assoc_node_compute_backoff_random_time(uint8_t backoff_n) {
+    // first, compute the maximum value for the random number
+    uint8_t max = (1 << backoff_n) - 1;
+
+    // then, read a random number from the RNG
+    // NOTE: the RNG call to read 1 byte in fast mode takes about 160 us
+    uint8_t random_number;
+    mr_rng_read_u8_fast(&random_number);
+
+    // finally, make sure random number is in the interval [0, max]
     // using modulo does not give perfect uniformity,
     // but it is much faster than an exhaustive search, and good enough for our purpose
-    assoc_vars.backoff_random_time = (raw % (max + 1));
+    return random_number % (max + 1);
 }
 
 bool mr_assoc_node_should_leave(uint32_t asn) {
