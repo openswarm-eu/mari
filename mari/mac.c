@@ -86,6 +86,11 @@ typedef struct {
     bool is_bg_scanning;           ///< Whether the node is scanning for gateways in the background
     bool bg_scan_sleep_next_slot;  ///< Whether the next slot is a sleep slot
 
+    ///< This timestamp keeps track of a full handover scan, that is, a scan that
+    ///< Potentially spans multiple background scans (the bg scans are typically very short)
+    uint32_t full_bg_scan_started_ts;
+    uint32_t full_bg_scan_expected_end_ts;  ///< Timestamp of the expected end of the full handover scan
+
     uint64_t synced_gateway;     ///< ID of the gateway the node is synchronized with
     uint16_t synced_network_id;  ///< Network ID of the gateway the node is synchronized with
     uint32_t synced_ts;          ///< Timestamp of the last synchronization
@@ -138,7 +143,7 @@ static void activity_scan_start_frame(uint32_t ts);
 static void activity_scan_end_frame(uint32_t ts);
 static bool sync_to_gateway(uint32_t now_ts, mr_channel_info_t *selected_gateway, uint32_t handover_time_correction_us);
 
-static void start_background_scan(void);
+static void start_or_continue_background_scan(void);
 static void end_background_scan(void);
 static void handle_bg_scan_and_trigger_handover(uint32_t now_ts);
 
@@ -213,7 +218,6 @@ static void set_slot_state(mr_mac_state_t state) {
 
     switch (state) {
         case STATE_RX_DATA_LISTEN:
-            // DEBUG_GPIO_SET(&pin3);
         case STATE_TX_DATA:
         case STATE_RX_DATA:
             DEBUG_GPIO_SET(&pin1);
@@ -269,7 +273,7 @@ static void new_slot_synced(void) {
         mr_scheduler_stats_register_used_slot(false);
         // check if we should use this slot for background scan
         if (MARI_ENABLE_BACKGROUND_SCAN && mari_get_node_type() == MARI_NODE && mr_assoc_is_joined()) {
-            start_background_scan();
+            start_or_continue_background_scan();
         } else {
             set_slot_state(STATE_SLEEP);
             end_slot();
@@ -278,12 +282,14 @@ static void new_slot_synced(void) {
 }
 
 static void node_clear_synced_info(void) {
-    mac_vars.synced_gateway    = 0;
-    mac_vars.synced_network_id = 0;
-    mac_vars.synced_ts         = 0;
-    mac_vars.asn               = 0;
-    mac_vars.is_scanning       = false;
-    mac_vars.is_bg_scanning    = false;
+    mac_vars.synced_gateway               = 0;
+    mac_vars.synced_network_id            = 0;
+    mac_vars.synced_ts                    = 0;
+    mac_vars.asn                          = 0;
+    mac_vars.is_scanning                  = false;
+    mac_vars.is_bg_scanning               = false;
+    mac_vars.full_bg_scan_started_ts      = 0;
+    mac_vars.full_bg_scan_expected_end_ts = 0;
 }
 
 static void node_back_to_scanning(void) {
@@ -352,14 +358,20 @@ static void end_scan(void) {
 
 // --------------------- start/end background scan --------
 
-static void start_background_scan(void) {
+static void start_or_continue_background_scan(void) {
     // 1. prepare timestamps and and arm timer
     if (!mac_vars.is_bg_scanning) {
         mac_vars.scan_started_ts      = mac_vars.start_slot_ts;  // reuse the slot start time as reference
         mac_vars.scan_expected_end_ts = mac_vars.scan_started_ts + MARI_BG_SCAN_DURATION;
     }
 
-    // end_scan will be called when the scan is over
+    if (mac_vars.full_bg_scan_started_ts == 0) {
+        mac_vars.full_bg_scan_started_ts      = mac_vars.start_slot_ts;  // reuse the slot start time as reference
+        uint32_t handover_full_scan_duration  = mr_scheduler_get_duration_us();
+        mac_vars.full_bg_scan_expected_end_ts = mac_vars.full_bg_scan_started_ts + handover_full_scan_duration;
+    }
+
+    // end_background_scan will be called to check if the background scan should be stopped
     mr_timer_hf_set_oneshot_with_ref_us(
         MARI_TIMER_DEV,
         MARI_TIMER_CHANNEL_1,    // remember that the inter-slot timer is already being used for the slot
@@ -396,7 +408,13 @@ static void end_background_scan(void) {
         set_slot_state(STATE_SLEEP);
         disable_radio_and_intra_slot_timers();
 
-        handle_bg_scan_and_trigger_handover(now_ts);
+        if (now_ts > mac_vars.full_bg_scan_expected_end_ts) {
+            // the full handover scan is over, so handle the scan results and may trigger a handover
+            handle_bg_scan_and_trigger_handover(now_ts);
+            // independent of whether a handover was triggered, reset the full handover scan timestamps
+            mac_vars.full_bg_scan_started_ts      = 0;
+            mac_vars.full_bg_scan_expected_end_ts = 0;
+        }
     }
     // otherwise, do nothing, and the background scan will continue through the next slot
 }
@@ -418,7 +436,7 @@ static void activity_ti1(void) {
 
         // check if we should use this slot for background scan
         if (MARI_ENABLE_BACKGROUND_SCAN && mari_get_node_type() == MARI_NODE && mr_assoc_is_joined()) {
-            start_background_scan();
+            start_or_continue_background_scan();
             return;
         }
 
@@ -656,10 +674,9 @@ static void handle_bg_scan_and_trigger_handover(uint32_t now_ts) {
         return;
     }
 
-    // ==== for DEBUG only
+    // debug: show that a handover is going to happen
     DEBUG_GPIO_SET(&pin3);
     DEBUG_GPIO_CLEAR(&pin3);
-    // ==== for DEBUG only
 
     // a handover is going to happen, have the association module handle the disconnection event
     mr_assoc_node_handle_immediate_disconnect(MARI_HANDOVER);
