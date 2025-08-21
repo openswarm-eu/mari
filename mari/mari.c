@@ -115,13 +115,10 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
         switch (header->type) {
             case MARI_PACKET_JOIN_REQUEST:
             {
-                if (from_joined_node) {
-                    // already joined, ignore
-                    return;
-                }
                 // try to assign a cell to the node
                 // the asn-based keep-alive is also initialized
                 // the hashes h1 and h2 are also set
+                // NOTE: we accept re-joins because of possible collisions on the join response (downlink)
                 int16_t cell_id = mr_scheduler_gateway_assign_next_available_uplink_cell(header->src, mr_mac_get_asn());
                 if (cell_id >= 0) {
                     // at the packet level, max_nodes is limited to 256 (using uint8_t cell_id)

@@ -124,15 +124,20 @@ void mr_scheduler_node_deassign_myself_from_schedule(void) {
 int16_t mr_scheduler_gateway_assign_next_available_uplink_cell(uint64_t node_id, uint64_t asn) {
     for (size_t i = 0; i < _schedule_vars.active_schedule_ptr->n_cells; i++) {
         cell_t *cell = &_schedule_vars.active_schedule_ptr->cells[i];
-        // normally the cell is available if empty, but it may also be that case that
-        // the node just temporarily lost connection, so we can just re-assign the same cell_id
-        if (cell->type == SLOT_TYPE_UPLINK && (cell->assigned_node_id == NULL || cell->assigned_node_id == node_id)) {
+        if (cell->type == SLOT_TYPE_UPLINK && cell->assigned_node_id == 0) {
+            // the cell is available, so we can assign it to the node
             cell->assigned_node_id  = node_id;
             cell->last_received_asn = asn;
             // pre-compute the bloom filter hashes
             cell->bloom_h1 = mr_bloom_hash_fnv1a64(node_id);
             cell->bloom_h2 = mr_bloom_hash_fnv1a64(node_id ^ MARI_BLOOM_FNV1A_H2_SALT);
             _schedule_vars.num_assigned_uplink_nodes++;
+            return i;
+        } else if (cell->type == SLOT_TYPE_UPLINK && cell->assigned_node_id == node_id) {
+            // the node re-connected before the gateway could detect it was gone,
+            // probably because of a collision on the join response (donwlink)
+            // so we can just keep the same cell_id, but we still need to update the last_received_asn
+            cell->last_received_asn = asn;
             return i;
         }
     }
