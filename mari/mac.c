@@ -371,6 +371,12 @@ static void start_or_continue_background_scan(void) {
         mac_vars.full_bg_scan_expected_end_ts = mac_vars.full_bg_scan_started_ts + handover_full_scan_duration;
     }
 
+    // check and save whether the next slot is a potential sleep slot
+    cell_t next_slot                  = mr_scheduler_node_peek_slot(mac_vars.asn);  // remember: the asn was already incremented at new_slot_synced
+    bool   next_uplink_is_sleep_slot  = next_slot.type == SLOT_TYPE_UPLINK && next_slot.assigned_node_id != mr_device_id();
+    bool   next_slot_is_shared_uplink = next_slot.type == SLOT_TYPE_SHARED_UPLINK;
+    mac_vars.bg_scan_sleep_next_slot  = next_uplink_is_sleep_slot || next_slot_is_shared_uplink;
+
     // end_background_scan will be called to check if the background scan should be stopped
     mr_timer_hf_set_oneshot_with_ref_us(
         MARI_TIMER_DEV,
@@ -395,12 +401,6 @@ static void start_or_continue_background_scan(void) {
 
 static void end_background_scan(void) {
     uint32_t now_ts = mr_timer_hf_now(MARI_TIMER_DEV);
-
-    cell_t next_slot                  = mr_scheduler_node_peek_slot(mac_vars.asn);  // remember: the asn was already incremented at new_slot_synced
-    bool   next_uplink_is_sleep_slot  = next_slot.type == SLOT_TYPE_UPLINK && next_slot.assigned_node_id != mr_device_id();
-    bool   next_slot_is_shared_uplink = next_slot.type == SLOT_TYPE_SHARED_UPLINK;
-
-    mac_vars.bg_scan_sleep_next_slot = next_uplink_is_sleep_slot || next_slot_is_shared_uplink;
 
     if (!mac_vars.bg_scan_sleep_next_slot) {
         // if next slot is not sleep, stop the background scan and check if there is an alternative gateway to join
