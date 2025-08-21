@@ -405,6 +405,20 @@ static void activity_ti1(void) {
     // called by: function new_slot_synced
     set_slot_state(STATE_TX_OFFSET);
 
+    // before arming the timers, check if there is a packet to send
+    uint8_t packet[MARI_PACKET_MAX_SIZE];
+    uint8_t packet_len = mr_queue_next_packet(mac_vars.current_slot_info.type, packet);
+
+    if (packet_len == 0) {
+        // nothing to tx
+        set_slot_state(STATE_SLEEP);
+        end_slot();
+        mr_scheduler_stats_register_used_slot(false);
+        return;
+    }
+    mr_scheduler_stats_register_used_slot(true);
+
+    // arm the timers
     mr_timer_hf_set_oneshot_with_ref_diff_us(  // TODO: use PPI instead
         MARI_TIMER_DEV,
         MARI_TIMER_CHANNEL_1,
@@ -419,20 +433,10 @@ static void activity_ti1(void) {
         slot_durations.tx_offset + slot_durations.tx_max,
         &activity_tie1);
 
-    // FIXME: check if there is a packet to send before arming the timers
-    uint8_t packet[MARI_PACKET_MAX_SIZE];
-    uint8_t packet_len = mr_queue_next_packet(mac_vars.current_slot_info.type, packet);
-    if (packet_len > 0) {
-        mr_radio_disable();
-        mr_radio_set_channel(mac_vars.current_slot_info.channel);
-        mr_radio_tx_prepare(packet, packet_len);
-        mr_scheduler_stats_register_used_slot(true);
-    } else {
-        // nothing to tx
-        set_slot_state(STATE_SLEEP);
-        end_slot();
-        mr_scheduler_stats_register_used_slot(false);
-    }
+    // prepare the radio for tx
+    mr_radio_disable();
+    mr_radio_set_channel(mac_vars.current_slot_info.channel);
+    mr_radio_tx_prepare(packet, packet_len);
 }
 
 static void activity_ti2(void) {
