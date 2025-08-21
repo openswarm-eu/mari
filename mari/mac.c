@@ -384,8 +384,11 @@ static void start_background_scan(void) {
 static void end_background_scan(void) {
     uint32_t now_ts = mr_timer_hf_now(MARI_TIMER_DEV);
 
-    cell_t next_slot                 = mr_scheduler_node_peek_slot(mac_vars.asn);  // remember: the asn was already incremented at new_slot_synced
-    mac_vars.bg_scan_sleep_next_slot = next_slot.type == SLOT_TYPE_UPLINK && next_slot.assigned_node_id != mr_device_id();
+    cell_t next_slot                  = mr_scheduler_node_peek_slot(mac_vars.asn);  // remember: the asn was already incremented at new_slot_synced
+    bool   next_uplink_is_sleep_slot  = next_slot.type == SLOT_TYPE_UPLINK && next_slot.assigned_node_id != mr_device_id();
+    bool   next_slot_is_shared_uplink = next_slot.type == SLOT_TYPE_SHARED_UPLINK;
+
+    mac_vars.bg_scan_sleep_next_slot = next_uplink_is_sleep_slot || next_slot_is_shared_uplink;
 
     if (!mac_vars.bg_scan_sleep_next_slot) {
         // if next slot is not sleep, stop the background scan and check if there is an alternative gateway to join
@@ -411,9 +414,17 @@ static void activity_ti1(void) {
 
     if (packet_len == 0) {
         // nothing to tx
+        mr_scheduler_stats_register_used_slot(false);
+
+        // check if we should use this slot for background scan
+        if (MARI_ENABLE_BACKGROUND_SCAN && mari_get_node_type() == MARI_NODE && mr_assoc_is_joined()) {
+            start_background_scan();
+            return;
+        }
+
+        // if we are not going to use this slot, go to sleep
         set_slot_state(STATE_SLEEP);
         end_slot();
-        mr_scheduler_stats_register_used_slot(false);
         return;
     }
     mr_scheduler_stats_register_used_slot(true);
