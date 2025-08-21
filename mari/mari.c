@@ -15,6 +15,8 @@
 #include <string.h>
 
 #include "mr_device.h"
+#include "mr_rng.h"
+#include "mr_timer_hf.h"
 #include "models.h"
 #include "packet.h"
 #include "mac.h"
@@ -38,6 +40,7 @@ static mari_vars_t _mari_vars = { 0 };
 //=========================== prototypes =======================================
 
 static void event_callback(mr_event_t event, mr_event_data_t event_data);
+static void mr_mari_force_gateway_startup_random_delay(void);
 
 //=========================== public ===========================================
 // in this library, user-facing functions begin with mari_*, while internal functions begin with mr_*
@@ -48,12 +51,23 @@ void mari_init(mr_node_type_t node_type, uint16_t net_id, schedule_t *app_schedu
     _mari_vars.node_type          = node_type;
     _mari_vars.app_event_callback = app_event_callback;
 
+    // initialize drivers
+    mr_timer_hf_init(MARI_TIMER_DEV);
+    mr_rng_init();
+
+    // initialize stateful mari modules
     mr_assoc_init(net_id, event_callback);
     mr_scheduler_init(app_schedule);
-    mr_mac_init(event_callback);
     if (node_type == MARI_GATEWAY) {
         mr_bloom_gateway_init();
     }
+
+    if (node_type == MARI_GATEWAY) {
+        mr_mari_force_gateway_startup_random_delay();
+    }
+
+    // kick off the MAC state machine
+    mr_mac_init(event_callback);
 }
 
 void mari_tx(uint8_t *packet, uint8_t length) {
@@ -95,6 +109,17 @@ uint64_t mari_node_gateway_id(void) {
 }
 
 //=========================== iternal api =====================================
+
+void mr_mari_force_gateway_startup_random_delay(void) {
+    // in the gateway, defer the start of the MAC for a random time (between 0 and slotframe duration)
+    // this is to avoid gateway-to-gateway mutual cancellation, in case all gateways start at the same time
+    uint8_t rng_value;
+    mr_rng_read_u8(&rng_value);
+    // restrict random value to slotframe slot count
+    uint8_t  random_slot_count = rng_value % mr_scheduler_get_active_schedule_slot_count();
+    uint32_t delay_us          = random_slot_count * MARI_WHOLE_SLOT_DURATION;
+    mr_timer_hf_delay_us(MARI_TIMER_DEV, delay_us);
+}
 
 void mr_handle_packet(uint8_t *packet, uint8_t length) {
     mr_packet_header_t *header = (mr_packet_header_t *)packet;

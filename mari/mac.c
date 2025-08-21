@@ -160,9 +160,6 @@ void mr_mac_init(mr_event_cb_t event_callback) {
     mr_gpio_init(&pin3, MR_GPIO_OUT);
 #endif
 
-    // initialize the high frequency timer
-    mr_timer_hf_init(MARI_TIMER_DEV);
-
     // initialize the radio
     mr_radio_init(&isr_mac_radio_start_frame, &isr_mac_radio_end_frame, MR_RADIO_BLE_2MBit);
 
