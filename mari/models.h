@@ -189,6 +189,7 @@ typedef struct __attribute__((packed)) {
     uint16_t schedule_id;
     uint64_t sched_usage[MARI_STATS_SCHED_USAGE_SIZE];
     uint64_t asn;
+    uint32_t timer;
 } mr_uart_packet_gateway_info_t;
 
 //=========================== callbacks =======================================
