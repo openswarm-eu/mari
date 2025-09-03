@@ -30,6 +30,7 @@
 
 typedef struct {
     bool uart_to_radio_packet_ready;
+    bool to_uart_gateway_loop_ready;
 } gateway_vars_t;
 
 //=========================== variables ========================================
@@ -80,10 +81,7 @@ static void _mari_event_callback(mr_event_t event, mr_event_data_t event_data) {
 }
 
 static void _to_uart_gateway_loop(void) {
-    ipc_shared_data.radio_to_uart[0]               = MARI_EDGE_GATEWAY_INFO;
-    size_t len                                     = mr_build_uart_packet_gateway_info((uint8_t *)(ipc_shared_data.radio_to_uart + 1));
-    ipc_shared_data.radio_to_uart_len              = 1 + len;
-    NRF_IPC_NS->TASKS_SEND[IPC_CHAN_RADIO_TO_UART] = 1;
+    _app_vars.to_uart_gateway_loop_ready = true;
 }
 
 static void _init_ipc(void) {
@@ -128,6 +126,14 @@ int main(void) {
             header->network_id         = mr_assoc_get_network_id();
 
             mari_tx(mari_frame, mari_frame_len);
+        }
+
+        if (_app_vars.to_uart_gateway_loop_ready) {
+            _app_vars.to_uart_gateway_loop_ready           = false;
+            ipc_shared_data.radio_to_uart[0]               = MARI_EDGE_GATEWAY_INFO;
+            size_t len                                     = mr_build_uart_packet_gateway_info((uint8_t *)(ipc_shared_data.radio_to_uart + 1));
+            ipc_shared_data.radio_to_uart_len              = 1 + len;
+            NRF_IPC_NS->TASKS_SEND[IPC_CHAN_RADIO_TO_UART] = 1;
         }
 
         // best to keep this at the end of the main loop

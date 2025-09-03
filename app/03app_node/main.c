@@ -84,7 +84,7 @@ static void handle_metrics_payload(default_payload_t *payload, uint8_t len) {
     if (payload->type == PAYLOAD_TYPE_METRICS_REQUEST) {
         node_stats.rx_counter++;
         // save received timestamp to node stats
-        memcpy(&node_stats.marilib_timestamp, &payload->value[1], 8);
+        memcpy(&node_stats.marilib_timestamp, &payload->value, 8);
         // create response payload
         default_payload_t payload_response = {
             .type = PAYLOAD_TYPE_METRICS_RESPONSE,
