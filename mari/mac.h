@@ -82,6 +82,7 @@ uint64_t mr_mac_get_synced_ts(void);
 uint64_t mr_mac_get_synced_gateway(void);
 uint16_t mr_mac_get_synced_network_id(void);
 uint64_t mr_mac_get_asn(void);
+uint32_t mr_mac_get_tiner_value(void);
 bool     mr_mac_node_is_synced(void);
 
 #endif  // __MAC_H

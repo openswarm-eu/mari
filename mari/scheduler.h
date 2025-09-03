@@ -21,8 +21,6 @@
 
 //=========================== defines ==========================================
 
-#define MARI_STATS_SCHED_USAGE_SIZE 4  // supports schedules with up to 256 cells
-
 //=========================== prototypes ==========================================
 
 /**

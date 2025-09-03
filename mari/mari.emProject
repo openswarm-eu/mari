@@ -13,10 +13,10 @@
       project_type="Library" />
     <configuration
       Name="Debug" />
+    <file file_name="models.h" />
+
     <file file_name="packet.c" />
     <file file_name="packet.h" />
-
-    <file file_name="models.h" />
 
     <file file_name="scan.c" />
     <file file_name="scan.h" />

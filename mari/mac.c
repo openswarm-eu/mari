@@ -192,6 +192,10 @@ uint64_t mr_mac_get_asn(void) {
     return mac_vars.asn;
 }
 
+uint32_t mr_mac_get_tiner_value(void) {
+    return mr_timer_hf_now(MARI_TIMER_DEV);
+}
+
 uint64_t mr_mac_get_synced_ts(void) {
     return mac_vars.synced_ts;
 }
