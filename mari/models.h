@@ -18,7 +18,7 @@
 #include <nrf.h>
 #include <stdbool.h>
 
-#include "packet.h"
+#include "bloom.h"
 
 //=========================== defines =========================================
 
@@ -36,7 +36,47 @@
 
 #define MARI_PACKET_MAX_SIZE 255
 
-//=========================== types ===========================================
+#define MARI_STATS_SCHED_USAGE_SIZE 4  // supports schedules with up to 256 cells
+
+//=========================== types ============================================
+
+// -------- types sent over the air --------
+
+typedef enum {
+    MARI_PACKET_BEACON        = 1,
+    MARI_PACKET_JOIN_REQUEST  = 2,
+    MARI_PACKET_JOIN_RESPONSE = 4,
+    MARI_PACKET_KEEPALIVE     = 8,
+    MARI_PACKET_DATA          = 16,
+} mr_packet_type_t;
+
+typedef struct __attribute__((packed)) {
+    int8_t rssi;
+} mr_packet_statistics_t;
+
+// general packet header
+typedef struct __attribute__((packed)) {
+    uint8_t                version;
+    mr_packet_type_t       type;
+    uint16_t               network_id;
+    uint64_t               dst;
+    uint64_t               src;
+    mr_packet_statistics_t stats;
+} mr_packet_header_t;
+
+// beacon packet
+typedef struct __attribute__((packed)) {
+    uint8_t          version;
+    mr_packet_type_t type;
+    uint16_t         network_id;
+    uint64_t         asn;
+    uint64_t         src;
+    uint8_t          remaining_capacity;
+    uint8_t          active_schedule_id;
+    uint8_t          bloom_filter[MARI_BLOOM_M_BYTES];
+} mr_beacon_packet_header_t;
+
+// -------- types used internally --------
 
 typedef enum {
     MARI_GATEWAY = 'G',
@@ -131,6 +171,25 @@ typedef struct {
     uint8_t  packet[MARI_PACKET_MAX_SIZE];
     uint8_t  packet_len;
 } mr_received_packet_t;
+
+// -------- types used for UART --------
+
+typedef enum {
+    MARI_EDGE_NODE_JOINED  = 1,
+    MARI_EDGE_NODE_LEFT    = 2,
+    MARI_EDGE_DATA         = 3,
+    MARI_EDGE_KEEPALIVE    = 4,
+    MARI_EDGE_GATEWAY_INFO = 5,
+} mr_gateway_edge_type_t;
+
+// uart packet for gateway info
+typedef struct __attribute__((packed)) {
+    uint64_t device_id;
+    uint16_t net_id;
+    uint16_t schedule_id;
+    uint64_t sched_usage[MARI_STATS_SCHED_USAGE_SIZE];
+    uint64_t asn;
+} mr_uart_packet_gateway_info_t;
 
 //=========================== callbacks =======================================
 
