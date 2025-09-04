@@ -33,9 +33,9 @@
 #define BLE_2M_US_PER_BYTE          (1000 / BLE_2M_B_MS)  // 4 us
 
 // Intra-slot durations. TOA definitions consider BLE 2M mode.
-#define MARI_TS_TX_OFFSET            (350)                                               // time for radio setup before TX
+#define MARI_TS_TX_OFFSET            (400)                                               // time for radio setup before TX
 #define MARI_RX_GUARD_TIME           (140)                                               // time range relative to MARI_TS_TX_OFFSET for the receiver to start RXing
-#define MARI_END_GUARD_TIME          (MARI_RX_GUARD_TIME + 40)                           // Added 40 us based on measurements witn nRF52 and nRF53
+#define MARI_END_GUARD_TIME          (MARI_RX_GUARD_TIME + 100)                          // Added 40 us based on measurements witn nRF52 and nRF53
 #define MARI_PACKET_TOA              (BLE_2M_US_PER_BYTE * MARI_BLE_PAYLOAD_MAX_LENGTH)  // Time on air for the maximum payload.
 #define MARI_PACKET_TOA_WITH_PADDING (MARI_PACKET_TOA + 120)                             // Add padding based on experiments. Also, it takes 28 us until event ADDRESS is triggered (when the packet actually starts traveling over the air)
 

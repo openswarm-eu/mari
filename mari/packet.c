@@ -60,7 +60,6 @@ size_t mr_build_uart_packet_gateway_info(uint8_t *buffer) {
         .net_id      = mr_assoc_get_network_id(),
         .schedule_id = mr_scheduler_get_active_schedule_id(),
         .asn         = mr_mac_get_asn(),
-        .timer       = mr_mac_get_tiner_value(),
     };
     memcpy(gateway_info.sched_usage, mr_scheduler_get_schedule_usage(), sizeof(uint64_t) * MARI_STATS_SCHED_USAGE_SIZE);
     memcpy(buffer, &gateway_info, sizeof(mr_uart_packet_gateway_info_t));
