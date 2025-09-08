@@ -38,7 +38,7 @@ typedef enum {
     PAYLOAD_TYPE_METRICS_LOAD     = 130,
 } default_payload_type_t;
 
-typedef struct {
+typedef struct __attribute__((packed)) {
     uint8_t type;
     uint8_t value[DEFAULT_PAYLOAD_SIZE];
 } default_payload_t;
@@ -93,7 +93,7 @@ static void handle_metrics_payload(default_payload_t *payload, uint8_t len) {
         };
         memcpy(&payload_response.value, (uint8_t *)&node_stats, sizeof(node_stats_t));
         // send response payload
-        mari_node_tx_payload((uint8_t *)&payload_response, sizeof(default_payload_t));
+        mari_node_tx_payload((uint8_t *)&payload_response, sizeof(uint8_t) + sizeof(node_stats_t));
         node_stats.tx_counter++;
     } else if (payload->type == PAYLOAD_TYPE_METRICS_LOAD) {
         // just do nothing here!
