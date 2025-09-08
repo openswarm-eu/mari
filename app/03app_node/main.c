@@ -24,6 +24,8 @@
 
 //=========================== defines ==========================================
 
+#define MARI_APP_NET_ID MARI_NET_ID_DEFAULT
+
 #define MARI_APP_TIMER_DEV 1
 
 // -2 is for the type and needs_ack fields
@@ -105,10 +107,11 @@ int main(void) {
     mr_timer_hf_init(MARI_APP_TIMER_DEV);
 
     board_init();
-    board_set_led_mari(BLUE);
+    board_set_led_mari(RED);
 
-    mari_init(MARI_NODE, MARI_NET_ID_PATTERN_ANY, schedule_app, &mari_event_callback);
+    mari_init(MARI_NODE, MARI_APP_NET_ID, schedule_app, &mari_event_callback);
 
+    // blink blue every 100ms
     mr_timer_hf_set_periodic_us(MARI_APP_TIMER_DEV, 0, 100 * 1000, &_led_blink_callback);
 
     board_set_led_mari(OFF);

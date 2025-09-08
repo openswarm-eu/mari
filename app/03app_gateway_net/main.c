@@ -26,6 +26,8 @@
 
 //=========================== defines ==========================================
 
+#define MARI_APP_NET_ID MARI_NET_ID_DEFAULT
+
 #define MARI_APP_TIMER_DEV 1
 
 typedef struct {
@@ -70,9 +72,9 @@ int main(void) {
     mr_timer_hf_init(MARI_APP_TIMER_DEV);
     _init_ipc();
 
-    mari_init(MARI_GATEWAY, MARI_NET_ID_DEFAULT, schedule_app, &_mari_event_callback);
+    mari_init(MARI_GATEWAY, MARI_APP_NET_ID, schedule_app, &_mari_event_callback);
 
-    // NOTE: if we want to send the stats every slotframe, we need to use the duration of the slotframe
+    // NOTE: to send the stats every slotframe, we need to use the duration of the slotframe
     mr_timer_hf_set_periodic_us(MARI_APP_TIMER_DEV, 3, mr_scheduler_get_duration_us(), &_to_uart_gateway_loop);
 
     // Unlock the application core
