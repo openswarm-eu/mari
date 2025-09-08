@@ -121,18 +121,18 @@ void mr_mari_force_gateway_startup_random_delay(void) {
     mr_timer_hf_delay_us(MARI_TIMER_DEV, delay_us);
 }
 
-void mr_handle_packet(uint8_t *packet, uint8_t length) {
+bool mr_handle_packet(uint8_t *packet, uint8_t length) {
     mr_packet_header_t *header = (mr_packet_header_t *)packet;
 
     if (header->dst != mr_device_id() && header->dst != MARI_BROADCAST_ADDRESS && header->type != MARI_PACKET_BEACON) {
         // ignore packets that are not for me, and not broadcast, and not a beacon
-        return;
+        return false;
     }
 
     if (mari_get_node_type() == MARI_GATEWAY) {
         if (header->network_id != mr_assoc_get_network_id()) {
             // ignore packets from other networks
-            return;
+            return false;
         }
 
         bool from_joined_node = mr_assoc_gateway_node_is_joined(header->src);
@@ -160,7 +160,7 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
             {
                 if (!from_joined_node) {
                     // ignore packets from nodes that are not joined
-                    return;
+                    return false;
                 }
                 // send the packet to the application
                 mr_event_data_t event_data = {
@@ -178,7 +178,7 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
             {
                 if (!from_joined_node) {
                     // ignore packets from nodes that are not joined
-                    return;
+                    return false;
                 }
                 mr_assoc_gateway_keep_node_alive(header->src, mr_mac_get_asn());  // keep track of when the last packet was received
                 mr_event_data_t event_data = {
@@ -194,7 +194,7 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
     } else if (mari_get_node_type() == MARI_NODE) {
         if (!mr_assoc_node_matches_network_id(header->network_id)) {
             // ignore packet with non-matching network id
-            return;
+            return false;
         }
 
         bool from_my_joined_gateway = header->src == mr_mac_get_synced_gateway() && mr_assoc_get_state() == JOIN_STATE_JOINED;
@@ -207,11 +207,11 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
             {
                 if (mr_assoc_get_state() != JOIN_STATE_JOINING) {
                     // ignore if not in the JOINING state
-                    return;
+                    return false;
                 }
                 if (header->dst != mr_device_id()) {
                     // ignore if not for me
-                    return;
+                    return false;
                 }
                 // the first byte after the header contains the cell_id
                 uint8_t cell_id = packet[sizeof(mr_packet_header_t)];
@@ -226,7 +226,7 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
             {
                 if (!from_my_joined_gateway) {
                     // ignore data packets from other gateways
-                    return;
+                    return false;
                 }
                 // send the packet to the application
                 mr_event_data_t event_data = {
@@ -243,7 +243,7 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
             case MARI_PACKET_KEEPALIVE:
                 if (!from_my_joined_gateway) {
                     // ignore keep-alives from other gateways
-                    return;
+                    return false;
                 }
                 mr_assoc_node_keep_gateway_alive(mr_mac_get_asn());
                 break;
@@ -251,6 +251,8 @@ void mr_handle_packet(uint8_t *packet, uint8_t length) {
                 break;
         }
     }
+
+    return true;
 }
 
 void mari_event_loop(void) {

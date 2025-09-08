@@ -37,6 +37,6 @@ bool     mari_node_is_connected(void);
 uint64_t mari_node_gateway_id(void);
 
 // -------- internal api --------
-void mr_handle_packet(uint8_t *packet, uint8_t length);
+bool mr_handle_packet(uint8_t *packet, uint8_t length);
 
 #endif  // __MARI_H
