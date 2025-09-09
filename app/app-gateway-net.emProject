@@ -19,6 +19,8 @@
       <configuration Name="Common" filter="c;cpp;cxx;cc;h;s;asm;inc" />
       <file file_name="main.c" />
       <file file_name="ipc.h" />
+      <file file_name="metrics.h" />
+      <file file_name="metrics.c" />
     </folder>
     <folder Name="System">
       <file file_name="$(ProjectDir)/../../nRF/System/$(Target)_system_init.c" />
