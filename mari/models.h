@@ -192,6 +192,37 @@ typedef struct __attribute__((packed)) {
     uint32_t timer;
 } mr_uart_packet_gateway_info_t;
 
+// -------- types used for metrics collection --------
+
+typedef enum {
+    MARI_PAYLOAD_TYPE_METRICS_PROBE = 140,
+} mr_metrics_payload_type_t;
+
+typedef struct __attribute__((packed)) {
+    mr_metrics_payload_type_t type;  ///< Payload type (1 byte)
+
+    uint64_t cloud_tx_ts_us;        ///< Cloud transmit timestamp in microseconds (8 bytes)
+    uint64_t cloud_rx_ts_us;        ///< Cloud receive timestamp in microseconds (8 bytes)
+    uint32_t cloud_tx_count;        ///< Cloud transmit counter (4 bytes)
+    uint32_t cloud_rx_count;        ///< Cloud receive counter (4 bytes)
+    uint64_t edge_tx_ts_us;         ///< Edge transmit timestamp in microseconds (8 bytes)
+    uint64_t edge_rx_ts_us;         ///< Edge receive timestamp in microseconds (8 bytes)
+    uint32_t edge_tx_count;         ///< Edge transmit counter (4 bytes)
+    uint32_t edge_rx_count;         ///< Edge receive counter (4 bytes)
+    uint32_t gw_tx_count;           ///< Gateway transmit counter (4 bytes)
+    uint32_t gw_rx_count;           ///< Gateway receive counter (4 bytes)
+    uint64_t gw_rx_asn;             ///< Gateway receive ASN (8 bytes)
+    uint64_t gw_tx_enqueued_asn;    ///< Gateway TX enqueued ASN (8 bytes)
+    uint64_t gw_tx_dequeued_asn;    ///< Gateway TX dequeued ASN (8 bytes)
+    uint32_t node_rx_count;         ///< Node receive counter (4 bytes)
+    uint32_t node_tx_count;         ///< Node transmit counter (4 bytes)
+    uint64_t node_rx_asn;           ///< Node receive ASN (8 bytes)
+    uint64_t node_tx_enqueued_asn;  ///< Node TX enqueued ASN (8 bytes)
+    uint64_t node_tx_dequeued_asn;  ///< Node TX dequeued ASN (8 bytes)
+    int8_t   rssi_at_node;          ///< RSSI at node in dBm (1 byte, signed)
+    int8_t   rssi_at_gw;            ///< RSSI at gateway in dBm (1 byte, signed)
+} mr_metrics_payload_t;
+
 //=========================== callbacks =======================================
 
 typedef void (*mr_event_cb_t)(mr_event_t event, mr_event_data_t event_data);

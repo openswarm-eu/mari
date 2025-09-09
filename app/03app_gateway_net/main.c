@@ -18,11 +18,13 @@
 
 #include "mr_device.h"
 #include "mr_timer_hf.h"
+#include "mr_radio.h"
 #include "mac.h"
 #include "association.h"
 #include "scheduler.h"
 #include "mari.h"
 #include "packet.h"
+#include "models.h"
 
 //=========================== defines ==========================================
 
@@ -36,6 +38,8 @@ typedef struct {
     bool            mari_event_ready;
     bool            uart_to_radio_packet_ready;
     bool            to_uart_gateway_loop_ready;
+    uint32_t        tx_count;
+    uint32_t        rx_count;
 } gateway_vars_t;
 
 //=========================== variables ========================================
@@ -94,6 +98,13 @@ int main(void) {
             switch (event) {
                 case MARI_NEW_PACKET:
                 {
+                    // handle metrics probe
+                    if (event_data.data.new_packet.payload_len == sizeof(mr_metrics_payload_t) && event_data.data.new_packet.payload[0] == MARI_PAYLOAD_TYPE_METRICS_PROBE) {
+                        mr_metrics_payload_t *metrics_payload = (mr_metrics_payload_t *)event_data.data.new_packet.payload;
+                        metrics_payload->gw_rx_count          = ++_app_vars.rx_count;
+                        metrics_payload->gw_rx_asn            = mr_mac_get_asn();
+                        metrics_payload->rssi_at_gw           = mr_radio_rssi();
+                    }
                     ipc_shared_data.radio_to_uart_len = event_data.data.new_packet.len + 1;
                     ipc_shared_data.radio_to_uart[0]  = MARI_EDGE_DATA;
                     memcpy((void *)ipc_shared_data.radio_to_uart + 1, event_data.data.new_packet.header, event_data.data.new_packet.len);
@@ -146,6 +157,15 @@ int main(void) {
             mr_packet_header_t *header = (mr_packet_header_t *)mari_frame;
             header->src                = mr_device_id();
             header->network_id         = mr_assoc_get_network_id();
+
+            // handle metrics probe
+            uint8_t *payload     = mari_frame + sizeof(mr_packet_header_t);
+            uint8_t  payload_len = mari_frame_len - sizeof(mr_packet_header_t);
+            if (payload_len == sizeof(mr_metrics_payload_t) && payload[0] == MARI_PAYLOAD_TYPE_METRICS_PROBE) {
+                mr_metrics_payload_t *metrics_payload = (mr_metrics_payload_t *)payload;
+                metrics_payload->gw_tx_count          = ++_app_vars.tx_count;
+                metrics_payload->gw_tx_enqueued_asn   = mr_mac_get_asn();
+            }
 
             mari_tx(mari_frame, mari_frame_len);
         }

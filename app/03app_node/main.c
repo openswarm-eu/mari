@@ -19,6 +19,8 @@
 #include "mr_timer_hf.h"
 #include "mari.h"
 #include "packet.h"
+#include "models.h"
+#include "mac.h"
 
 #include "board.h"
 
@@ -81,23 +83,16 @@ static void mari_event_callback(mr_event_t event, mr_event_data_t event_data) {
     node_vars.event_ready = true;
 }
 
-static void handle_metrics_payload(default_payload_t *payload, uint8_t len) {
-    (void)len;
-    if (payload->type == PAYLOAD_TYPE_METRICS_REQUEST) {
-        node_stats.rx_counter++;
-        // save received timestamp to node stats
-        memcpy(&node_stats.marilib_timestamp, &payload->value, 8);
-        // create response payload
-        default_payload_t payload_response = {
-            .type = PAYLOAD_TYPE_METRICS_RESPONSE,
-        };
-        memcpy(&payload_response.value, (uint8_t *)&node_stats, sizeof(node_stats_t));
-        // send response payload
-        mari_node_tx_payload((uint8_t *)&payload_response, sizeof(uint8_t) + sizeof(node_stats_t));
-        node_stats.tx_counter++;
-    } else if (payload->type == PAYLOAD_TYPE_METRICS_LOAD) {
-        // just do nothing here!
-    }
+static void handle_metrics_payload(mr_metrics_payload_t *metrics_payload) {
+    // update metrics probe
+    metrics_payload->node_rx_count        = ++node_stats.rx_counter;
+    metrics_payload->node_rx_asn          = mr_mac_get_asn();
+    metrics_payload->node_tx_count        = ++node_stats.tx_counter;
+    metrics_payload->node_tx_enqueued_asn = mr_mac_get_asn();
+    metrics_payload->rssi_at_node         = mr_radio_rssi();
+
+    // send metrics probe to gateway
+    mari_node_tx_payload((uint8_t *)metrics_payload, sizeof(mr_metrics_payload_t));
 }
 
 //=========================== main =============================================
@@ -130,14 +125,12 @@ int main(void) {
             switch (event) {
                 case MARI_NEW_PACKET:
                 {
-                    mari_packet_t     packet  = event_data.data.new_packet;
-                    default_payload_t payload = { 0 };
-                    memcpy(&payload, packet.payload, packet.payload_len);
+                    mari_packet_t packet = event_data.data.new_packet;
 
-                    if (payload.type == PAYLOAD_TYPE_APPLICATION) {
-                        // TBD custom application logic
+                    if (packet.payload_len == sizeof(mr_metrics_payload_t) && packet.payload[0] == MARI_PAYLOAD_TYPE_METRICS_PROBE) {
+                        handle_metrics_payload((mr_metrics_payload_t *)packet.payload);
                     } else {
-                        handle_metrics_payload(&payload, packet.payload_len);
+                        // TBD custom application logic
                     }
 
                     break;
