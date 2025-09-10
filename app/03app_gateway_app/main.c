@@ -18,10 +18,16 @@
 #include "hdlc.h"
 #include "uart.h"
 
+#include "mr_gpio.h"
+mr_gpio_t pin3         = { .port = 1, .pin = 5 };
+mr_gpio_t pin_dgb_ipc  = { .port = 1, .pin = 7 };
+mr_gpio_t pin_dbg_uart = { .port = 1, .pin = 8 };
+
 //=========================== defines ==========================================
 
-#define MR_UART_INDEX    (1)          ///< Index of UART peripheral to use
-#define MR_UART_BAUDRATE (1000000UL)  ///< UART baudrate used by the gateway
+#define MR_UART_INDEX (1)  ///< Index of UART peripheral to use
+// #define MR_UART_BAUDRATE (1000000UL)  ///< UART baudrate used by the gateway
+#define MR_UART_BAUDRATE (115200L)  ///< UART baudrate used by the gateway
 
 typedef struct {
     bool    mari_frame_received;
@@ -103,6 +109,10 @@ int main(void) {
 
     _setup_debug_pins();
 
+    mr_gpio_init(&pin3, MR_GPIO_OUT);
+    mr_gpio_init(&pin_dgb_ipc, MR_GPIO_OUT);
+    mr_gpio_init(&pin_dbg_uart, MR_GPIO_OUT);
+
     _configure_ram_non_secure(2, 1);
     _init_ipc();
     mr_uart_init(MR_UART_INDEX, &_mr_uart_rx_pin, &_mr_uart_tx_pin, MR_UART_BAUDRATE, &_uart_callback);
@@ -133,6 +143,10 @@ int main(void) {
                 default:
                     break;
             }
+            if (hdlc_state == MR_HDLC_STATE_ERROR) {
+                mr_gpio_set(&pin3);
+                mr_gpio_clear(&pin3);
+            }
         }
 
         if (_app_vars.mari_frame_received) {
@@ -144,8 +158,10 @@ int main(void) {
 }
 
 void IPC_IRQHandler(void) {
+    mr_gpio_set(&pin_dgb_ipc);
     if (NRF_IPC_S->EVENTS_RECEIVE[IPC_CHAN_RADIO_TO_UART]) {
         NRF_IPC_S->EVENTS_RECEIVE[IPC_CHAN_RADIO_TO_UART] = 0;
         _app_vars.mari_frame_received                     = true;
     }
+    mr_gpio_clear(&pin_dgb_ipc);
 }

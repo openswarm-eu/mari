@@ -19,6 +19,8 @@
 
 //=========================== defines ==========================================
 
+#define MR_UART_IRQ_PRIORITY (0)
+
 typedef uint8_t uart_t;  ///< UART peripheral index
 
 typedef void (*uart_rx_cb_t)(uint8_t data);  ///< Callback function prototype, it is called on each byte received

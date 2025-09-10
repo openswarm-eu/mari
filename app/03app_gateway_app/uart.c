@@ -182,7 +182,7 @@ void mr_uart_init(uart_t uart, const mr_gpio_t *rx_pin, const mr_gpio_t *tx_pin,
         _devs[uart].p->SHORTS        = (UARTE_SHORTS_ENDRX_STARTRX_Enabled << UARTE_SHORTS_ENDRX_STARTRX_Pos);
         _devs[uart].p->TASKS_STARTRX = 1;
         NVIC_EnableIRQ(_devs[uart].irq);
-        NVIC_SetPriority(_devs[uart].irq, 0);
+        NVIC_SetPriority(_devs[uart].irq, MR_UART_IRQ_PRIORITY);
         NVIC_ClearPendingIRQ(_devs[uart].irq);
     }
 }
@@ -206,7 +206,10 @@ void mr_uart_write(uart_t uart, uint8_t *buffer, size_t length) {
 
 //=========================== interrupts =======================================
 
-static void _uart_isr(uart_t uart) {
+#include "mr_gpio.h"
+extern mr_gpio_t pin_dbg_uart;
+static void      _uart_isr(uart_t uart) {
+    mr_gpio_set(&pin_dbg_uart);
     // check if the interrupt was caused by a fully received package
     if (_devs[uart].p->EVENTS_ENDRX) {
         _devs[uart].p->EVENTS_ENDRX = 0;
@@ -216,6 +219,7 @@ static void _uart_isr(uart_t uart) {
             _uart_vars[uart].callback(_uart_vars[uart].byte);
         }
     }
+    mr_gpio_clear(&pin_dbg_uart);
 };
 
 #if defined(NRF5340_XXAA)
