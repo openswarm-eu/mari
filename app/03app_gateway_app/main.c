@@ -29,14 +29,16 @@ mr_gpio_t pin_dgb_uart_write    = { .port = 1, .pin = 9 };
 //=========================== defines ==========================================
 
 #define MR_UART_INDEX (1)  ///< Index of UART peripheral to use
-// #define MR_UART_BAUDRATE (1000000UL)  ///< UART baudrate used by the gateway
-#define MR_UART_BAUDRATE (460800L)  ///< UART baudrate used by the gateway
+//  #define MR_UART_BAUDRATE (1000000UL)  ///< UART baudrate used by the gateway
+#define MR_UART_BAUDRATE (921600L)  ///< UART baudrate used by the gateway
 
 typedef struct {
     bool    mari_frame_received;
     bool    uart_byte_received;
     uint8_t uart_byte;
     uint8_t hdlc_encode_buffer[1024];  // Should be large enough
+    bool    tx_pending;                // Flag for deferred TX
+    size_t  tx_frame_len;              // Length of frame to transmit
 } gateway_app_vars_t;
 
 // UART RX and TX pins
@@ -143,7 +145,7 @@ int main(void) {
                 case MR_HDLC_STATE_READY:
                 {
                     mr_gpio_set(&pin_hdlc_ready_decode);
-                    size_t msg_len                    = mr_hdlc_decode((uint8_t *)ipc_shared_data.uart_to_radio);
+                    size_t msg_len                    = mr_hdlc_decode((uint8_t *)(void *)ipc_shared_data.uart_to_radio);
                     ipc_shared_data.uart_to_radio_len = msg_len;
                     if (msg_len) {
                         NRF_IPC_S->TASKS_SEND[IPC_CHAN_UART_TO_RADIO] = 1;
@@ -161,9 +163,23 @@ int main(void) {
 
         if (_app_vars.mari_frame_received) {
             _app_vars.mari_frame_received = false;
-            size_t frame_len              = mr_hdlc_encode((uint8_t *)ipc_shared_data.radio_to_uart, ipc_shared_data.radio_to_uart_len, _app_vars.hdlc_encode_buffer);
+            _app_vars.tx_frame_len        = mr_hdlc_encode((uint8_t *)ipc_shared_data.radio_to_uart, ipc_shared_data.radio_to_uart_len, _app_vars.hdlc_encode_buffer);
+
+            // Try to send immediately, or defer if UART is busy
+            if (!mr_uart_tx_busy(MR_UART_INDEX) && mr_hdlc_peek_state() != MR_HDLC_STATE_RECEIVING) {
+                mr_gpio_set(&pin_dgb_uart_write);
+                mr_uart_write(MR_UART_INDEX, _app_vars.hdlc_encode_buffer, _app_vars.tx_frame_len);
+                mr_gpio_clear(&pin_dgb_uart_write);
+            } else {
+                _app_vars.tx_pending = true;
+            }
+        }
+
+        // Handle deferred TX when UART becomes available
+        if (_app_vars.tx_pending && !mr_uart_tx_busy(MR_UART_INDEX) && mr_hdlc_peek_state() != MR_HDLC_STATE_RECEIVING) {
+            _app_vars.tx_pending = false;
             mr_gpio_set(&pin_dgb_uart_write);
-            mr_uart_write(MR_UART_INDEX, _app_vars.hdlc_encode_buffer, frame_len);
+            mr_uart_write(MR_UART_INDEX, _app_vars.hdlc_encode_buffer, _app_vars.tx_frame_len);
             mr_gpio_clear(&pin_dgb_uart_write);
         }
     }

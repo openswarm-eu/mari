@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <nrf.h>
 #include <nrf_peripherals.h>
 
@@ -32,8 +33,12 @@ typedef struct {
 } uart_conf_t;
 
 typedef struct {
-    uint8_t      byte;      ///< the byte where received byte on UART is stored
-    uart_rx_cb_t callback;  ///< pointer to the callback function
+    uint8_t      byte;       ///< the byte where received byte on UART is stored
+    uart_rx_cb_t callback;   ///< pointer to the callback function
+    uint8_t     *tx_buffer;  ///< current TX buffer
+    size_t       tx_length;  ///< total bytes to transmit
+    size_t       tx_pos;     ///< current position in TX buffer
+    bool         tx_busy;    ///< flag indicating TX is in progress
 } uart_vars_t;
 
 //=========================== variables ========================================
@@ -188,20 +193,30 @@ void mr_uart_init(uart_t uart, const mr_gpio_t *rx_pin, const mr_gpio_t *tx_pin,
 }
 
 void mr_uart_write(uart_t uart, uint8_t *buffer, size_t length) {
-    uint16_t pos = 0;
-    // Send MR_UARTE_CHUNK_SIZE (64 Bytes) maximum at a time
-    while ((pos % MR_UARTE_CHUNK_SIZE) == 0 && pos < length) {
-        _devs[uart].p->EVENTS_ENDTX = 0;
-        _devs[uart].p->TXD.PTR      = (uint32_t)&buffer[pos];
-        if ((pos + MR_UARTE_CHUNK_SIZE) > length) {
-            _devs[uart].p->TXD.MAXCNT = length - pos;
-        } else {
-            _devs[uart].p->TXD.MAXCNT = MR_UARTE_CHUNK_SIZE;
-        }
-        _devs[uart].p->TASKS_STARTTX = 1;
-        while (_devs[uart].p->EVENTS_ENDTX == 0) {}
-        pos += MR_UARTE_CHUNK_SIZE;
+    // Don't start new TX if one is already in progress
+    if (_uart_vars[uart].tx_busy) {
+        return;
     }
+
+    // Store TX state
+    _uart_vars[uart].tx_buffer = buffer;
+    _uart_vars[uart].tx_length = length;
+    _uart_vars[uart].tx_pos    = 0;
+    _uart_vars[uart].tx_busy   = true;
+
+    // Enable TX interrupt
+    _devs[uart].p->INTENSET |= (UARTE_INTENSET_ENDTX_Enabled << UARTE_INTENSET_ENDTX_Pos);
+
+    // Start first chunk
+    _devs[uart].p->EVENTS_ENDTX  = 0;
+    _devs[uart].p->TXD.PTR       = (uint32_t)&buffer[0];
+    size_t chunk_size            = (length > MR_UARTE_CHUNK_SIZE) ? MR_UARTE_CHUNK_SIZE : length;
+    _devs[uart].p->TXD.MAXCNT    = chunk_size;
+    _devs[uart].p->TASKS_STARTTX = 1;
+}
+
+bool mr_uart_tx_busy(uart_t uart) {
+    return _uart_vars[uart].tx_busy;
 }
 
 //=========================== interrupts =======================================
@@ -210,6 +225,7 @@ void mr_uart_write(uart_t uart, uint8_t *buffer, size_t length) {
 extern mr_gpio_t pin_dbg_uart;
 static void      _uart_isr(uart_t uart) {
     mr_gpio_set(&pin_dbg_uart);
+
     // check if the interrupt was caused by a fully received package
     if (_devs[uart].p->EVENTS_ENDRX) {
         _devs[uart].p->EVENTS_ENDRX = 0;
@@ -219,6 +235,31 @@ static void      _uart_isr(uart_t uart) {
             _uart_vars[uart].callback(_uart_vars[uart].byte);
         }
     }
+
+    // check if the interrupt was caused by TX completion
+    if (_devs[uart].p->EVENTS_ENDTX) {
+        _devs[uart].p->EVENTS_ENDTX = 0;
+
+        // Update position
+        _uart_vars[uart].tx_pos += MR_UARTE_CHUNK_SIZE;
+
+        // Check if more chunks need to be sent
+        if (_uart_vars[uart].tx_pos < _uart_vars[uart].tx_length) {
+            // Send next chunk
+            size_t remaining  = _uart_vars[uart].tx_length - _uart_vars[uart].tx_pos;
+            size_t chunk_size = (remaining > MR_UARTE_CHUNK_SIZE) ? MR_UARTE_CHUNK_SIZE : remaining;
+
+            _devs[uart].p->TXD.PTR       = (uint32_t)&_uart_vars[uart].tx_buffer[_uart_vars[uart].tx_pos];
+            _devs[uart].p->TXD.MAXCNT    = chunk_size;
+            _devs[uart].p->TASKS_STARTTX = 1;
+        } else {
+            // TX complete
+            _uart_vars[uart].tx_busy = false;
+            // Disable TX interrupt
+            _devs[uart].p->INTENCLR = (UARTE_INTENCLR_ENDTX_Clear << UARTE_INTENCLR_ENDTX_Pos);
+        }
+    }
+
     mr_gpio_clear(&pin_dbg_uart);
 };
 

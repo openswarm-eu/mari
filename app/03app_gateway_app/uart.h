@@ -39,12 +39,21 @@ typedef void (*uart_rx_cb_t)(uint8_t data);  ///< Callback function prototype, i
 void mr_uart_init(uart_t uart, const mr_gpio_t *rx_pin, const mr_gpio_t *tx_pin, uint32_t baudrate, uart_rx_cb_t callback);
 
 /**
- * @brief Write bytes to the UART
+ * @brief   Write data on UART interface
  *
- * @param[in] uart      UART peripheral to use
- * @param[in] buffer    pointer to the buffer to write to UART
- * @param[in] length    number of bytes of the buffer to write
+ * @param[in]   uart        UART interface to use
+ * @param[in]   buffer      Buffer to write
+ * @param[in]   length      Length of the buffer
  */
 void mr_uart_write(uart_t uart, uint8_t *buffer, size_t length);
+
+/**
+ * @brief   Check if UART TX is busy
+ *
+ * @param[in]   uart        UART interface to check
+ *
+ * @return true if TX is in progress, false otherwise
+ */
+bool mr_uart_tx_busy(uart_t uart);
 
 #endif

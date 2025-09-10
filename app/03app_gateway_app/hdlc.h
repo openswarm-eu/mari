@@ -36,6 +36,13 @@ typedef enum {
 mr_hdlc_state_t mr_hdlc_rx_byte(uint8_t byte);
 
 /**
+ * @brief   Peek at the current state of the HDLC decoder
+ *
+ * @return  The current state of the HDLC decoder
+ */
+mr_hdlc_state_t mr_hdlc_peek_state(void);
+
+/**
  * @brief   Decode an HDLC frame
  *
  * @param[out]  payload     Decoded payload contained in the input buffer

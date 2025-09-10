@@ -82,6 +82,10 @@ uint16_t _mr_hdlc_update_fcs(uint16_t fcs, uint8_t byte);
 
 //=========================== public ===========================================
 
+mr_hdlc_state_t mr_hdlc_peek_state(void) {
+    return _hdlc_vars.state;
+}
+
 mr_hdlc_state_t mr_hdlc_rx_byte(uint8_t byte) {
     const bool can_handle_new_frame = (_hdlc_vars.state == MR_HDLC_STATE_IDLE ||
                                        _hdlc_vars.state == MR_HDLC_STATE_ERROR ||
