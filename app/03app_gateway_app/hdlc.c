@@ -28,6 +28,7 @@ typedef struct {
     uint16_t        buffer_pos;                   ///< Current position in the input buffer
     mr_hdlc_state_t state;                        ///< Current state of the HDLC RX engine
     uint16_t        fcs;                          ///< Current value of the FCS
+    bool            escape_byte;                  ///< Flag indicating if the next byte is escaped
 } hdlc_vars_t;
 
 //=========================== variables ========================================
@@ -68,7 +69,12 @@ static const uint16_t _fcs[256] = {
 };
 // clang-format on
 
-static hdlc_vars_t _hdlc_vars;
+static hdlc_vars_t _hdlc_vars = {
+    .buffer_pos  = 0,
+    .state       = MR_HDLC_STATE_IDLE,
+    .fcs         = MR_HDLC_FCS_INIT,
+    .escape_byte = false
+};
 
 //=========================== prototypes =======================================
 
@@ -80,59 +86,76 @@ mr_hdlc_state_t mr_hdlc_rx_byte(uint8_t byte) {
     const bool can_handle_new_frame = (_hdlc_vars.state == MR_HDLC_STATE_IDLE ||
                                        _hdlc_vars.state == MR_HDLC_STATE_ERROR ||
                                        _hdlc_vars.state == MR_HDLC_STATE_READY);
+
     if (can_handle_new_frame && byte == MR_HDLC_FLAG) {
         // Beginning of frame
-        _hdlc_vars.buffer_pos = 0;
-        _hdlc_vars.fcs        = MR_HDLC_FCS_INIT;
-        _hdlc_vars.state      = MR_HDLC_STATE_RECEIVING;
+        _hdlc_vars.buffer_pos  = 0;
+        _hdlc_vars.fcs         = MR_HDLC_FCS_INIT;
+        _hdlc_vars.state       = MR_HDLC_STATE_RECEIVING;
+        _hdlc_vars.escape_byte = false;
     } else if (_hdlc_vars.buffer_pos > 0 && _hdlc_vars.state == MR_HDLC_STATE_RECEIVING && byte == MR_HDLC_FLAG) {
         // End of frame
         if (_hdlc_vars.fcs != MR_HDLC_FCS_OK) {
             // Invalid FCS
             _hdlc_vars.state = MR_HDLC_STATE_ERROR;
+        } else {
+            // Valid FCS - frame is ready
+            _hdlc_vars.state = MR_HDLC_STATE_READY;
         }
-        _hdlc_vars.state = MR_HDLC_STATE_READY;
-    } else if (_hdlc_vars.state == MR_HDLC_STATE_RECEIVING) {
+        _hdlc_vars.escape_byte = false;
+    } else if (_hdlc_vars.state == MR_HDLC_STATE_RECEIVING && byte != MR_HDLC_FLAG) {
         // Middle of frame
         if (_hdlc_vars.buffer_pos >= MR_HDLC_BUFFER_SIZE - 1) {
             // Buffer is full and no end flag was received so something is wrong
-            _hdlc_vars.state = MR_HDLC_STATE_ERROR;
+            _hdlc_vars.state       = MR_HDLC_STATE_ERROR;
+            _hdlc_vars.escape_byte = false;
             return _hdlc_vars.state;
         }
-        _hdlc_vars.buffer[_hdlc_vars.buffer_pos++] = byte;
-        _hdlc_vars.fcs                             = _mr_hdlc_update_fcs(_hdlc_vars.fcs, byte);
+
+        if (byte == MR_HDLC_ESCAPE) {
+            _hdlc_vars.escape_byte = true;
+        } else if (_hdlc_vars.escape_byte == true) {
+            // Handle escaped bytes
+            if (byte == MR_HDLC_ESCAPE_ESCAPED) {
+                _hdlc_vars.buffer[_hdlc_vars.buffer_pos++] = MR_HDLC_ESCAPE;
+                _hdlc_vars.fcs                             = _mr_hdlc_update_fcs(_hdlc_vars.fcs, MR_HDLC_ESCAPE);
+            } else if (byte == MR_HDLC_FLAG_ESCAPED) {
+                _hdlc_vars.buffer[_hdlc_vars.buffer_pos++] = MR_HDLC_FLAG;
+                _hdlc_vars.fcs                             = _mr_hdlc_update_fcs(_hdlc_vars.fcs, MR_HDLC_FLAG);
+            } else {
+                // Invalid escape sequence
+                _hdlc_vars.state = MR_HDLC_STATE_ERROR;
+            }
+            _hdlc_vars.escape_byte = false;
+        } else {
+            // Regular byte
+            _hdlc_vars.buffer[_hdlc_vars.buffer_pos++] = byte;
+            _hdlc_vars.fcs                             = _mr_hdlc_update_fcs(_hdlc_vars.fcs, byte);
+        }
     }
 
     return _hdlc_vars.state;
 }
 
 size_t mr_hdlc_decode(uint8_t *output) {
-    size_t output_pos = 0;
     if (_hdlc_vars.state != MR_HDLC_STATE_READY) {
-        return output_pos;
+        return 0;
     }
 
-    uint8_t input_pos   = 0;
-    bool    escape_byte = false;
-    while (input_pos < _hdlc_vars.buffer_pos) {
-        uint8_t current_byte = _hdlc_vars.buffer[input_pos];
-        if (current_byte == MR_HDLC_ESCAPE) {
-            escape_byte = true;
-        } else if (escape_byte == true) {
-            if (current_byte == MR_HDLC_ESCAPE_ESCAPED) {
-                output[output_pos++] = MR_HDLC_ESCAPE;
-            } else if (current_byte == MR_HDLC_FLAG_ESCAPED) {
-                output[output_pos++] = MR_HDLC_FLAG;
-            }
-            escape_byte = false;
-        } else {
-            output[output_pos++] = _hdlc_vars.buffer[input_pos];
-        }
-        input_pos++;
+    // Check minimum frame size (at least 2 bytes for FCS)
+    if (_hdlc_vars.buffer_pos < 2) {
+        _hdlc_vars.state = MR_HDLC_STATE_IDLE;
+        return 0;
+    }
+
+    // Copy the payload (excluding the 2 FCS bytes at the end)
+    size_t payload_len = _hdlc_vars.buffer_pos - 2;
+    for (size_t i = 0; i < payload_len; i++) {
+        output[i] = _hdlc_vars.buffer[i];
     }
 
     _hdlc_vars.state = MR_HDLC_STATE_IDLE;
-    return output_pos - 2;
+    return payload_len;
 }
 
 size_t mr_hdlc_encode(const uint8_t *input, size_t input_len, uint8_t *frame) {
