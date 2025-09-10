@@ -14,20 +14,23 @@
 
 #include "ipc.h"
 
+#include "mr_clock.h"
 #include "mr_device.h"
 #include "hdlc.h"
 #include "uart.h"
 
 #include "mr_gpio.h"
-mr_gpio_t pin3         = { .port = 1, .pin = 5 };
-mr_gpio_t pin_dgb_ipc  = { .port = 1, .pin = 7 };
-mr_gpio_t pin_dbg_uart = { .port = 1, .pin = 8 };
+mr_gpio_t pin_hdlc_error        = { .port = 1, .pin = 5 };
+mr_gpio_t pin_hdlc_ready_decode = { .port = 1, .pin = 10 };
+mr_gpio_t pin_dgb_ipc           = { .port = 1, .pin = 7 };
+mr_gpio_t pin_dbg_uart          = { .port = 1, .pin = 8 };
+mr_gpio_t pin_dgb_uart_write    = { .port = 1, .pin = 9 };
 
 //=========================== defines ==========================================
 
 #define MR_UART_INDEX (1)  ///< Index of UART peripheral to use
 // #define MR_UART_BAUDRATE (1000000UL)  ///< UART baudrate used by the gateway
-#define MR_UART_BAUDRATE (115200L)  ///< UART baudrate used by the gateway
+#define MR_UART_BAUDRATE (460800L)  ///< UART baudrate used by the gateway
 
 typedef struct {
     bool    mari_frame_received;
@@ -109,9 +112,14 @@ int main(void) {
 
     _setup_debug_pins();
 
-    mr_gpio_init(&pin3, MR_GPIO_OUT);
+    mr_gpio_init(&pin_hdlc_error, MR_GPIO_OUT);
+    mr_gpio_init(&pin_hdlc_ready_decode, MR_GPIO_OUT);
     mr_gpio_init(&pin_dgb_ipc, MR_GPIO_OUT);
     mr_gpio_init(&pin_dbg_uart, MR_GPIO_OUT);
+    mr_gpio_init(&pin_dgb_uart_write, MR_GPIO_OUT);
+
+    // Enable HFCLK with external 32MHz oscillator
+    mr_hfclk_init();
 
     _configure_ram_non_secure(2, 1);
     _init_ipc();
@@ -134,25 +142,29 @@ int main(void) {
                     break;
                 case MR_HDLC_STATE_READY:
                 {
+                    mr_gpio_set(&pin_hdlc_ready_decode);
                     size_t msg_len                    = mr_hdlc_decode((uint8_t *)ipc_shared_data.uart_to_radio);
                     ipc_shared_data.uart_to_radio_len = msg_len;
                     if (msg_len) {
                         NRF_IPC_S->TASKS_SEND[IPC_CHAN_UART_TO_RADIO] = 1;
                     }
+                    mr_gpio_clear(&pin_hdlc_ready_decode);
                 } break;
                 default:
                     break;
             }
             if (hdlc_state == MR_HDLC_STATE_ERROR) {
-                mr_gpio_set(&pin3);
-                mr_gpio_clear(&pin3);
+                mr_gpio_set(&pin_hdlc_error);
+                mr_gpio_clear(&pin_hdlc_error);
             }
         }
 
         if (_app_vars.mari_frame_received) {
             _app_vars.mari_frame_received = false;
             size_t frame_len              = mr_hdlc_encode((uint8_t *)ipc_shared_data.radio_to_uart, ipc_shared_data.radio_to_uart_len, _app_vars.hdlc_encode_buffer);
+            mr_gpio_set(&pin_dgb_uart_write);
             mr_uart_write(MR_UART_INDEX, _app_vars.hdlc_encode_buffer, frame_len);
+            mr_gpio_clear(&pin_dgb_uart_write);
         }
     }
 }
