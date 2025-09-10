@@ -136,7 +136,20 @@ int main(void) {
 
         if (_app_vars.uart_byte_received) {
             _app_vars.uart_byte_received = false;
-            mr_hdlc_state_t hdlc_state   = mr_hdlc_rx_byte(_app_vars.uart_byte);
+
+            // Disable IPC interrupts during HDLC processing to prevent TX interference
+            mr_hdlc_state_t prev_state = mr_hdlc_peek_state();
+            mr_hdlc_state_t hdlc_state = mr_hdlc_rx_byte(_app_vars.uart_byte);
+
+            // Manage IPC interrupt based on HDLC state transitions
+            if (prev_state != MR_HDLC_STATE_RECEIVING && hdlc_state == MR_HDLC_STATE_RECEIVING) {
+                // Started receiving - disable IPC interrupts
+                NVIC_DisableIRQ(IPC_IRQn);
+            } else if (prev_state == MR_HDLC_STATE_RECEIVING && hdlc_state != MR_HDLC_STATE_RECEIVING) {
+                // Finished receiving - re-enable IPC interrupts
+                NVIC_EnableIRQ(IPC_IRQn);
+            }
+
             switch ((uint8_t)hdlc_state) {
                 case MR_HDLC_STATE_IDLE:
                 case MR_HDLC_STATE_RECEIVING:
