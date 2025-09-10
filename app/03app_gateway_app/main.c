@@ -191,15 +191,14 @@ int main(void) {
             if (prev_state != MR_HDLC_STATE_RECEIVING && hdlc_state == MR_HDLC_STATE_RECEIVING) {
                 // Started receiving - disable IPC interrupts
                 NVIC_DisableIRQ(IPC_IRQn);
-            } else if (prev_state == MR_HDLC_STATE_RECEIVING && hdlc_state != MR_HDLC_STATE_RECEIVING) {
-                // Finished receiving - re-enable IPC interrupts
-                NVIC_EnableIRQ(IPC_IRQn);
             }
 
             switch ((uint8_t)hdlc_state) {
                 case MR_HDLC_STATE_IDLE:
                 case MR_HDLC_STATE_RECEIVING:
+                    break;
                 case MR_HDLC_STATE_ERROR:
+                    NVIC_EnableIRQ(IPC_IRQn);
                     break;
                 case MR_HDLC_STATE_READY:
                 {
@@ -210,6 +209,7 @@ int main(void) {
                         NRF_IPC_S->TASKS_SEND[IPC_CHAN_UART_TO_RADIO] = 1;
                     }
                     mr_gpio_clear(&pin_hdlc_ready_decode);
+                    NVIC_EnableIRQ(IPC_IRQn);
                 } break;
                 default:
                     break;
