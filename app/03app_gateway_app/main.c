@@ -29,9 +29,8 @@ mr_gpio_t pin_dgb_uart_write    = { .port = 1, .pin = 9 };
 
 //=========================== defines ==========================================
 
-#define MR_UART_INDEX (1)  ///< Index of UART peripheral to use
-//  #define MR_UART_BAUDRATE (1000000UL)  ///< UART baudrate used by the gateway
-#define MR_UART_BAUDRATE (921600L)  ///< UART baudrate used by the gateway
+#define MR_UART_INDEX    (1)          ///< Index of UART peripheral to use
+#define MR_UART_BAUDRATE (1000000UL)  ///< UART baudrate used by the gateway
 
 #define TX_QUEUE_SIZE 4
 
