@@ -11,6 +11,7 @@
  */
 #include <nrf.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "ipc.h"
 
@@ -32,13 +33,25 @@ mr_gpio_t pin_dgb_uart_write    = { .port = 1, .pin = 9 };
 //  #define MR_UART_BAUDRATE (1000000UL)  ///< UART baudrate used by the gateway
 #define MR_UART_BAUDRATE (921600L)  ///< UART baudrate used by the gateway
 
+#define TX_QUEUE_SIZE 4
+
 typedef struct {
-    bool    mari_frame_received;
+    uint8_t buffer[256];
+    size_t  length;
+} tx_frame_t;
+
+typedef struct {
     bool    uart_byte_received;
     uint8_t uart_byte;
     uint8_t hdlc_encode_buffer[1024];  // Should be large enough
-    bool    tx_pending;                // Flag for deferred TX
+    bool    tx_pending;                // Flag for deferred TX (legacy)
     size_t  tx_frame_len;              // Length of frame to transmit
+
+    // TX queue
+    tx_frame_t tx_queue[TX_QUEUE_SIZE];
+    uint8_t    tx_queue_head;
+    uint8_t    tx_queue_tail;
+    uint8_t    tx_queue_count;
 } gateway_app_vars_t;
 
 // UART RX and TX pins
@@ -109,6 +122,39 @@ static void _uart_callback(uint8_t byte) {
     _app_vars.uart_byte_received = true;
 }
 
+// TX queue management functions
+static bool _tx_queue_is_empty(void) {
+    return _app_vars.tx_queue_count == 0;
+}
+
+static bool _tx_queue_is_full(void) {
+    return _app_vars.tx_queue_count >= TX_QUEUE_SIZE;
+}
+
+static bool _tx_queue_enqueue(const uint8_t *data, size_t length) {
+    if (_tx_queue_is_full() || length > sizeof(_app_vars.tx_queue[0].buffer)) {
+        return false;  // Queue full or frame too large
+    }
+
+    memcpy(_app_vars.tx_queue[_app_vars.tx_queue_head].buffer, data, length);
+    _app_vars.tx_queue[_app_vars.tx_queue_head].length = length;
+    _app_vars.tx_queue_head                            = (_app_vars.tx_queue_head + 1) % TX_QUEUE_SIZE;
+    _app_vars.tx_queue_count++;
+    return true;
+}
+
+static bool _tx_queue_dequeue(uint8_t *data, size_t *length) {
+    if (_tx_queue_is_empty()) {
+        return false;
+    }
+
+    *length = _app_vars.tx_queue[_app_vars.tx_queue_tail].length;
+    memcpy(data, _app_vars.tx_queue[_app_vars.tx_queue_tail].buffer, *length);
+    _app_vars.tx_queue_tail = (_app_vars.tx_queue_tail + 1) % TX_QUEUE_SIZE;
+    _app_vars.tx_queue_count--;
+    return true;
+}
+
 int main(void) {
     printf("Hello Mari Gateway App Core (UART) %016llX\n", mr_device_id());
 
@@ -174,21 +220,20 @@ int main(void) {
             }
         }
 
-        if (_app_vars.mari_frame_received) {
-            _app_vars.mari_frame_received = false;
-            _app_vars.tx_frame_len        = mr_hdlc_encode((uint8_t *)ipc_shared_data.radio_to_uart, ipc_shared_data.radio_to_uart_len, _app_vars.hdlc_encode_buffer);
+        // Process queued TX frames when conditions are right
+        if (!_tx_queue_is_empty() && !mr_uart_tx_busy(MR_UART_INDEX) && mr_hdlc_peek_state() != MR_HDLC_STATE_RECEIVING) {
+            uint8_t frame_data[256];
+            size_t  frame_len;
 
-            // Try to send immediately, or defer if UART is busy
-            if (!mr_uart_tx_busy(MR_UART_INDEX) && mr_hdlc_peek_state() != MR_HDLC_STATE_RECEIVING) {
+            if (_tx_queue_dequeue(frame_data, &frame_len)) {
+                _app_vars.tx_frame_len = mr_hdlc_encode(frame_data, frame_len, _app_vars.hdlc_encode_buffer);
                 mr_gpio_set(&pin_dgb_uart_write);
                 mr_uart_write(MR_UART_INDEX, _app_vars.hdlc_encode_buffer, _app_vars.tx_frame_len);
                 mr_gpio_clear(&pin_dgb_uart_write);
-            } else {
-                _app_vars.tx_pending = true;
             }
         }
 
-        // Handle deferred TX when UART becomes available
+        // Handle deferred TX when UART becomes available (keep for compatibility)
         if (_app_vars.tx_pending && !mr_uart_tx_busy(MR_UART_INDEX) && mr_hdlc_peek_state() != MR_HDLC_STATE_RECEIVING) {
             _app_vars.tx_pending = false;
             mr_gpio_set(&pin_dgb_uart_write);
@@ -202,7 +247,11 @@ void IPC_IRQHandler(void) {
     mr_gpio_set(&pin_dgb_ipc);
     if (NRF_IPC_S->EVENTS_RECEIVE[IPC_CHAN_RADIO_TO_UART]) {
         NRF_IPC_S->EVENTS_RECEIVE[IPC_CHAN_RADIO_TO_UART] = 0;
-        _app_vars.mari_frame_received                     = true;
+
+        // Enqueue the frame instead of just setting a flag
+        if (!_tx_queue_enqueue((const uint8_t *)ipc_shared_data.radio_to_uart, ipc_shared_data.radio_to_uart_len)) {
+            // Queue full - could add error handling/statistics here
+        }
     }
     mr_gpio_clear(&pin_dgb_ipc);
 }
