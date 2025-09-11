@@ -49,7 +49,7 @@ typedef struct {
 gateway_vars_t _app_vars = { 0 };
 
 extern schedule_t schedule_tiny, schedule_medium, schedule_big, schedule_huge;
-schedule_t       *schedule_app = &schedule_tiny;
+schedule_t       *schedule_app = &schedule_huge;
 
 volatile __attribute__((section(".shared_data"))) ipc_shared_data_t ipc_shared_data;
 

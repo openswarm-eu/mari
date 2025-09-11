@@ -64,8 +64,15 @@ node_vars_t  node_vars  = { 0 };
 node_stats_t node_stats = { 0 };
 
 extern schedule_t schedule_minuscule, schedule_tiny, schedule_huge;
+schedule_t       *schedule_app = &schedule_huge;
 
-schedule_t *schedule_app = &schedule_huge;
+// example status packet, to use as periodic uplink packet
+uint8_t status_packet_mock[4] = {
+    0x90,  // swarmit notification status
+    1,     // SWRMT_DEVICE_TYPE_DOTBOTV3
+    1,     // SWRMT_APPLICATION_RUNNING
+    80,    // battery level
+};
 
 //=========================== private ==========================================
 
@@ -95,6 +102,11 @@ static void handle_metrics_payload(mr_metrics_payload_t *metrics_payload) {
     mari_node_tx_payload((uint8_t *)metrics_payload, sizeof(mr_metrics_payload_t));
 }
 
+static void _send_status_packet_callback(void) {
+    // send status packet
+    mari_node_tx_payload((uint8_t *)status_packet_mock, sizeof(status_packet_mock));
+}
+
 //=========================== main =============================================
 
 int main(void) {
@@ -108,6 +120,9 @@ int main(void) {
 
     // blink blue every 100ms
     mr_timer_hf_set_periodic_us(MARI_APP_TIMER_DEV, 0, 100 * 1000, &_led_blink_callback);
+
+    // send status packet every 500ms
+    mr_timer_hf_set_periodic_us(MARI_APP_TIMER_DEV, 0, 500 * 1000, &_send_status_packet_callback);
 
     board_set_led_mari(OFF);
 
