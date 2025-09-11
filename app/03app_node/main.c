@@ -50,6 +50,7 @@ typedef struct {
     mr_event_data_t event_data;
     bool            event_ready;
     bool            led_blink_state;  // for blinking when not connected
+    bool            send_status_ready;
 } node_vars_t;
 
 typedef struct __attribute__((packed)) {
@@ -103,8 +104,7 @@ static void handle_metrics_payload(mr_metrics_payload_t *metrics_payload) {
 }
 
 static void _send_status_packet_callback(void) {
-    // send status packet
-    mari_node_tx_payload((uint8_t *)status_packet_mock, sizeof(status_packet_mock));
+    node_vars.send_status_ready = true;
 }
 
 //=========================== main =============================================
@@ -122,7 +122,7 @@ int main(void) {
     mr_timer_hf_set_periodic_us(MARI_APP_TIMER_DEV, 0, 100 * 1000, &_led_blink_callback);
 
     // send status packet every 500ms
-    mr_timer_hf_set_periodic_us(MARI_APP_TIMER_DEV, 0, 500 * 1000, &_send_status_packet_callback);
+    mr_timer_hf_set_periodic_us(MARI_APP_TIMER_DEV, 1, 500 * 1000, &_send_status_packet_callback);
 
     board_set_led_mari(OFF);
 
@@ -167,6 +167,11 @@ int main(void) {
                 default:
                     break;
             }
+        }
+
+        if (node_vars.send_status_ready) {
+            node_vars.send_status_ready = false;
+            mari_node_tx_payload((uint8_t *)status_packet_mock, sizeof(status_packet_mock));
         }
 
         mari_event_loop();
