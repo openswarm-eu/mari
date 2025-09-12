@@ -18,11 +18,15 @@
 
 #include "mr_device.h"
 #include "mr_timer_hf.h"
+#include "mr_radio.h"
 #include "mac.h"
 #include "association.h"
 #include "scheduler.h"
 #include "mari.h"
 #include "packet.h"
+#include "models.h"
+
+#include "metrics.h"
 
 //=========================== defines ==========================================
 
@@ -36,13 +40,15 @@ typedef struct {
     bool            mari_event_ready;
     bool            uart_to_radio_packet_ready;
     bool            to_uart_gateway_loop_ready;
+    uint32_t        tx_count;
+    uint32_t        rx_count;
 } gateway_vars_t;
 
 //=========================== variables ========================================
 
 gateway_vars_t _app_vars = { 0 };
 
-extern schedule_t schedule_minuscule, schedule_tiny, schedule_huge;
+extern schedule_t schedule_tiny, schedule_medium, schedule_big, schedule_huge;
 schedule_t       *schedule_app = &schedule_huge;
 
 volatile __attribute__((section(".shared_data"))) ipc_shared_data_t ipc_shared_data;
@@ -94,6 +100,11 @@ int main(void) {
             switch (event) {
                 case MARI_NEW_PACKET:
                 {
+                    // handle metrics probe
+                    if (metrics_is_probe(event_data.data.new_packet.payload, event_data.data.new_packet.payload_len)) {
+                        metrics_handle_rx_probe(event_data.data.new_packet.header->src, event_data.data.new_packet.payload);
+                    }
+
                     ipc_shared_data.radio_to_uart_len = event_data.data.new_packet.len + 1;
                     ipc_shared_data.radio_to_uart[0]  = MARI_EDGE_DATA;
                     memcpy((void *)ipc_shared_data.radio_to_uart + 1, event_data.data.new_packet.header, event_data.data.new_packet.len);
@@ -108,6 +119,7 @@ int main(void) {
                     break;
                 case MARI_NODE_JOINED:
                     printf("%d New node joined: %016llX  (%d nodes connected)\n", now_ts_s, event_data.data.node_info.node_id, mari_gateway_count_nodes());
+                    metrics_add_node(event_data.data.node_info.node_id);
                     ipc_shared_data.radio_to_uart_len = 1 + sizeof(uint64_t);
                     ipc_shared_data.radio_to_uart[0]  = MARI_EDGE_NODE_JOINED;
                     memcpy((void *)ipc_shared_data.radio_to_uart + 1, &event_data.data.node_info.node_id, sizeof(uint64_t));
@@ -115,6 +127,7 @@ int main(void) {
                     break;
                 case MARI_NODE_LEFT:
                     printf("%d Node left: %016llX, reason: %u  (%d nodes connected)\n", now_ts_s, event_data.data.node_info.node_id, event_data.tag, mari_gateway_count_nodes());
+                    metrics_clear_node(event_data.data.node_info.node_id);
                     ipc_shared_data.radio_to_uart_len = 1 + sizeof(uint64_t);
                     ipc_shared_data.radio_to_uart[0]  = MARI_EDGE_NODE_LEFT;
                     memcpy((void *)ipc_shared_data.radio_to_uart + 1, &event_data.data.node_info.node_id, sizeof(uint64_t));
@@ -146,6 +159,13 @@ int main(void) {
             mr_packet_header_t *header = (mr_packet_header_t *)mari_frame;
             header->src                = mr_device_id();
             header->network_id         = mr_assoc_get_network_id();
+
+            // handle metrics probe
+            uint8_t *payload     = mari_frame + sizeof(mr_packet_header_t);
+            uint8_t  payload_len = mari_frame_len - sizeof(mr_packet_header_t);
+            if (metrics_is_probe(payload, payload_len)) {
+                metrics_handle_tx_probe(header->dst, payload);
+            }
 
             mari_tx(mari_frame, mari_frame_len);
         }

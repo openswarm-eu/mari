@@ -37,6 +37,7 @@ typedef struct {
 
 typedef struct {
     mari_packet_queue_t packet_queue;
+    bool                queue_locked;  ///< Simple lock to prevent concurrent access
     mr_packet_t         join_packet;
 } queue_vars_t;
 
@@ -95,14 +96,28 @@ uint8_t mr_queue_next_packet(slot_type_t slot_type, uint8_t *packet) {
 }
 
 void mr_queue_add(uint8_t *packet, uint8_t length) {
+    // lock is asymetrical: add (called from application) can wait in busy loop
+    while (queue_vars.queue_locked) {
+        // wait for the queue to be unlocked
+    }
+    queue_vars.queue_locked = true;
+
     // enqueue for transmission
     memcpy(queue_vars.packet_queue.packets[queue_vars.packet_queue.last].buffer, packet, length);
     queue_vars.packet_queue.packets[queue_vars.packet_queue.last].length = length;
     // increment the `last` index
     queue_vars.packet_queue.last = (queue_vars.packet_queue.last + 1) % MARI_PACKET_QUEUE_SIZE;
+
+    queue_vars.queue_locked = false;
 }
 
 uint8_t mr_queue_peek(uint8_t *packet) {
+    // lock is asymetrical: peek (called from MAC) can simply give up if the queue is locked
+    if (queue_vars.queue_locked) {
+        // simply give up if the queue is locked (will try again next slot)
+        return 0;
+    }
+
     if (queue_vars.packet_queue.current == queue_vars.packet_queue.last) {
         return 0;
     }
@@ -113,6 +128,12 @@ uint8_t mr_queue_peek(uint8_t *packet) {
 }
 
 bool mr_queue_pop(void) {
+    // lock is asymetrical: just as with peek
+    if (queue_vars.queue_locked) {
+        // simply give up if the queue is locked (will try again next slot)
+        return false;
+    }
+
     if (queue_vars.packet_queue.current == queue_vars.packet_queue.last) {
         return false;
     } else {

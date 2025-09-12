@@ -28,7 +28,7 @@
 
 //=========================== debug ============================================
 
-#ifndef DEBUG  // FIXME: remove before merge. Just to make VS Code enable code behind `#ifdef DEBUG`
+#ifndef DEBUG  // NOTE: This is just to make VS Code enable code behind `#ifdef DEBUG`
 #define DEBUG
 #endif
 
@@ -42,11 +42,15 @@ mr_gpio_t pin3 = { .port = 1, .pin = 5 };
 #define DEBUG_GPIO_TOGGLE(pin) mr_gpio_toggle(pin)
 #define DEBUG_GPIO_SET(pin)    mr_gpio_set(pin)
 #define DEBUG_GPIO_CLEAR(pin)  mr_gpio_clear(pin)
+#define DEBUG_GPIO_SPIIKE(pin) \
+    mr_gpio_set(pin);          \
+    mr_gpio_clear(pin);
 #else
 // No-op when DEBUG is not defined
-#define DEBUG_GPIO_TOGGLE(pin) ((void)0))
-#define DEBUG_GPIO_SET(pin) ((void)0))
-#define DEBUG_GPIO_CLEAR(pin) ((void)0))
+#define DEBUG_GPIO_TOGGLE(pin) ((void)0)
+#define DEBUG_GPIO_SET(pin)    ((void)0)
+#define DEBUG_GPIO_CLEAR(pin)  ((void)0)
+#define DEBUG_GPIO_SPIIKE(pin) ((void)0)
 #endif  // DEBUG
 
 //=========================== defines ==========================================
