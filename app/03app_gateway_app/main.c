@@ -23,9 +23,10 @@
 #include "mr_gpio.h"
 mr_gpio_t pin_hdlc_error        = { .port = 1, .pin = 5 };
 mr_gpio_t pin_hdlc_ready_decode = { .port = 1, .pin = 10 };
-mr_gpio_t pin_dgb_ipc           = { .port = 1, .pin = 7 };
-mr_gpio_t pin_dbg_uart          = { .port = 1, .pin = 8 };
-mr_gpio_t pin_dgb_uart_write    = { .port = 1, .pin = 9 };
+// mr_gpio_t pin_dbg_ipc           = { .port = 1, .pin = 7 };
+mr_gpio_t pin_dbg_timer      = { .port = 1, .pin = 7 };
+mr_gpio_t pin_dbg_uart       = { .port = 1, .pin = 8 };
+mr_gpio_t pin_dbg_uart_write = { .port = 1, .pin = 9 };
 
 //=========================== defines ==========================================
 
@@ -177,9 +178,10 @@ int main(void) {
 
     mr_gpio_init(&pin_hdlc_error, MR_GPIO_OUT);
     mr_gpio_init(&pin_hdlc_ready_decode, MR_GPIO_OUT);
-    mr_gpio_init(&pin_dgb_ipc, MR_GPIO_OUT);
+    // mr_gpio_init(&pin_dbg_ipc, MR_GPIO_OUT);
+    mr_gpio_init(&pin_dbg_timer, MR_GPIO_OUT);
     mr_gpio_init(&pin_dbg_uart, MR_GPIO_OUT);
-    mr_gpio_init(&pin_dgb_uart_write, MR_GPIO_OUT);
+    mr_gpio_init(&pin_dbg_uart_write, MR_GPIO_OUT);
 
     // Enable HFCLK with external 32MHz oscillator
     mr_hfclk_init();
@@ -221,13 +223,22 @@ int main(void) {
                     // but then we would need a queue for the uart-to-radio messages
                     // so for now we will just ignore the rest
                     // (we assume that the python code never sends two frames too fast in a row)
-                    break;
+
+                    // memset(_app_vars.uart_buffer, 0, sizeof(_app_vars.uart_buffer));
+                    // _app_vars.uart_buffer_length = 0;
+                    // break;
                 } else if (hdlc_state == MR_HDLC_STATE_ERROR) {
                     // error
+                    // memset(_app_vars.uart_buffer, 0, sizeof(_app_vars.uart_buffer));
+                    // _app_vars.uart_buffer_length = 0;
+
                     mr_gpio_set(&pin_hdlc_error);
                     mr_gpio_clear(&pin_hdlc_error);
-                    // NOTE: since we didn't send a message to the radio (it was an error),
-                    // we can keep decoding the rest of the buffer, no need to break
+
+                    // break;
+
+                    // // NOTE: since we didn't send a message to the radio (it was an error),
+                    // // we can keep decoding the rest of the buffer, no need to break
                 }
             }
         }
@@ -279,24 +290,24 @@ int main(void) {
 
             if (_tx_queue_dequeue(frame_data, &frame_len)) {
                 _app_vars.tx_frame_len = mr_hdlc_encode(frame_data, frame_len, _app_vars.hdlc_encode_buffer);
-                mr_gpio_set(&pin_dgb_uart_write);
+                mr_gpio_set(&pin_dbg_uart_write);
                 mr_uart_write(MR_UART_INDEX, _app_vars.hdlc_encode_buffer, _app_vars.tx_frame_len);
-                mr_gpio_clear(&pin_dgb_uart_write);
+                mr_gpio_clear(&pin_dbg_uart_write);
             }
         }
 
         // Handle deferred TX when UART becomes available (keep for compatibility)
         if (_app_vars.tx_pending && !mr_uart_tx_busy(MR_UART_INDEX)) {
             _app_vars.tx_pending = false;
-            mr_gpio_set(&pin_dgb_uart_write);
+            mr_gpio_set(&pin_dbg_uart_write);
             mr_uart_write(MR_UART_INDEX, _app_vars.hdlc_encode_buffer, _app_vars.tx_frame_len);
-            mr_gpio_clear(&pin_dgb_uart_write);
+            mr_gpio_clear(&pin_dbg_uart_write);
         }
     }
 }
 
 void IPC_IRQHandler(void) {
-    mr_gpio_set(&pin_dgb_ipc);
+    // mr_gpio_set(&pin_dbg_ipc);
     if (NRF_IPC_S->EVENTS_RECEIVE[IPC_CHAN_RADIO_TO_UART]) {
         NRF_IPC_S->EVENTS_RECEIVE[IPC_CHAN_RADIO_TO_UART] = 0;
 
@@ -305,5 +316,5 @@ void IPC_IRQHandler(void) {
             // Queue full - could add error handling/statistics here
         }
     }
-    mr_gpio_clear(&pin_dgb_ipc);
+    // mr_gpio_clear(&pin_dbg_ipc);
 }
