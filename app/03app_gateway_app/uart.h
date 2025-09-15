@@ -23,7 +23,8 @@
 
 typedef uint8_t uart_t;  ///< UART peripheral index
 
-typedef void (*uart_rx_cb_t)(uint8_t data);  ///< Callback function prototype, it is called on each byte received
+// typedef void (*uart_rx_cb_t)(uint8_t data);  ///< Callback function prototype, it is called on each byte received
+typedef void (*uart_rx_cb_t)(uint8_t *buffer, size_t length);  ///< Callback function prototype, it is called on each byte received
 
 //=========================== public ===========================================
 
@@ -34,7 +35,7 @@ typedef void (*uart_rx_cb_t)(uint8_t data);  ///< Callback function prototype, i
  * @param[in] rx_pin    pointer to RX pin
  * @param[in] tx_pin    pointer to TX pin
  * @param[in] baudrate  Baudrate in bauds
- * @param[in] callback  callback function called on each received byte
+ * @param[in] callback  callback function called on each received buffer
  */
 void mr_uart_init(uart_t uart, const mr_gpio_t *rx_pin, const mr_gpio_t *tx_pin, uint32_t baudrate, uart_rx_cb_t callback);
 

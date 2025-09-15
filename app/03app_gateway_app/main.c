@@ -40,8 +40,13 @@ typedef struct {
 } tx_frame_t;
 
 typedef struct {
-    bool    uart_byte_received;
-    uint8_t uart_byte;
+    // bool    uart_byte_received;
+    // uint8_t uart_byte;
+
+    bool    uart_buffer_received;
+    uint8_t uart_buffer[256];
+    size_t  uart_buffer_length;
+
     uint8_t hdlc_encode_buffer[1024];  // Should be large enough
     bool    tx_pending;                // Flag for deferred TX (legacy)
     size_t  tx_frame_len;              // Length of frame to transmit
@@ -116,11 +121,6 @@ static void _release_network_core(void) {
     while (!ipc_shared_data.net_ready) {}
 }
 
-static void _uart_callback(uint8_t byte) {
-    _app_vars.uart_byte          = byte;
-    _app_vars.uart_byte_received = true;
-}
-
 // TX queue management functions
 static bool _tx_queue_is_empty(void) {
     return _app_vars.tx_queue_count == 0;
@@ -154,6 +154,22 @@ static bool _tx_queue_dequeue(uint8_t *data, size_t *length) {
     return true;
 }
 
+// UART callback function
+// static void _uart_callback(uint8_t byte) {
+//     _app_vars.uart_byte          = byte;
+//     _app_vars.uart_byte_received = true;
+// }
+
+static void _uart_callback(uint8_t *buffer, size_t length) {
+    if (length == 0) {
+        return;
+    }
+
+    memcpy(_app_vars.uart_buffer, buffer, length);
+    _app_vars.uart_buffer_length   = length;
+    _app_vars.uart_buffer_received = true;
+}
+
 int main(void) {
     printf("Hello Mari Gateway App Core (UART) %016llX\n", mr_device_id());
 
@@ -179,48 +195,85 @@ int main(void) {
     while (1) {
         __WFE();
 
-        if (_app_vars.uart_byte_received) {
-            _app_vars.uart_byte_received = false;
+        // if (_app_vars.uart_buffer_received) {
+        //     _app_vars.uart_buffer_received = false;
+        //     // just toggle a debug pin
+        //     mr_gpio_set(&pin_hdlc_ready_decode);
+        //     mr_gpio_clear(&pin_hdlc_ready_decode);
+        // }
 
-            // Disable IPC interrupts during HDLC processing to prevent TX interference
-            mr_hdlc_state_t prev_state = mr_hdlc_peek_state();
-            mr_hdlc_state_t hdlc_state = mr_hdlc_rx_byte(_app_vars.uart_byte);
-
-            // Manage IPC interrupt based on HDLC state transitions
-            if (prev_state != MR_HDLC_STATE_RECEIVING && hdlc_state == MR_HDLC_STATE_RECEIVING) {
-                // Started receiving - disable IPC interrupts
-                NVIC_DisableIRQ(IPC_IRQn);
-            }
-
-            switch ((uint8_t)hdlc_state) {
-                case MR_HDLC_STATE_IDLE:
-                case MR_HDLC_STATE_RECEIVING:
-                    break;
-                case MR_HDLC_STATE_ERROR:
-                    NVIC_EnableIRQ(IPC_IRQn);
-                    break;
-                case MR_HDLC_STATE_READY:
-                {
+        if (_app_vars.uart_buffer_received) {
+            _app_vars.uart_buffer_received = false;
+            // use a loop to decode the whole buffer, testing the state machine at each byte
+            for (size_t i = 0; i < _app_vars.uart_buffer_length; i++) {
+                mr_hdlc_state_t hdlc_state = mr_hdlc_rx_byte(_app_vars.uart_buffer[i]);
+                if (hdlc_state == MR_HDLC_STATE_READY) {
+                    // decode the frame and send it to the radio
                     mr_gpio_set(&pin_hdlc_ready_decode);
+                    // decode the frame
                     size_t msg_len                    = mr_hdlc_decode((uint8_t *)(void *)ipc_shared_data.uart_to_radio);
                     ipc_shared_data.uart_to_radio_len = msg_len;
                     if (msg_len) {
                         NRF_IPC_S->TASKS_SEND[IPC_CHAN_UART_TO_RADIO] = 1;
                     }
                     mr_gpio_clear(&pin_hdlc_ready_decode);
-                    NVIC_EnableIRQ(IPC_IRQn);
-                } break;
-                default:
+                    // NOTE: we could have more than one frame in the buffer,
+                    // but then we would need a queue for the uart-to-radio messages
+                    // so for now we will just ignore the rest
+                    // (we assume that the python code never sends two frames too fast in a row)
                     break;
-            }
-            if (hdlc_state == MR_HDLC_STATE_ERROR) {
-                mr_gpio_set(&pin_hdlc_error);
-                mr_gpio_clear(&pin_hdlc_error);
+                } else if (hdlc_state == MR_HDLC_STATE_ERROR) {
+                    // error
+                    mr_gpio_set(&pin_hdlc_error);
+                    mr_gpio_clear(&pin_hdlc_error);
+                    // NOTE: since we didn't send a message to the radio (it was an error),
+                    // we can keep decoding the rest of the buffer, no need to break
+                }
             }
         }
 
+        // if (_app_vars.uart_byte_received) {
+        //     _app_vars.uart_byte_received = false;
+
+        //     // Disable IPC interrupts during HDLC processing to prevent TX interference
+        //     mr_hdlc_state_t prev_state = mr_hdlc_peek_state();
+        //     mr_hdlc_state_t hdlc_state = mr_hdlc_rx_byte(_app_vars.uart_byte);
+
+        //     // Manage IPC interrupt based on HDLC state transitions
+        //     if (prev_state != MR_HDLC_STATE_RECEIVING && hdlc_state == MR_HDLC_STATE_RECEIVING) {
+        //         // Started receiving - disable IPC interrupts
+        //         NVIC_DisableIRQ(IPC_IRQn);
+        //     }
+
+        //     switch ((uint8_t)hdlc_state) {
+        //         case MR_HDLC_STATE_IDLE:
+        //         case MR_HDLC_STATE_RECEIVING:
+        //             break;
+        //         case MR_HDLC_STATE_ERROR:
+        //             NVIC_EnableIRQ(IPC_IRQn);
+        //             break;
+        //         case MR_HDLC_STATE_READY:
+        //         {
+        //             mr_gpio_set(&pin_hdlc_ready_decode);
+        //             size_t msg_len                    = mr_hdlc_decode((uint8_t *)(void *)ipc_shared_data.uart_to_radio);
+        //             ipc_shared_data.uart_to_radio_len = msg_len;
+        //             if (msg_len) {
+        //                 NRF_IPC_S->TASKS_SEND[IPC_CHAN_UART_TO_RADIO] = 1;
+        //             }
+        //             mr_gpio_clear(&pin_hdlc_ready_decode);
+        //             NVIC_EnableIRQ(IPC_IRQn);
+        //         } break;
+        //         default:
+        //             break;
+        //     }
+        //     if (hdlc_state == MR_HDLC_STATE_ERROR) {
+        //         mr_gpio_set(&pin_hdlc_error);
+        //         mr_gpio_clear(&pin_hdlc_error);
+        //     }
+        // }
+
         // Process queued TX frames when conditions are right
-        if (!_tx_queue_is_empty() && !mr_uart_tx_busy(MR_UART_INDEX) && mr_hdlc_peek_state() != MR_HDLC_STATE_RECEIVING) {
+        if (!_tx_queue_is_empty() && !mr_uart_tx_busy(MR_UART_INDEX)) {
             uint8_t frame_data[256];
             size_t  frame_len;
 
@@ -233,7 +286,7 @@ int main(void) {
         }
 
         // Handle deferred TX when UART becomes available (keep for compatibility)
-        if (_app_vars.tx_pending && !mr_uart_tx_busy(MR_UART_INDEX) && mr_hdlc_peek_state() != MR_HDLC_STATE_RECEIVING) {
+        if (_app_vars.tx_pending && !mr_uart_tx_busy(MR_UART_INDEX)) {
             _app_vars.tx_pending = false;
             mr_gpio_set(&pin_dgb_uart_write);
             mr_uart_write(MR_UART_INDEX, _app_vars.hdlc_encode_buffer, _app_vars.tx_frame_len);

@@ -33,12 +33,13 @@ typedef struct {
 } uart_conf_t;
 
 typedef struct {
-    uint8_t      byte;       ///< the byte where received byte on UART is stored
-    uart_rx_cb_t callback;   ///< pointer to the callback function
-    uint8_t     *tx_buffer;  ///< current TX buffer
-    size_t       tx_length;  ///< total bytes to transmit
-    size_t       tx_pos;     ///< current position in TX buffer
-    bool         tx_busy;    ///< flag indicating TX is in progress
+    // uint8_t      byte;       ///< the byte where received byte on UART is stored
+    uint8_t      rx_buffer[256];  ///< the buffer where received bytes on UART are stored
+    uart_rx_cb_t callback;        ///< pointer to the callback function
+    uint8_t     *tx_buffer;       ///< current TX buffer
+    size_t       tx_length;       ///< total bytes to transmit
+    size_t       tx_pos;          ///< current position in TX buffer
+    bool         tx_busy;         ///< flag indicating TX is in progress
 } uart_vars_t;
 
 //=========================== variables ========================================
@@ -181,8 +182,8 @@ void mr_uart_init(uart_t uart, const mr_gpio_t *rx_pin, const mr_gpio_t *tx_pin,
 
     if (callback) {
         _uart_vars[uart].callback    = callback;
-        _devs[uart].p->RXD.MAXCNT    = 1;
-        _devs[uart].p->RXD.PTR       = (uint32_t)&_uart_vars[uart].byte;
+        _devs[uart].p->RXD.MAXCNT    = 20;
+        _devs[uart].p->RXD.PTR       = (uint32_t)&_uart_vars[uart].rx_buffer;
         _devs[uart].p->INTENSET      = (UARTE_INTENSET_ENDRX_Enabled << UARTE_INTENSET_ENDRX_Pos);
         _devs[uart].p->SHORTS        = (UARTE_SHORTS_ENDRX_STARTRX_Enabled << UARTE_SHORTS_ENDRX_STARTRX_Pos);
         _devs[uart].p->TASKS_STARTRX = 1;
@@ -231,8 +232,8 @@ static void      _uart_isr(uart_t uart) {
         _devs[uart].p->EVENTS_ENDRX = 0;
         // make sure we actually received new data
         if (_devs[uart].p->RXD.AMOUNT != 0) {
-            // process received byte
-            _uart_vars[uart].callback(_uart_vars[uart].byte);
+            // process the received buffer
+            _uart_vars[uart].callback(_uart_vars[uart].rx_buffer, _devs[uart].p->RXD.AMOUNT);
         }
     }
 
