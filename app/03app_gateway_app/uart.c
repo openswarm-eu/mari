@@ -37,12 +37,6 @@
 #define TIMER_IRQ      TIMER4_IRQn
 #endif
 
-// #if defined(NRF5340_XXAA) && defined(NRF_APPLICATION)
-// #define NRF_POWER (NRF_POWER_S)
-// #elif defined(NRF5340_XXAA) && defined(NRF_NETWORK)
-// #define NRF_POWER (NRF_POWER_NS)
-// #endif
-
 #define MR_UARTE_CHUNK_SIZE (64U)
 
 typedef enum {
@@ -58,7 +52,6 @@ typedef struct {
 } uart_conf_t;
 
 typedef struct {
-    // uint8_t      byte;       ///< the byte where received byte on UART is stored
     uint8_t         rx_trigger_byte_ptr;    ///< pointer to the byte that triggers the RX state machine
     uint8_t         rx_trigger_byte_saved;  ///< saved value of the byte that triggered the RX state machine (because the ptr tends to get overwritten)
     uint8_t         rx_buffer[256];         ///< the buffer where received bytes on UART are stored
@@ -124,7 +117,7 @@ static const uart_conf_t _devs[UARTE_COUNT] = {
 };
 
 static uart_vars_t _uart_vars[UARTE_COUNT] = { 0 };  ///< variable handling the UART context
-static uart_t      _uart_global_index      = 0;
+static uart_t      _uart_global_index      = 0;      ///< needed for the timer interrupt handler
 
 //=========================== prototypes =======================================
 
@@ -216,11 +209,11 @@ void mr_uart_init(uart_t uart, const mr_gpio_t *rx_pin, const mr_gpio_t *tx_pin,
 
     if (callback) {
         // configure the UART for RX
+
         _uart_vars[uart].callback = callback;
 
         // setup the RX interrupt
         _devs[uart].p->INTENSET = (UARTE_INTENSET_ENDRX_Enabled << UARTE_INTENSET_ENDRX_Pos);
-        // _devs[uart].p->SHORTS        = (UARTE_SHORTS_ENDRX_STARTRX_Enabled << UARTE_SHORTS_ENDRX_STARTRX_Pos);
 
         // setup the RX state machine and start receiving
         mr_uart_start_rx(uart, UART_RX_STATE_RX_TRIGGER_BYTE);
@@ -397,15 +390,11 @@ void TIMER4_IRQHandler(void) {
         mr_gpio_clear(&pin_dbg_timer);
 
         if (_uart_vars[_uart_global_index].rx_state == UART_RX_STATE_RX_CHUNK) {
-            // tell the uart to stop receiving
-            // this will cause an ENDRX interrupt
+            // tell the uart to stop receiving -> this will cause an ENDRX interrupt
             _devs[_uart_global_index].p->TASKS_STOPRX = 1;
         } else if (_uart_vars[_uart_global_index].rx_state == UART_RX_STATE_BACKOFF_TRIGGER_BYTE) {
-            // tell the uart to start receiving the trigger byte                // // all done, go back to receiving the trigger byte
+            // tell the uart to start receiving the trigger byte
             mr_uart_start_rx(_uart_global_index, UART_RX_STATE_RX_TRIGGER_BYTE);
         }
-
-        // // back to receiving the trigger byte
-        // mr_uart_start_rx(_uart_global_index, UART_RX_STATE_RX_TRIGGER_BYTE);
     }
 }
