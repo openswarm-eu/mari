@@ -9,6 +9,7 @@
  * @copyright Inria, 2022
  */
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -21,11 +22,29 @@
 //=========================== defines ==========================================
 
 #if defined(NRF5340_XXAA) && defined(NRF_APPLICATION)
-#define NRF_POWER (NRF_POWER_S)
+#define NRF_POWER      (NRF_POWER_S)
+#define NRF_UART_TIMER (NRF_TIMER2_S)
+#define TIMER_CC_NUM   TIMER2_CC_NUM
+#define TIMER_IRQ      TIMER2_IRQn
 #elif defined(NRF5340_XXAA) && defined(NRF_NETWORK)
-#define NRF_POWER (NRF_POWER_NS)
+#define NRF_POWER      (NRF_POWER_NS)
+#define NRF_UART_TIMER (NRF_TIMER2_NS)
+#define TIMER_CC_NUM   TIMER2_CC_NUM
+#define TIMER_IRQ      TIMER2_IRQn
+#else
+#define NRF_UART_TIMER (NRF_TIMER4)
+#define TIMER_CC_NUM   TIMER4_CC_NUM
+#define TIMER_IRQ      TIMER4_IRQn
 #endif
+
 #define MR_UARTE_CHUNK_SIZE (64U)
+
+typedef enum {
+    UART_RX_STATE_IDLE = 1,
+    UART_RX_STATE_RX_TRIGGER_BYTE,
+    UART_RX_STATE_BACKOFF_TRIGGER_BYTE,
+    UART_RX_STATE_RX_CHUNK,
+} uart_rx_state_t;
 
 typedef struct {
     NRF_UARTE_Type *p;
@@ -33,12 +52,15 @@ typedef struct {
 } uart_conf_t;
 
 typedef struct {
-    uint8_t      byte;       ///< the byte where received byte on UART is stored
-    uart_rx_cb_t callback;   ///< pointer to the callback function
-    uint8_t     *tx_buffer;  ///< current TX buffer
-    size_t       tx_length;  ///< total bytes to transmit
-    size_t       tx_pos;     ///< current position in TX buffer
-    bool         tx_busy;    ///< flag indicating TX is in progress
+    uint8_t         rx_trigger_byte_ptr;    ///< pointer to the byte that triggers the RX state machine
+    uint8_t         rx_trigger_byte_saved;  ///< saved value of the byte that triggered the RX state machine (because the ptr tends to get overwritten)
+    uint8_t         rx_buffer[256];         ///< the buffer where received bytes on UART are stored
+    uart_rx_cb_t    callback;               ///< pointer to the callback function
+    uint8_t        *tx_buffer;              ///< current TX buffer
+    size_t          tx_length;              ///< total bytes to transmit
+    size_t          tx_pos;                 ///< current position in TX buffer
+    bool            tx_busy;                ///< flag indicating TX is in progress
+    uart_rx_state_t rx_state;               ///< current state of the RX state machine
 } uart_vars_t;
 
 //=========================== variables ========================================
@@ -95,10 +117,16 @@ static const uart_conf_t _devs[UARTE_COUNT] = {
 };
 
 static uart_vars_t _uart_vars[UARTE_COUNT] = { 0 };  ///< variable handling the UART context
+static uart_t      _uart_global_index      = 0;      ///< needed for the timer interrupt handler
+
+//=========================== prototypes =======================================
+
+void mr_uart_start_rx(uart_t uart, uart_rx_state_t state);
 
 //=========================== public ===========================================
 
 void mr_uart_init(uart_t uart, const mr_gpio_t *rx_pin, const mr_gpio_t *tx_pin, uint32_t baudrate, uart_rx_cb_t callback) {
+    _uart_global_index = uart;
 
 #if defined(NRF5340_XXAA)
     if (baudrate > 460800) {
@@ -180,15 +208,27 @@ void mr_uart_init(uart_t uart, const mr_gpio_t *rx_pin, const mr_gpio_t *tx_pin,
     _devs[uart].p->ENABLE = (UARTE_ENABLE_ENABLE_Enabled << UARTE_ENABLE_ENABLE_Pos);
 
     if (callback) {
-        _uart_vars[uart].callback    = callback;
-        _devs[uart].p->RXD.MAXCNT    = 1;
-        _devs[uart].p->RXD.PTR       = (uint32_t)&_uart_vars[uart].byte;
-        _devs[uart].p->INTENSET      = (UARTE_INTENSET_ENDRX_Enabled << UARTE_INTENSET_ENDRX_Pos);
-        _devs[uart].p->SHORTS        = (UARTE_SHORTS_ENDRX_STARTRX_Enabled << UARTE_SHORTS_ENDRX_STARTRX_Pos);
-        _devs[uart].p->TASKS_STARTRX = 1;
+        // configure the UART for RX
+
+        _uart_vars[uart].callback = callback;
+
+        // setup the RX interrupt
+        _devs[uart].p->INTENSET = (UARTE_INTENSET_ENDRX_Enabled << UARTE_INTENSET_ENDRX_Pos);
+
+        // setup the RX state machine and start receiving
+        mr_uart_start_rx(uart, UART_RX_STATE_RX_TRIGGER_BYTE);
+
         NVIC_EnableIRQ(_devs[uart].irq);
         NVIC_SetPriority(_devs[uart].irq, MR_UART_IRQ_PRIORITY);
         NVIC_ClearPendingIRQ(_devs[uart].irq);
+
+        // configure the timer for RX
+        NRF_UART_TIMER->TASKS_CLEAR = 1;
+        NRF_UART_TIMER->PRESCALER   = 4;  // Run TIMER at 1MHz
+        NRF_UART_TIMER->BITMODE     = (TIMER_BITMODE_BITMODE_32Bit << TIMER_BITMODE_BITMODE_Pos);
+        NRF_UART_TIMER->INTENSET    = (1 << (TIMER_INTENSET_COMPARE0_Pos + TIMER_CC_NUM - 1));
+        NVIC_SetPriority(TIMER_IRQ, 2);
+        NVIC_EnableIRQ(TIMER_IRQ);
     }
 }
 
@@ -219,21 +259,68 @@ bool mr_uart_tx_busy(uart_t uart) {
     return _uart_vars[uart].tx_busy;
 }
 
+void mr_uart_start_rx(uart_t uart, uart_rx_state_t state) {
+    _uart_vars[uart].rx_state = state;
+    if (state == UART_RX_STATE_RX_TRIGGER_BYTE) {
+        _devs[uart].p->RXD.MAXCNT = 1;  // receive the trigger byte
+        _devs[uart].p->RXD.PTR    = (uint32_t)&_uart_vars[uart].rx_trigger_byte_ptr;
+    } else if (state == UART_RX_STATE_RX_CHUNK) {
+        _devs[uart].p->RXD.MAXCNT = 63;  // receive the rest of the chunk
+                                         // start receiving from the second byte to leave room for the trigger byte
+        _devs[uart].p->RXD.PTR = (uint32_t)&_uart_vars[uart].rx_buffer[1];
+    }
+    _devs[uart].p->TASKS_STARTRX = 1;  // start receiving
+}
+
 //=========================== interrupts =======================================
 
 #include "mr_gpio.h"
-extern mr_gpio_t pin_dbg_uart;
+extern mr_gpio_t pin_dbg_uart, pin_dbg_timer;
 static void      _uart_isr(uart_t uart) {
-    mr_gpio_set(&pin_dbg_uart);
 
     // check if the interrupt was caused by a fully received package
     if (_devs[uart].p->EVENTS_ENDRX) {
+        mr_gpio_set(&pin_dbg_uart);
         _devs[uart].p->EVENTS_ENDRX = 0;
         // make sure we actually received new data
         if (_devs[uart].p->RXD.AMOUNT != 0) {
-            // process received byte
-            _uart_vars[uart].callback(_uart_vars[uart].byte);
+            if (_uart_vars[uart].rx_state == UART_RX_STATE_RX_TRIGGER_BYTE && _devs[uart].p->RXD.AMOUNT == 1) {
+                // save the trigger byte
+                _uart_vars[uart].rx_trigger_byte_saved = _uart_vars[uart].rx_trigger_byte_ptr;
+                // we received the trigger byte, can start receiving the chunk
+                mr_uart_start_rx(uart, UART_RX_STATE_RX_CHUNK);
+                // arm timer in case the chunk is not filled in time
+                NRF_UART_TIMER->TASKS_CLEAR          = 1;
+                NRF_UART_TIMER->CC[TIMER_CC_NUM - 1] = 2000;  // for 1000000 baudrate and chunk size 63
+                // NRF_UART_TIMER->CC[TIMER_CC_NUM - 1] = 2000;  // for 460800 baudrate
+                NRF_UART_TIMER->TASKS_START = 1;
+            } else if (_uart_vars[uart].rx_state == UART_RX_STATE_RX_CHUNK) {
+                // stop the timer
+                NRF_UART_TIMER->TASKS_STOP = 1;
+
+                // process the received buffer
+                size_t rx_length              = _devs[uart].p->RXD.AMOUNT + 1;           // +1 for the trigger byte
+                _uart_vars[uart].rx_buffer[0] = _uart_vars[uart].rx_trigger_byte_saved;  // put the trigger byte at the beginning of the buffer
+                _uart_vars[uart].callback(_uart_vars[uart].rx_buffer, rx_length);
+
+                // // all done, go back to receiving the trigger byte
+                // mr_uart_start_rx(uart, UART_RX_STATE_RX_TRIGGER_BYTE);
+
+                _uart_vars[uart].rx_state = UART_RX_STATE_BACKOFF_TRIGGER_BYTE;
+
+                // arm timer to start receiving the trigger byte
+                NRF_UART_TIMER->TASKS_CLEAR          = 1;
+                NRF_UART_TIMER->CC[TIMER_CC_NUM - 1] = 300;  // us
+                NRF_UART_TIMER->TASKS_START          = 1;
+            } else {
+                // something went wrong, go back to receiving the trigger byte
+                mr_uart_start_rx(uart, UART_RX_STATE_RX_TRIGGER_BYTE);
+            }
+        } else {
+            // nothing received, go back to receiving the trigger byte
+            mr_uart_start_rx(uart, UART_RX_STATE_RX_TRIGGER_BYTE);
         }
+        mr_gpio_clear(&pin_dbg_uart);
     }
 
     // check if the interrupt was caused by TX completion
@@ -259,8 +346,6 @@ static void      _uart_isr(uart_t uart) {
             _devs[uart].p->INTENCLR = (UARTE_INTENCLR_ENDTX_Clear << UARTE_INTENCLR_ENDTX_Pos);
         }
     }
-
-    mr_gpio_clear(&pin_dbg_uart);
 };
 
 #if defined(NRF5340_XXAA)
@@ -291,3 +376,25 @@ void UARTE1_IRQHandler(void) {
     _uart_isr(1);
 }
 #endif
+
+#if defined(NRF5340_XXAA)
+void TIMER2_IRQHandler(void) {
+#else
+void TIMER4_IRQHandler(void) {
+#endif
+    if (NRF_UART_TIMER->EVENTS_COMPARE[TIMER_CC_NUM - 1]) {
+        NRF_UART_TIMER->EVENTS_COMPARE[TIMER_CC_NUM - 1] = 0;
+        NRF_UART_TIMER->TASKS_STOP                       = 1;
+
+        mr_gpio_set(&pin_dbg_timer);
+        mr_gpio_clear(&pin_dbg_timer);
+
+        if (_uart_vars[_uart_global_index].rx_state == UART_RX_STATE_RX_CHUNK) {
+            // tell the uart to stop receiving -> this will cause an ENDRX interrupt
+            _devs[_uart_global_index].p->TASKS_STOPRX = 1;
+        } else if (_uart_vars[_uart_global_index].rx_state == UART_RX_STATE_BACKOFF_TRIGGER_BYTE) {
+            // tell the uart to start receiving the trigger byte
+            mr_uart_start_rx(_uart_global_index, UART_RX_STATE_RX_TRIGGER_BYTE);
+        }
+    }
+}

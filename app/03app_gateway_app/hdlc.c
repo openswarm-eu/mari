@@ -82,6 +82,14 @@ uint16_t _mr_hdlc_update_fcs(uint16_t fcs, uint8_t byte);
 
 //=========================== public ===========================================
 
+mr_hdlc_state_t mr_hdlc_reset(void) {
+    _hdlc_vars.buffer_pos  = 0;
+    _hdlc_vars.fcs         = MR_HDLC_FCS_INIT;
+    _hdlc_vars.state       = MR_HDLC_STATE_IDLE;
+    _hdlc_vars.escape_byte = false;
+    return _hdlc_vars.state;
+}
+
 mr_hdlc_state_t mr_hdlc_peek_state(void) {
     return _hdlc_vars.state;
 }

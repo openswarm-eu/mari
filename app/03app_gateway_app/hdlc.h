@@ -35,6 +35,8 @@ typedef enum {
  */
 mr_hdlc_state_t mr_hdlc_rx_byte(uint8_t byte);
 
+mr_hdlc_state_t mr_hdlc_reset(void);
+
 /**
  * @brief   Peek at the current state of the HDLC decoder
  *
