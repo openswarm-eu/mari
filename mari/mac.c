@@ -225,10 +225,10 @@ static void set_slot_state(mr_mac_state_t state) {
         case STATE_RX_DATA_LISTEN:
         case STATE_TX_DATA:
         case STATE_RX_DATA:
-            DEBUG_GPIO_SET(&pin1);
+            // DEBUG_GPIO_SET(&pin1);
             break;
         case STATE_SLEEP:
-            DEBUG_GPIO_CLEAR(&pin1);
+            // DEBUG_GPIO_CLEAR(&pin1);
             DEBUG_GPIO_CLEAR(&pin2);  // pin2 might be SET in case a packet had just started to arrive, so set it low again
             break;
         default:

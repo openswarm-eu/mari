@@ -46,8 +46,9 @@
 #define MR_UARTE_CHUNK_SIZE (64U)
 
 typedef enum {
-    UART_RX_STATE_IDLE,
+    UART_RX_STATE_IDLE = 1,
     UART_RX_STATE_RX_TRIGGER_BYTE,
+    UART_RX_STATE_BACKOFF_TRIGGER_BYTE,
     UART_RX_STATE_RX_CHUNK,
 } uart_rx_state_t;
 
@@ -271,8 +272,8 @@ void mr_uart_start_rx(uart_t uart, uart_rx_state_t state) {
         _devs[uart].p->RXD.MAXCNT = 1;  // receive the trigger byte
         _devs[uart].p->RXD.PTR    = (uint32_t)&_uart_vars[uart].rx_trigger_byte_ptr;
     } else if (state == UART_RX_STATE_RX_CHUNK) {
-        _devs[uart].p->RXD.MAXCNT = 7;  // receive the rest of the chunk
-                                        // start receiving from the second byte to leave room for the trigger byte
+        _devs[uart].p->RXD.MAXCNT = 63;  // receive the rest of the chunk
+                                         // start receiving from the second byte to leave room for the trigger byte
         _devs[uart].p->RXD.PTR = (uint32_t)&_uart_vars[uart].rx_buffer[1];
     }
     _devs[uart].p->TASKS_STARTRX = 1;  // start receiving
@@ -297,19 +298,27 @@ static void      _uart_isr(uart_t uart) {
                 mr_uart_start_rx(uart, UART_RX_STATE_RX_CHUNK);
                 // arm timer in case the chunk is not filled in time
                 NRF_UART_TIMER->TASKS_CLEAR          = 1;
-                NRF_UART_TIMER->CC[TIMER_CC_NUM - 1] = 1000;
-                NRF_UART_TIMER->TASKS_START          = 1;
+                NRF_UART_TIMER->CC[TIMER_CC_NUM - 1] = 2000;  // for 1000000 baudrate and chunk size 63
+                // NRF_UART_TIMER->CC[TIMER_CC_NUM - 1] = 2000;  // for 460800 baudrate
+                NRF_UART_TIMER->TASKS_START = 1;
             } else if (_uart_vars[uart].rx_state == UART_RX_STATE_RX_CHUNK) {
                 // stop the timer
                 NRF_UART_TIMER->TASKS_STOP = 1;
 
                 // process the received buffer
-                size_t rx_length              = _devs[uart].p->RXD.AMOUNT + 1;         // +1 for the trigger byte
-                _uart_vars[uart].rx_buffer[0] = _uart_vars[uart].rx_trigger_byte_ptr;  // put the trigger byte at the beginning of the buffer
+                size_t rx_length              = _devs[uart].p->RXD.AMOUNT + 1;           // +1 for the trigger byte
+                _uart_vars[uart].rx_buffer[0] = _uart_vars[uart].rx_trigger_byte_saved;  // put the trigger byte at the beginning of the buffer
                 _uart_vars[uart].callback(_uart_vars[uart].rx_buffer, rx_length);
 
-                // all done, go back to receiving the trigger byte
-                mr_uart_start_rx(uart, UART_RX_STATE_RX_TRIGGER_BYTE);
+                // // all done, go back to receiving the trigger byte
+                // mr_uart_start_rx(uart, UART_RX_STATE_RX_TRIGGER_BYTE);
+
+                _uart_vars[uart].rx_state = UART_RX_STATE_BACKOFF_TRIGGER_BYTE;
+
+                // arm timer to start receiving the trigger byte
+                NRF_UART_TIMER->TASKS_CLEAR          = 1;
+                NRF_UART_TIMER->CC[TIMER_CC_NUM - 1] = 300;  // us
+                NRF_UART_TIMER->TASKS_START          = 1;
             } else {
                 // something went wrong, go back to receiving the trigger byte
                 mr_uart_start_rx(uart, UART_RX_STATE_RX_TRIGGER_BYTE);
@@ -384,12 +393,17 @@ void TIMER4_IRQHandler(void) {
         NRF_UART_TIMER->EVENTS_COMPARE[TIMER_CC_NUM - 1] = 0;
         NRF_UART_TIMER->TASKS_STOP                       = 1;
 
-        // tell the uart to stop receiving
-        // this will cause an ENDRX interrupt
-        _devs[_uart_global_index].p->TASKS_STOPRX = 1;
-
         mr_gpio_set(&pin_dbg_timer);
         mr_gpio_clear(&pin_dbg_timer);
+
+        if (_uart_vars[_uart_global_index].rx_state == UART_RX_STATE_RX_CHUNK) {
+            // tell the uart to stop receiving
+            // this will cause an ENDRX interrupt
+            _devs[_uart_global_index].p->TASKS_STOPRX = 1;
+        } else if (_uart_vars[_uart_global_index].rx_state == UART_RX_STATE_BACKOFF_TRIGGER_BYTE) {
+            // tell the uart to start receiving the trigger byte                // // all done, go back to receiving the trigger byte
+            mr_uart_start_rx(_uart_global_index, UART_RX_STATE_RX_TRIGGER_BYTE);
+        }
 
         // // back to receiving the trigger byte
         // mr_uart_start_rx(_uart_global_index, UART_RX_STATE_RX_TRIGGER_BYTE);
