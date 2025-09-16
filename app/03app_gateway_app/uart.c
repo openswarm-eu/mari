@@ -58,14 +58,15 @@ typedef struct {
 
 typedef struct {
     // uint8_t      byte;       ///< the byte where received byte on UART is stored
-    uint8_t         rx_trigger_byte;  ///< the byte that triggers the RX state machine
-    uint8_t         rx_buffer[256];   ///< the buffer where received bytes on UART are stored
-    uart_rx_cb_t    callback;         ///< pointer to the callback function
-    uint8_t        *tx_buffer;        ///< current TX buffer
-    size_t          tx_length;        ///< total bytes to transmit
-    size_t          tx_pos;           ///< current position in TX buffer
-    bool            tx_busy;          ///< flag indicating TX is in progress
-    uart_rx_state_t rx_state;         ///< current state of the RX state machine
+    uint8_t         rx_trigger_byte_ptr;    ///< pointer to the byte that triggers the RX state machine
+    uint8_t         rx_trigger_byte_saved;  ///< saved value of the byte that triggered the RX state machine (because the ptr tends to get overwritten)
+    uint8_t         rx_buffer[256];         ///< the buffer where received bytes on UART are stored
+    uart_rx_cb_t    callback;               ///< pointer to the callback function
+    uint8_t        *tx_buffer;              ///< current TX buffer
+    size_t          tx_length;              ///< total bytes to transmit
+    size_t          tx_pos;                 ///< current position in TX buffer
+    bool            tx_busy;                ///< flag indicating TX is in progress
+    uart_rx_state_t rx_state;               ///< current state of the RX state machine
 } uart_vars_t;
 
 //=========================== variables ========================================
@@ -268,7 +269,7 @@ void mr_uart_start_rx(uart_t uart, uart_rx_state_t state) {
     _uart_vars[uart].rx_state = state;
     if (state == UART_RX_STATE_RX_TRIGGER_BYTE) {
         _devs[uart].p->RXD.MAXCNT = 1;  // receive the trigger byte
-        _devs[uart].p->RXD.PTR    = (uint32_t)&_uart_vars[uart].rx_trigger_byte;
+        _devs[uart].p->RXD.PTR    = (uint32_t)&_uart_vars[uart].rx_trigger_byte_ptr;
     } else if (state == UART_RX_STATE_RX_CHUNK) {
         _devs[uart].p->RXD.MAXCNT = 7;  // receive the rest of the chunk
                                         // start receiving from the second byte to leave room for the trigger byte
@@ -290,7 +291,9 @@ static void      _uart_isr(uart_t uart) {
         // make sure we actually received new data
         if (_devs[uart].p->RXD.AMOUNT != 0) {
             if (_uart_vars[uart].rx_state == UART_RX_STATE_RX_TRIGGER_BYTE && _devs[uart].p->RXD.AMOUNT == 1) {
-                // we received the trigger byte, so we can start receiving the chunk
+                // save the trigger byte
+                _uart_vars[uart].rx_trigger_byte_saved = _uart_vars[uart].rx_trigger_byte_ptr;
+                // we received the trigger byte, can start receiving the chunk
                 mr_uart_start_rx(uart, UART_RX_STATE_RX_CHUNK);
                 // arm timer in case the chunk is not filled in time
                 NRF_UART_TIMER->TASKS_CLEAR          = 1;
@@ -301,18 +304,18 @@ static void      _uart_isr(uart_t uart) {
                 NRF_UART_TIMER->TASKS_STOP = 1;
 
                 // process the received buffer
-                size_t rx_length              = _devs[uart].p->RXD.AMOUNT + 1;     // +1 for the trigger byte
-                _uart_vars[uart].rx_buffer[0] = _uart_vars[uart].rx_trigger_byte;  // put the trigger byte at the beginning of the buffer
+                size_t rx_length              = _devs[uart].p->RXD.AMOUNT + 1;         // +1 for the trigger byte
+                _uart_vars[uart].rx_buffer[0] = _uart_vars[uart].rx_trigger_byte_ptr;  // put the trigger byte at the beginning of the buffer
                 _uart_vars[uart].callback(_uart_vars[uart].rx_buffer, rx_length);
 
                 // all done, go back to receiving the trigger byte
                 mr_uart_start_rx(uart, UART_RX_STATE_RX_TRIGGER_BYTE);
             } else {
-                // something went wrong, so we go back to receiving the trigger byte
+                // something went wrong, go back to receiving the trigger byte
                 mr_uart_start_rx(uart, UART_RX_STATE_RX_TRIGGER_BYTE);
             }
         } else {
-            // nothing received, so we go back to receiving the trigger byte
+            // nothing received, go back to receiving the trigger byte
             mr_uart_start_rx(uart, UART_RX_STATE_RX_TRIGGER_BYTE);
         }
         mr_gpio_clear(&pin_dbg_uart);

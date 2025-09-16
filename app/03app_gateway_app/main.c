@@ -24,16 +24,18 @@
 mr_gpio_t pin_hdlc_error        = { .port = 1, .pin = 5 };
 mr_gpio_t pin_hdlc_ready_decode = { .port = 1, .pin = 10 };
 // mr_gpio_t pin_dbg_ipc           = { .port = 1, .pin = 7 };
-mr_gpio_t pin_dbg_timer      = { .port = 1, .pin = 7 };
-mr_gpio_t pin_dbg_uart       = { .port = 1, .pin = 8 };
-mr_gpio_t pin_dbg_uart_write = { .port = 1, .pin = 9 };
+mr_gpio_t pin_dbg_timer = { .port = 1, .pin = 7 };
+mr_gpio_t pin_dbg_uart  = { .port = 1, .pin = 8 };
+// mr_gpio_t pin_dbg_uart_write = { .port = 1, .pin = 9 };
+mr_gpio_t pin_dbg_uart_new = { .port = 1, .pin = 9 };
 
 //=========================== defines ==========================================
 
 #define MR_UART_INDEX    (1)          ///< Index of UART peripheral to use
 #define MR_UART_BAUDRATE (1000000UL)  ///< UART baudrate used by the gateway
 
-#define TX_QUEUE_SIZE 4
+#define TX_QUEUE_SIZE            4
+#define UART_RX_RING_BUFFER_SIZE 512  ///< Size of the UART RX ring buffer
 
 typedef struct {
     uint8_t buffer[256];
@@ -41,12 +43,15 @@ typedef struct {
 } tx_frame_t;
 
 typedef struct {
-    // bool    uart_byte_received;
-    // uint8_t uart_byte;
+    uint8_t         buffer[UART_RX_RING_BUFFER_SIZE];  ///< Ring buffer for UART RX data
+    volatile size_t head;                              ///< Head pointer (write position)
+    volatile size_t tail;                              ///< Tail pointer (read position)
+    volatile size_t count;                             ///< Number of bytes in buffer
+} uart_ring_buffer_t;
 
-    bool    uart_buffer_received;
-    uint8_t uart_buffer[256];
-    size_t  uart_buffer_length;
+typedef struct {
+    uart_ring_buffer_t uart_rx_ring;         ///< UART RX ring buffer
+    bool               uart_data_available;  ///< Flag indicating new data is available
 
     uint8_t hdlc_encode_buffer[1024];  // Should be large enough
     bool    tx_pending;                // Flag for deferred TX (legacy)
@@ -155,6 +160,64 @@ static bool _tx_queue_dequeue(uint8_t *data, size_t *length) {
     return true;
 }
 
+//=========================== UART Ring Buffer functions ===================
+
+static bool _uart_ring_buffer_is_empty(void) {
+    return _app_vars.uart_rx_ring.count == 0;
+}
+
+static bool _uart_ring_buffer_is_full(void) {
+    return _app_vars.uart_rx_ring.count >= UART_RX_RING_BUFFER_SIZE;
+}
+
+static bool _uart_ring_buffer_put(uint8_t data) {
+    if (_uart_ring_buffer_is_full()) {
+        return false;  // Buffer full
+    }
+
+    _app_vars.uart_rx_ring.buffer[_app_vars.uart_rx_ring.head] = data;
+    _app_vars.uart_rx_ring.head                                = (_app_vars.uart_rx_ring.head + 1) % UART_RX_RING_BUFFER_SIZE;
+    _app_vars.uart_rx_ring.count++;
+
+    return true;
+}
+
+static bool __attribute__((unused)) _uart_ring_buffer_get(uint8_t *data) {
+    if (_uart_ring_buffer_is_empty()) {
+        return false;  // Buffer empty
+    }
+
+    *data                       = _app_vars.uart_rx_ring.buffer[_app_vars.uart_rx_ring.tail];
+    _app_vars.uart_rx_ring.tail = (_app_vars.uart_rx_ring.tail + 1) % UART_RX_RING_BUFFER_SIZE;
+    _app_vars.uart_rx_ring.count--;
+
+    return true;
+}
+
+static size_t _uart_ring_buffer_put_multiple(const uint8_t *buffer, size_t length) {
+    size_t bytes_written = 0;
+
+    for (size_t i = 0; i < length; i++) {
+        if (!_uart_ring_buffer_put(buffer[i])) {
+            break;  // Buffer full, stop writing
+        }
+        bytes_written++;
+    }
+
+    return bytes_written;
+}
+
+// static size_t _uart_ring_buffer_available(void) {
+//     return _app_vars.uart_rx_ring.count;
+// }
+
+static void _uart_ring_buffer_init(void) {
+    _app_vars.uart_rx_ring.head   = 0;
+    _app_vars.uart_rx_ring.tail   = 0;
+    _app_vars.uart_rx_ring.count  = 0;
+    _app_vars.uart_data_available = false;
+}
+
 // UART callback function
 // static void _uart_callback(uint8_t byte) {
 //     _app_vars.uart_byte          = byte;
@@ -166,9 +229,17 @@ static void _uart_callback(uint8_t *buffer, size_t length) {
         return;
     }
 
-    memcpy(_app_vars.uart_buffer, buffer, length);
-    _app_vars.uart_buffer_length   = length;
-    _app_vars.uart_buffer_received = true;
+    // Add received data to ring buffer
+    size_t bytes_written = _uart_ring_buffer_put_multiple(buffer, length);
+
+    // Set flag to indicate new data is available
+    if (bytes_written > 0) {
+        _app_vars.uart_data_available = true;
+    }
+
+    // TODO: Handle case where not all bytes were written (buffer full)
+    // For now, we just drop the excess data
+    (void)bytes_written;  // Suppress unused variable warning
 }
 
 int main(void) {
@@ -181,7 +252,8 @@ int main(void) {
     // mr_gpio_init(&pin_dbg_ipc, MR_GPIO_OUT);
     mr_gpio_init(&pin_dbg_timer, MR_GPIO_OUT);
     mr_gpio_init(&pin_dbg_uart, MR_GPIO_OUT);
-    mr_gpio_init(&pin_dbg_uart_write, MR_GPIO_OUT);
+    // mr_gpio_init(&pin_dbg_uart_write, MR_GPIO_OUT);
+    mr_gpio_init(&pin_dbg_uart_new, MR_GPIO_OUT);
 
     // Enable HFCLK with external 32MHz oscillator
     mr_hfclk_init();
@@ -189,6 +261,7 @@ int main(void) {
     _configure_ram_non_secure(2, 1);
     _init_ipc();
     mr_uart_init(MR_UART_INDEX, &_mr_uart_rx_pin, &_mr_uart_tx_pin, MR_UART_BAUDRATE, &_uart_callback);
+    _uart_ring_buffer_init();  // Initialize the UART ring buffer
 
     _release_network_core();
     // this is a bit hacky -- sometimes it does not work without this
@@ -197,18 +270,21 @@ int main(void) {
     while (1) {
         __WFE();
 
-        // if (_app_vars.uart_buffer_received) {
-        //     _app_vars.uart_buffer_received = false;
+        // if (_app_vars.uart_data_available) {
+        //     _app_vars.uart_data_available = false;
         //     // just toggle a debug pin
         //     mr_gpio_set(&pin_hdlc_ready_decode);
         //     mr_gpio_clear(&pin_hdlc_ready_decode);
         // }
 
-        if (_app_vars.uart_buffer_received) {
-            _app_vars.uart_buffer_received = false;
-            // use a loop to decode the whole buffer, testing the state machine at each byte
-            for (size_t i = 0; i < _app_vars.uart_buffer_length; i++) {
-                mr_hdlc_state_t hdlc_state = mr_hdlc_rx_byte(_app_vars.uart_buffer[i]);
+        if (_app_vars.uart_data_available) {
+            _app_vars.uart_data_available = false;
+            mr_gpio_set(&pin_dbg_uart_new);
+
+            // Process all available bytes in the ring buffer
+            uint8_t byte;
+            while (_uart_ring_buffer_get(&byte)) {
+                mr_hdlc_state_t hdlc_state = mr_hdlc_rx_byte(byte);
                 if (hdlc_state == MR_HDLC_STATE_READY) {
                     // decode the frame and send it to the radio
                     mr_gpio_set(&pin_hdlc_ready_decode);
@@ -239,8 +315,11 @@ int main(void) {
 
                     // // NOTE: since we didn't send a message to the radio (it was an error),
                     // // we can keep decoding the rest of the buffer, no need to break
+                } else {
+                    __NOP();
                 }
             }
+            mr_gpio_clear(&pin_dbg_uart_new);
         }
 
         // if (_app_vars.uart_byte_received) {
@@ -290,18 +369,18 @@ int main(void) {
 
             if (_tx_queue_dequeue(frame_data, &frame_len)) {
                 _app_vars.tx_frame_len = mr_hdlc_encode(frame_data, frame_len, _app_vars.hdlc_encode_buffer);
-                mr_gpio_set(&pin_dbg_uart_write);
+                // mr_gpio_set(&pin_dbg_uart_write);
                 mr_uart_write(MR_UART_INDEX, _app_vars.hdlc_encode_buffer, _app_vars.tx_frame_len);
-                mr_gpio_clear(&pin_dbg_uart_write);
+                // mr_gpio_clear(&pin_dbg_uart_write);
             }
         }
 
         // Handle deferred TX when UART becomes available (keep for compatibility)
         if (_app_vars.tx_pending && !mr_uart_tx_busy(MR_UART_INDEX)) {
             _app_vars.tx_pending = false;
-            mr_gpio_set(&pin_dbg_uart_write);
+            // mr_gpio_set(&pin_dbg_uart_write);
             mr_uart_write(MR_UART_INDEX, _app_vars.hdlc_encode_buffer, _app_vars.tx_frame_len);
-            mr_gpio_clear(&pin_dbg_uart_write);
+            // mr_gpio_clear(&pin_dbg_uart_write);
         }
     }
 }
