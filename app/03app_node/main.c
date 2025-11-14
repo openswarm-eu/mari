@@ -35,9 +35,9 @@
 
 typedef enum {
     PAYLOAD_TYPE_APPLICATION      = 1,
-    PAYLOAD_TYPE_METRICS_REQUEST  = 128,
-    PAYLOAD_TYPE_METRICS_RESPONSE = 129,
-    PAYLOAD_TYPE_METRICS_LOAD     = 130,
+    PAYLOAD_TYPE_METRICS_REQUEST  = 0x90,
+    PAYLOAD_TYPE_METRICS_RESPONSE = 0x91,
+    PAYLOAD_TYPE_METRICS_LOAD     = 0x92,
 } default_payload_type_t;
 
 typedef struct __attribute__((packed)) {
