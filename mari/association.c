@@ -211,7 +211,7 @@ void mr_assoc_node_handle_give_up_joining(void) {
 bool mr_assoc_node_too_long_waiting_for_join_response(void) {
     // joining state timeout is computed since the time the node sent a join request
     if (assoc_vars.state != JOIN_STATE_JOINING) {
-        // can only reach timeout when in synced or joining state
+        // can only reach timeout when in joining state
         return false;
     }
 
