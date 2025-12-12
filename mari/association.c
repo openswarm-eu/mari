@@ -182,7 +182,7 @@ void mr_assoc_node_start_joining(void) {
 
 void mr_assoc_node_handle_joined(uint64_t gateway_id) {
     mr_assoc_set_state(JOIN_STATE_JOINED);
-    mr_queue_reset(); // clear the queue to avoid sending old packets
+    mr_queue_reset();  // clear the queue to avoid sending old packets
     mr_event_data_t event_data = { .data.gateway_info.gateway_id = gateway_id };
     assoc_vars.mari_event_callback(MARI_CONNECTED, event_data);
     assoc_vars.is_pending_disconnect = MARI_NONE;        // reset the pending disconnect flag

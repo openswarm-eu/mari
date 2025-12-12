@@ -125,7 +125,7 @@ bool mr_handle_packet(uint8_t *packet, uint8_t length) {
     mr_packet_header_t *header = (mr_packet_header_t *)packet;
 
     bool wrong_destination = header->dst != mr_device_id() && header->dst != MARI_BROADCAST_ADDRESS;
-    bool not_a_beacon = header->type != MARI_PACKET_BEACON;
+    bool not_a_beacon      = header->type != MARI_PACKET_BEACON;
     if (wrong_destination && not_a_beacon) {
         return false;
     }
