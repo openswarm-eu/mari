@@ -45,7 +45,7 @@
     linker_additional_options="--gc-sections"
     link_time_optimization="No"
     linker_memory_map_file="$(ProjectDir)/../../nRF/Setup/nRF52833_xxAA_MemoryMap.xml"
-    linker_output_format="bin"
+    linker_output_format="hex"
     linker_printf_fmt_level="int"
     linker_printf_fp_enabled="Float"
     linker_section_placement_file="$(ProjectDir)/../../nRF/Setup/nRF52833_xxAA_flash_placement.xml"
