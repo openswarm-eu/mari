@@ -30,8 +30,8 @@
 
 //=========================== defines ==========================================
 
-#define MARI_APP_NET_CONFIG_START_ADDRESS    (0x0103f800) // start of the last page (2KB) of the flash (0x01000000 + 0x00040000 - 0x800)
-#define MARI_APP_CONFIG_MAGIC_VALUE          (0x5753524D) // "SWRM"
+#define MARI_APP_NET_CONFIG_START_ADDRESS (0x0103f800)  // start of the last page (2KB) of the flash (0x01000000 + 0x00040000 - 0x800)
+#define MARI_APP_CONFIG_MAGIC_VALUE       (0x5753524D)  // "SWRM"
 
 #define MARI_APP_TIMER_DEV 1
 
@@ -46,8 +46,8 @@ typedef struct {
 } gateway_vars_t;
 
 typedef struct {
-    uint32_t magic;      // to detect if config is valid
-    uint32_t net_id;     // Mari network ID
+    uint32_t magic;   // to detect if config is valid
+    uint32_t net_id;  // Mari network ID
 } mari_app_config_t;
 
 //=========================== variables ========================================
