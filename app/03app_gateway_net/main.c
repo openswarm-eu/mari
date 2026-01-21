@@ -30,7 +30,8 @@
 
 //=========================== defines ==========================================
 
-#define MARI_APP_NET_ID MARI_NET_ID_DEFAULT
+#define MARI_APP_NET_CONFIG_START_ADDRESS (0x0103f800)  // start of the last page (2KB) of the flash (0x01000000 + 0x00040000 - 0x800)
+#define MARI_APP_CONFIG_MAGIC_VALUE       (0x5753524D)  // "SWRM"
 
 #define MARI_APP_TIMER_DEV 1
 
@@ -43,6 +44,11 @@ typedef struct {
     uint32_t        tx_count;
     uint32_t        rx_count;
 } gateway_vars_t;
+
+typedef struct {
+    uint32_t magic;   // to detect if config is valid
+    uint32_t net_id;  // Mari network ID
+} mari_app_config_t;
 
 //=========================== variables ========================================
 
@@ -63,6 +69,16 @@ static void _to_uart_gateway_loop(void) {
     _app_vars.to_uart_gateway_loop_ready = true;
 }
 
+static uint16_t _net_id(void) {
+    const mari_app_config_t *cfg = (const mari_app_config_t *)MARI_APP_NET_CONFIG_START_ADDRESS;
+
+    if (cfg->magic != MARI_APP_CONFIG_MAGIC_VALUE) {
+        // No network config found, use default network ID
+        return MARI_NET_ID_DEFAULT;
+    }
+    return (uint16_t)(cfg->net_id & 0xFFFFu);
+}
+
 static void _init_ipc(void) {
     NRF_IPC_NS->INTENSET                            = (1 << IPC_CHAN_UART_TO_RADIO);
     NRF_IPC_NS->SEND_CNF[IPC_CHAN_RADIO_TO_UART]    = (1 << IPC_CHAN_RADIO_TO_UART);
@@ -78,7 +94,7 @@ int main(void) {
     mr_timer_hf_init(MARI_APP_TIMER_DEV);
     _init_ipc();
 
-    mari_init(MARI_GATEWAY, MARI_APP_NET_ID, schedule_app, &_mari_event_callback);
+    mari_init(MARI_GATEWAY, _net_id(), schedule_app, &_mari_event_callback);
 
     // NOTE: to send the stats every slotframe, we need to use the duration of the slotframe
     mr_timer_hf_set_periodic_us(MARI_APP_TIMER_DEV, 3, mr_scheduler_get_duration_us(), &_to_uart_gateway_loop);
